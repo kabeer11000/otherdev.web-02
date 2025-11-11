@@ -1,0 +1,73 @@
+# dependencies
+node_modules
+*.pnp
+.pnp.js
+.pnp.cjs
+
+# testing
+coverage
+*.lcov
+
+# next.js
+.next/
+out/
+next-env.d.ts
+
+# production
+build
+dist
+
+# misc
+.DS_Store
+*.pem
+Thumbs.db
+claude.md
+CLAUDE.md
+.claude
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# local env files
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Claude Code instructions
+CLAUDE.md
+otherdev-complete-claude-instructions.md
