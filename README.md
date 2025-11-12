@@ -20,7 +20,7 @@ otherdev produces digital platforms for pioneering creatives across fashion, des
 - **Rich Interactions** - Smooth animations with Framer Motion
 - **Responsive Design** - Optimized for all devices
 - **Accessibility First** - Built with Radix UI primitives
-- **Type Safe** - Full TypeScript coverage with Zod validation
+- **End-to-End Type Safety** - tRPC API layer with full TypeScript coverage and Zod validation
 
 ## Tech Stack
 
@@ -38,6 +38,12 @@ otherdev produces digital platforms for pioneering creatives across fashion, des
 - **[Framer Motion](https://www.framer.com/motion/)** - Animation library
 - **[Lucide React](https://lucide.dev/)** - Icon system
 - **[next-themes](https://github.com/pacocoursey/next-themes)** - Theme management
+
+### API & Data Fetching
+
+- **[tRPC](https://trpc.io/)** - End-to-end typesafe APIs
+- **[TanStack Query](https://tanstack.com/query)** - Powerful async state management
+- **[SuperJSON](https://github.com/blitz-js/superjson)** - Enhanced JSON serialization
 
 ### Forms & Validation
 
@@ -87,12 +93,18 @@ bun dev
 
 ### Environment Variables
 
-Currently, this project runs without environment variables. For production deployments or API integrations, create a `.env.local` file in the `web/` directory:
+For contact form functionality, create a `.env.local` file in the `web/` directory:
 
 ```bash
-# Example for future use
-# NEXT_PUBLIC_API_URL=your_api_url
-# NEXT_PUBLIC_SITE_URL=your_site_url
+# Google Sheets Integration
+GOOGLE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+GOOGLE_SHEET_ID=your-google-sheet-id
+
+# Gmail Integration
+GMAIL_USER=your-email@gmail.com
+GMAIL_APP_PASSWORD=your-app-password
+GMAIL_RECIPIENTS=recipient1@example.com,recipient2@example.com
 ```
 
 ## Project Structure
@@ -107,15 +119,24 @@ otherdev-v2/
 │   │   │   ├── work/             # Work showcase
 │   │   │   │   ├── page.tsx      # Projects listing
 │   │   │   │   └── [slug]/       # Individual project pages
-│   │   │   └── layout.tsx        # Root layout
+│   │   │   ├── api/              # API routes
+│   │   │   │   └── trpc/[trpc]/  # tRPC HTTP handler
+│   │   │   └── layout.tsx        # Root layout with providers
 │   │   ├── components/           # React components
 │   │   │   ├── ui/               # Radix UI component wrappers
 │   │   │   ├── navigation.tsx    # Main navigation
 │   │   │   ├── project-card.tsx  # Project display card
-│   │   │   └── contact-dialog.tsx # Contact form modal
+│   │   │   ├── contact-dialog.tsx # Contact form with tRPC
+│   │   │   └── providers.tsx     # tRPC & React Query providers
+│   │   ├── server/               # tRPC server code
+│   │   │   ├── trpc.ts           # tRPC initialization
+│   │   │   └── routers/          # API routers by feature
+│   │   │       ├── contact.ts    # Contact form handler
+│   │   │       └── index.ts      # Root app router
 │   │   ├── hooks/                # Custom React hooks
 │   │   └── lib/                  # Utilities & data
 │   │       ├── projects.ts       # Project data & types
+│   │       ├── trpc.ts           # tRPC client utilities
 │   │       └── utils.ts          # Helper functions
 │   ├── public/                   # Static assets
 │   │   └── images/               # Project images & media
@@ -159,15 +180,19 @@ Run these commands from the `web/` directory:
 ### Contact System
 
 - **Two-Step Dialog** - Streamlined contact form flow
+- **tRPC Integration** - Type-safe API with automatic validation
 - **Form Validation** - Real-time validation with Zod schemas
+- **Google Integration** - Automatic submission to Google Sheets and Gmail
 - **Responsive Design** - Works seamlessly on mobile and desktop
 
 ### Technical Features
 
 - **Server Components** - Leveraging React Server Components for performance
+- **tRPC API Layer** - End-to-end type-safe APIs with automatic validation
+- **React Query** - Optimized data fetching with built-in caching
 - **Image Optimization** - Next.js Image component with WebP format
 - **Route Transitions** - Smooth navigation with App Router
-- **Type Safety** - End-to-end TypeScript coverage
+- **Type Safety** - Full TypeScript coverage from database to UI
 - **Code Quality** - Enforced via Biome linter and formatter
 
 ## Notable Projects
