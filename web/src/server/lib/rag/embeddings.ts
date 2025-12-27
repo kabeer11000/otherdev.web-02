@@ -1,0 +1,38 @@
+import { HfInference } from '@huggingface/inference';
+
+const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
+
+const MODEL = 'sentence-transformers/all-MiniLM-L6-v2';
+
+export async function generateEmbedding(text: string): Promise<number[]> {
+  try {
+    const response = await hf.featureExtraction({
+      model: MODEL,
+      inputs: text,
+    });
+
+    if (Array.isArray(response) && response.length > 0) {
+      if (Array.isArray(response[0])) {
+        return response[0] as number[];
+      }
+      return response as number[];
+    }
+
+    throw new Error('Invalid embedding response format');
+  } catch (error) {
+    console.error('Error generating embedding:', error);
+    throw new Error('Failed to generate embedding');
+  }
+}
+
+export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
+  const embeddings: number[][] = [];
+
+  for (const text of texts) {
+    const embedding = await generateEmbedding(text);
+    embeddings.push(embedding);
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  return embeddings;
+}

@@ -1,0 +1,64 @@
+import { knowledgeBase } from '../src/lib/knowledge-base';
+import { generateEmbedding } from '../src/server/lib/rag/embeddings';
+import { insertDocument } from '../src/server/lib/rag/vector-search';
+
+async function main() {
+  console.log('Starting document ingestion...');
+  console.log(`Total documents to process: ${knowledgeBase.length}\n`);
+
+  let successCount = 0;
+  let errorCount = 0;
+
+  for (let i = 0; i < knowledgeBase.length; i++) {
+    const doc = knowledgeBase[i];
+    const progress = `[${i + 1}/${knowledgeBase.length}]`;
+
+    try {
+      console.log(`${progress} Processing: ${doc.metadata.title}`);
+
+      console.log(`  Generating embedding...`);
+      const embedding = await generateEmbedding(doc.content);
+
+      if (!embedding || embedding.length !== 384) {
+        throw new Error(
+          `Invalid embedding dimension: ${embedding?.length || 0}`
+        );
+      }
+
+      console.log(`  Inserting into database...`);
+      const docId = await insertDocument(
+        doc.content,
+        doc.metadata,
+        embedding
+      );
+
+      console.log(`  Success! Document ID: ${docId}\n`);
+      successCount++;
+
+      if (i < knowledgeBase.length - 1) {
+        console.log('  Waiting 500ms before next request...\n');
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    } catch (error) {
+      console.error(`  Error processing document: ${error}`);
+      console.error(`  Document: ${doc.metadata.title}\n`);
+      errorCount++;
+    }
+  }
+
+  console.log('========================================');
+  console.log('Ingestion Complete!');
+  console.log(`  Successful: ${successCount}`);
+  console.log(`  Failed: ${errorCount}`);
+  console.log(`  Total: ${knowledgeBase.length}`);
+  console.log('========================================');
+
+  if (errorCount > 0) {
+    process.exit(1);
+  }
+}
+
+main().catch((error) => {
+  console.error('Fatal error during ingestion:', error);
+  process.exit(1);
+});

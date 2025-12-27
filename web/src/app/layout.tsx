@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TRPCProvider } from "@/components/providers";
 import { TenantProvider } from "@/lib/tenant-context";
+import { ChatWidget } from "@/components/chat-widget";
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
@@ -65,6 +66,7 @@ export default function RootLayout({
         <TenantProvider>
           <TRPCProvider>
             <Suspense fallback={null}>{children}</Suspense>
+            <ChatWidget />
           </TRPCProvider>
         </TenantProvider>
       </body>
