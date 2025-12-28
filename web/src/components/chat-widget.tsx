@@ -394,8 +394,14 @@ export function ChatWidget() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 overflow-y-auto relative" ref={containerRef} onScroll={handleScroll} onTouchStart={handleTouchStart}>
-                <div className="px-4 py-6 space-y-6 max-w-2xl mx-auto">
+              <div className="flex-1 relative min-h-0">
+                <ScrollArea
+                  className="h-full w-full"
+                  viewportRef={containerRef}
+                  onScroll={handleScroll}
+                  onTouchStart={handleTouchStart}
+                >
+                  <div className="px-4 py-6 space-y-6 max-w-2xl mx-auto">
                   {messages.map((message) => (
                     <div key={message.id} className="space-y-2">
                       {message.role === 'user' ? (
@@ -458,7 +464,8 @@ export function ChatWidget() {
                       </div>
                     </div>
                   )}
-                </div>
+                  </div>
+                </ScrollArea>
               </div>
             )}
 
