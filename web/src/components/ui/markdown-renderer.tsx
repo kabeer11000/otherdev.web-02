@@ -37,17 +37,23 @@ function CodeBlock({ children, className }: CodeBlockProps) {
   }, [children, language]);
 
   return (
-    <div className="relative group">
-      <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="relative group my-4">
+      <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
         <CopyButton
           content={children.trim()}
           copyMessage="Code copied to clipboard"
         />
       </div>
-      <div
-        dangerouslySetInnerHTML={{ __html: highlightedCode }}
-        className="[&>pre]:!bg-muted [&>pre]:!p-4 [&>pre]:rounded-lg [&>pre]:overflow-x-auto"
-      />
+      {highlightedCode ? (
+        <div
+          dangerouslySetInnerHTML={{ __html: highlightedCode }}
+          className="[&>pre]:p-4 [&>pre]:rounded-lg [&>pre]:overflow-x-auto [&>pre]:text-sm [&>pre]:leading-relaxed"
+        />
+      ) : (
+        <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+          <code>{children}</code>
+        </pre>
+      )}
     </div>
   );
 }
@@ -68,7 +74,7 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
           if (isInline) {
             return (
               <code
-                className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono"
+                className="bg-muted/50 px-1.5 py-0.5 rounded text-[0.875em] font-mono border border-border/50"
                 {...props}
               >
                 {content}
@@ -118,7 +124,6 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
           return (
             <a
               href={href}
-              className="text-primary hover:underline"
               target="_blank"
               rel="noopener noreferrer"
             >

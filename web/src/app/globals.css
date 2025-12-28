@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -187,4 +188,70 @@
       opacity: 1;
     }
   }
+}
+
+/* Custom Prose Typography Styles for Chat Widget */
+.prose {
+  --tw-prose-links: oklch(0.488 0.243 264.376);
+  --tw-prose-links-hover: oklch(0.4 0.25 264.376);
+  --tw-prose-code: oklch(0.147 0.004 49.25);
+  --tw-prose-pre-code: oklch(0.985 0.001 106.423);
+  --tw-prose-pre-bg: oklch(0.97 0.001 106.424);
+}
+
+.dark .prose {
+  --tw-prose-links: oklch(0.696 0.17 162.48);
+  --tw-prose-links-hover: oklch(0.8 0.18 162.48);
+  --tw-prose-code: oklch(0.985 0.001 106.423);
+  --tw-prose-pre-code: oklch(0.147 0.004 49.25);
+  --tw-prose-pre-bg: oklch(0.268 0.007 34.298);
+}
+
+.prose a {
+  color: var(--tw-prose-links);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.prose a:hover {
+  color: var(--tw-prose-links-hover);
+  text-decoration-thickness: 2px;
+}
+
+.prose code {
+  color: var(--tw-prose-code);
+  font-weight: 500;
+  font-size: 0.875em;
+}
+
+.prose pre {
+  background-color: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.prose pre code {
+  background-color: transparent !important;
+  color: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  padding: 0 !important;
+  white-space: pre;
+  word-wrap: normal;
+  overflow-wrap: normal;
+}
+
+.prose table {
+  max-width: 100%;
+  overflow-x: auto;
+  display: block;
+}
+
+.prose :where(tbody, thead, tfoot) {
+  display: table;
+  width: 100%;
 }

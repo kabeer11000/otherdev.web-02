@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { type Message } from "@/components/ui/chat-message";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { CopyButton } from "@/components/ui/copy-button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
 import { useAutosizeTextArea } from "@/hooks/use-autosize-textarea";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
@@ -403,14 +403,15 @@ export function ChatWidget() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 relative min-h-0">
+              <div className="flex-1 relative min-h-0 overflow-hidden">
                 <ScrollArea
                   className="h-full w-full"
                   viewportRef={containerRef}
                   onScroll={handleScroll}
                   onTouchStart={handleTouchStart}
                 >
-                  <div className="px-4 py-6 space-y-6 max-w-2xl mx-auto">
+                  <ScrollBar orientation="horizontal" />
+                  <div className="px-4 py-6 space-y-6 max-w-full">
                     {messages.map((message) => (
                       <div key={message.id} className="space-y-2">
                         {message.role === "user" ? (
@@ -437,7 +438,7 @@ export function ChatWidget() {
                                 height={16}
                                 className="h-4 w-4 mt-1 flex-shrink-0"
                               />
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0 overflow-x-auto">
                                 <div className="text-card-foreground text-sm leading-relaxed prose dark:prose-invert prose-sm max-w-none">
                                   <MarkdownRenderer>
                                     {message.content}
