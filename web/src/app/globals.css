@@ -123,13 +123,38 @@
   }
 }
 
-@layer utilities {
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+@keyframes typing-dot-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
   }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  30% {
+    transform: translateY(-0.5rem);
+  }
+}
+
+.animate-typing-dot-bounce {
+  animation: typing-dot-bounce 1.4s infinite ease-in-out;
+}
+
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutToBottom {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
   }
 }
 
