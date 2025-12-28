@@ -347,7 +347,7 @@ export function ChatWidget() {
             "animate-[slideInFromBottom_0.5s_ease-out_forwards]",
             "inset-0 rounded-none",
             "sm:inset-4 sm:rounded-2xl sm:max-w-[90vw] sm:max-h-[calc(100vh-2rem)]",
-            "md:[inset:unset] md:w-96 md:h-[600px] md:max-h-[calc(100vh-4rem)]",
+            "md:[inset:unset] md:w-[32rem] md:h-[600px] md:max-h-[calc(100vh-4rem)]",
             "lg:h-[650px] lg:max-h-[calc(100vh-5rem)]",
             "xl:h-[700px] xl:max-h-[calc(100vh-6rem)]",
           )}
