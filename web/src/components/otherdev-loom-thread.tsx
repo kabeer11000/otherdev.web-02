@@ -71,7 +71,7 @@ function AssistantMessage() {
             <div className="flex h-8 w-8 flex-shrink-0" />
           </AssistantIf>
           <div className="flex-1 space-y-2">
-            <div className="prose prose-sm max-w-none font-serif text-[#1a1a18] dark:prose-invert dark:text-[#eee]">
+            <div className="text-card-foreground text-sm leading-relaxed prose dark:prose-invert prose-sm max-w-none font-serif">
               <MessagePrimitive.Content
                 components={{
                   Text: (props) => (
