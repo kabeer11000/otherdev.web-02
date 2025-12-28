@@ -41,11 +41,9 @@ function UserMessage() {
   return (
     <MessagePrimitive.Root>
       <div className="flex justify-end">
-        <div className="flex w-full max-w-[95%] items-start gap-2 sm:max-w-[85%] sm:gap-3 md:max-w-[80%]">
-          <div className="flex-1 space-y-2">
-            <div className="rounded-2xl bg-accent px-3 py-2 font-serif text-sm text-accent-foreground sm:px-4 sm:py-3 sm:text-base">
-              <MessagePrimitive.Content />
-            </div>
+        <div className="flex max-w-[95%] items-start gap-2 sm:max-w-[85%] sm:gap-3 md:max-w-[80%]">
+          <div className="break-words rounded-2xl bg-accent px-3 py-2 font-serif text-sm text-accent-foreground sm:px-4 sm:py-3 sm:text-base">
+            <MessagePrimitive.Content />
           </div>
           <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
             <AvatarImage src="https://github.com/shadcn.png" alt="User" />
@@ -87,7 +85,7 @@ function AssistantMessage() {
               />
               <div className="flex-1 space-y-3">
                 {textPart && textPart.type === "text" && (
-                  <div className="prose prose-sm max-w-none font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
+                  <div className="prose prose-sm max-w-none break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
                     <MarkdownRenderer>{textPart.text}</MarkdownRenderer>
                   </div>
                 )}
@@ -95,15 +93,15 @@ function AssistantMessage() {
                   <Button
                     variant="outline"
                     onClick={() => setActiveArtifact(toolCallPart)}
-                    className="flex items-center gap-2 rounded-xl font-serif"
+                    className="flex w-fit max-w-sm items-center gap-2 rounded-xl font-serif"
                   >
-                    <FileCode2 className="h-4 w-4" />
-                    <div className="text-left">
-                      <div className="text-sm font-medium">
+                    <FileCode2 className="h-4 w-4 flex-shrink-0" />
+                    <div className="min-w-0 text-left">
+                      <div className="break-words text-sm font-medium">
                         {artifactArgs?.title || "View Artifact"}
                       </div>
                       {artifactArgs?.description && (
-                        <div className="text-xs text-muted-foreground">
+                        <div className="break-words text-xs text-muted-foreground line-clamp-2">
                           {artifactArgs.description}
                         </div>
                       )}
@@ -135,7 +133,7 @@ function AssistantMessage() {
             <div className="flex h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8" />
           </AssistantIf>
           <div className="flex-1 space-y-2">
-            <div className="prose prose-sm max-w-none font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
+            <div className="prose prose-sm max-w-none break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
               <MessagePrimitive.Content
                 components={{
                   Text: (props) => <MarkdownRenderer>{props.text}</MarkdownRenderer>,
@@ -166,7 +164,7 @@ function AssistantMessage() {
 export function OtherDevLoomThread() {
   return (
     <ThreadPrimitive.Root className="flex h-full flex-col bg-background">
-      <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto scroll-smooth">
+      <ThreadPrimitive.Viewport className="flex-1 overflow-x-hidden overflow-y-auto scroll-smooth">
         <ThreadPrimitive.Empty>
           <div className="flex h-full items-center justify-center p-4 sm:p-6 md:p-8">
             <div className="w-full max-w-2xl space-y-6 sm:space-y-8">

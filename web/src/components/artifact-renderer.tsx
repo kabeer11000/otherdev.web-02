@@ -27,7 +27,7 @@ export function ArtifactRenderer({
     description: string;
   };
 
-  const writeIframeContent = useCallback(() => {
+  useEffect(() => {
     if (iframeRef.current) {
       const iframe = iframeRef.current;
       const doc = iframe.contentDocument || iframe.contentWindow?.document;
@@ -38,16 +38,6 @@ export function ArtifactRenderer({
       }
     }
   }, [code]);
-
-  useEffect(() => {
-    writeIframeContent();
-  }, [writeIframeContent]);
-
-  useEffect(() => {
-    if (activeTab === "preview") {
-      writeIframeContent();
-    }
-  }, [activeTab, writeIframeContent]);
 
   const handleCopy = async () => {
     try {
@@ -133,7 +123,11 @@ export function ArtifactRenderer({
             </TabsList>
           </div>
 
-          <TabsContent value="preview" className="m-0 flex-1 overflow-hidden">
+          <TabsContent
+            value="preview"
+            className="m-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
+            forceMount
+          >
             <iframe
               ref={iframeRef}
               sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
@@ -142,7 +136,11 @@ export function ArtifactRenderer({
             />
           </TabsContent>
 
-          <TabsContent value="code" className="m-0 flex-1 overflow-auto">
+          <TabsContent
+            value="code"
+            className="m-0 flex-1 overflow-auto data-[state=inactive]:hidden"
+            forceMount
+          >
             <pre className="h-full p-4 font-mono text-sm">
               <code className="text-foreground">{code}</code>
             </pre>
