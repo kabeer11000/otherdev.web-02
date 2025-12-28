@@ -4,14 +4,13 @@ import {
   ThreadPrimitive,
   MessagePrimitive,
   ComposerPrimitive,
-  MessagePartPrimitive,
   useAssistantApi,
+  AssistantIf,
 } from "@assistant-ui/react";
-import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import { Send, User, Sparkles } from "lucide-react";
-import remarkGfm from "remark-gfm";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { CopyButton } from "@/components/ui/copy-button";
 
 const SUGGESTED_PROMPTS = [
   "What services does OtherDev offer?",
@@ -63,56 +62,38 @@ function AssistantMessage() {
     <MessagePrimitive.Root>
       <div className="flex justify-start">
         <div className="flex max-w-[90%] items-start gap-3">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#ae5630]">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
+          <AssistantIf condition={({ message }) => message.status?.type !== "running"}>
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#ae5630]">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+          </AssistantIf>
+          <AssistantIf condition={({ message }) => message.status?.type === "running"}>
+            <div className="flex h-8 w-8 flex-shrink-0" />
+          </AssistantIf>
           <div className="flex-1 space-y-2">
             <div className="prose prose-sm max-w-none font-serif text-[#1a1a18] dark:prose-invert dark:text-[#eee]">
               <MessagePrimitive.Content
                 components={{
-                  Text: () => (
-                    <MarkdownTextPrimitive
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        p: ({ children }) => (
-                          <p className="mb-4 leading-relaxed last:mb-0">{children}</p>
-                        ),
-                        ul: ({ children }) => (
-                          <ul className="mb-4 list-disc space-y-2 pl-6">{children}</ul>
-                        ),
-                        ol: ({ children }) => (
-                          <ol className="mb-4 list-decimal space-y-2 pl-6">{children}</ol>
-                        ),
-                        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-                        code: ({ className, children, ...props }) => {
-                          const isInline = !className;
-                          if (isInline) {
-                            return (
-                              <code
-                                className="rounded bg-[#00000010] px-1.5 py-0.5 font-mono text-sm dark:bg-[#ffffff10]"
-                                {...props}
-                              >
-                                {children}
-                              </code>
-                            );
-                          }
-                          return (
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          );
-                        },
-                        pre: ({ children }) => (
-                          <pre className="mb-4 overflow-x-auto rounded-lg bg-[#1a1a18] p-4 dark:bg-[#0d0d0c]">
-                            {children}
-                          </pre>
-                        ),
-                      }}
-                    />
+                  Text: (props) => (
+                    <MarkdownRenderer>{props.text}</MarkdownRenderer>
                   ),
                 }}
               />
             </div>
+            <AssistantIf condition={({ thread }) => !thread.isRunning}>
+              <div className="flex justify-start">
+                <MessagePrimitive.Content
+                  components={{
+                    Text: (props) => (
+                      <CopyButton
+                        content={props.text}
+                        copyMessage="Copied response to clipboard"
+                      />
+                    ),
+                  }}
+                />
+              </div>
+            </AssistantIf>
           </div>
         </div>
       </div>
@@ -157,6 +138,31 @@ export function OtherDevLoomThread() {
               AssistantMessage,
             }}
           />
+
+          <ThreadPrimitive.If running>
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#ae5630]">
+                <Sparkles className="h-4 w-4 text-white animate-pulse" />
+              </div>
+              <div className="flex items-center gap-2 font-serif text-sm text-[#6b6a68] dark:text-[#9a9893]">
+                <div className="flex gap-1">
+                  <div
+                    className="h-2 w-2 animate-bounce rounded-full bg-[#ae5630]"
+                    style={{ animationDelay: "0ms" }}
+                  />
+                  <div
+                    className="h-2 w-2 animate-bounce rounded-full bg-[#ae5630]"
+                    style={{ animationDelay: "150ms" }}
+                  />
+                  <div
+                    className="h-2 w-2 animate-bounce rounded-full bg-[#ae5630]"
+                    style={{ animationDelay: "300ms" }}
+                  />
+                </div>
+                <span>Thinking...</span>
+              </div>
+            </div>
+          </ThreadPrimitive.If>
         </div>
       </ThreadPrimitive.Viewport>
 
@@ -172,26 +178,6 @@ export function OtherDevLoomThread() {
             <Send className="h-4 w-4" />
           </ComposerPrimitive.Send>
         </ComposerPrimitive.Root>
-
-        <ThreadPrimitive.If running>
-          <div className="mt-2 flex items-center gap-2 font-serif text-sm text-[#6b6a68] dark:text-[#9a9893]">
-            <div className="flex gap-1">
-              <div
-                className="h-2 w-2 animate-bounce rounded-full bg-[#ae5630]"
-                style={{ animationDelay: "0ms" }}
-              />
-              <div
-                className="h-2 w-2 animate-bounce rounded-full bg-[#ae5630]"
-                style={{ animationDelay: "150ms" }}
-              />
-              <div
-                className="h-2 w-2 animate-bounce rounded-full bg-[#ae5630]"
-                style={{ animationDelay: "300ms" }}
-              />
-            </div>
-            <span>Thinking...</span>
-          </div>
-        </ThreadPrimitive.If>
       </div>
     </ThreadPrimitive.Root>
   );
