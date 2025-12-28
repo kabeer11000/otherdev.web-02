@@ -6,13 +6,16 @@ import {
   ComposerPrimitive,
   useAssistantApi,
   AssistantIf,
+  useMessage,
 } from "@assistant-ui/react";
+import type { ToolCallMessagePart } from "@assistant-ui/react";
 import { Send } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { CopyButton } from "@/components/ui/copy-button";
+import { ArtifactRenderer } from "@/components/artifact-renderer";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
 
 function SuggestionButton({ prompt }: { prompt: string }) {
@@ -57,6 +60,41 @@ function UserMessage() {
 }
 
 function AssistantMessage() {
+  const message = useMessage();
+  const hasToolCall = message.content.some((part) => part.type === "tool-call");
+  const textPart = message.content.find((part) => part.type === "text");
+  const toolCallPart = message.content.find((part) => part.type === "tool-call") as
+    | ToolCallMessagePart
+    | undefined;
+
+  if (hasToolCall) {
+    return (
+      <MessagePrimitive.Root>
+        <div className="flex justify-start">
+          <div className="w-full max-w-[95%] space-y-3 sm:max-w-[90%] md:max-w-[85%]">
+            {textPart && textPart.type === "text" && (
+              <div className="flex items-start gap-2 sm:gap-3">
+                <Image
+                  src="/otherdev-chat-logo.svg"
+                  alt="OtherDev Loom"
+                  width={32}
+                  height={32}
+                  className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
+                />
+                <div className="flex-1 prose prose-sm max-w-none font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
+                  <MarkdownRenderer>{textPart.text}</MarkdownRenderer>
+                </div>
+              </div>
+            )}
+            {toolCallPart && toolCallPart.toolName === "create_artifact" && (
+              <ArtifactRenderer toolCall={toolCallPart} />
+            )}
+          </div>
+        </div>
+      </MessagePrimitive.Root>
+    );
+  }
+
   return (
     <MessagePrimitive.Root>
       <div className="flex justify-start">
@@ -77,9 +115,7 @@ function AssistantMessage() {
             <div className="prose prose-sm max-w-none font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
               <MessagePrimitive.Content
                 components={{
-                  Text: (props) => (
-                    <MarkdownRenderer>{props.text}</MarkdownRenderer>
-                  ),
+                  Text: (props) => <MarkdownRenderer>{props.text}</MarkdownRenderer>,
                 }}
               />
             </div>

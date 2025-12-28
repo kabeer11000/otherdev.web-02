@@ -1,7 +1,13 @@
 "use client";
 
 import { useExternalStoreRuntime } from "@assistant-ui/react";
-import type { AppendMessage, ThreadMessage } from "@assistant-ui/react";
+import type {
+  AppendMessage,
+  ThreadMessage,
+  ToolCallMessagePart,
+  TextMessagePart,
+  ThreadAssistantMessage,
+} from "@assistant-ui/react";
 import { useState, useCallback, useRef } from "react";
 
 export function useOtherDevRuntime() {
@@ -57,6 +63,7 @@ export function useOtherDevRuntime() {
         }
 
         let accumulatedContent = "";
+        const toolCalls: ToolCallMessagePart[] = [];
 
         while (true) {
           const { done, value } = await reader.read();
@@ -76,14 +83,21 @@ export function useOtherDevRuntime() {
 
               try {
                 const parsed = JSON.parse(data);
-                if (parsed.content) {
+
+                if (parsed.type === "content" && parsed.content) {
                   accumulatedContent += parsed.content;
 
+                  const contentParts: (TextMessagePart | ToolCallMessagePart)[] = [];
+                  if (accumulatedContent) {
+                    contentParts.push({ type: "text" as const, text: accumulatedContent });
+                  }
+                  contentParts.push(...toolCalls);
+
                   if (!messageAdded) {
-                    const assistantMessage: ThreadMessage = {
+                    const assistantMessage: ThreadAssistantMessage = {
                       id: assistantMessageId,
                       role: "assistant",
-                      content: [{ type: "text", text: accumulatedContent }],
+                      content: contentParts,
                       createdAt: new Date(),
                       status: { type: "running" },
                       metadata: {
@@ -99,10 +113,55 @@ export function useOtherDevRuntime() {
                   } else {
                     setMessages((prev) =>
                       prev.map((msg) =>
-                        msg.id === assistantMessageId
+                        msg.id === assistantMessageId && msg.role === "assistant"
                           ? {
-                              ...msg,
-                              content: [{ type: "text", text: accumulatedContent }],
+                              ...(msg as ThreadAssistantMessage),
+                              content: contentParts,
+                            }
+                          : msg,
+                      ),
+                    );
+                  }
+                } else if (parsed.type === "tool-call") {
+                  const toolCall: ToolCallMessagePart = {
+                    type: "tool-call",
+                    toolCallId: parsed.toolCallId,
+                    toolName: parsed.toolName,
+                    args: JSON.parse(parsed.args),
+                    argsText: parsed.args,
+                  };
+                  toolCalls.push(toolCall);
+
+                  const contentParts: (TextMessagePart | ToolCallMessagePart)[] = [];
+                  if (accumulatedContent) {
+                    contentParts.push({ type: "text" as const, text: accumulatedContent });
+                  }
+                  contentParts.push(...toolCalls);
+
+                  if (!messageAdded) {
+                    const assistantMessage: ThreadAssistantMessage = {
+                      id: assistantMessageId,
+                      role: "assistant",
+                      content: contentParts,
+                      createdAt: new Date(),
+                      status: { type: "running" },
+                      metadata: {
+                        unstable_state: null,
+                        unstable_annotations: [],
+                        unstable_data: [],
+                        steps: [],
+                        custom: {},
+                      },
+                    };
+                    setMessages((prev) => [...prev, assistantMessage]);
+                    messageAdded = true;
+                  } else {
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMessageId && msg.role === "assistant"
+                          ? {
+                              ...(msg as ThreadAssistantMessage),
+                              content: contentParts,
                             }
                           : msg,
                       ),

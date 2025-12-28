@@ -7,6 +7,7 @@ import {
   getClientIdentifier,
   REQUESTS_PER_WINDOW,
 } from "@/server/lib/rate-limit";
+import { createArtifactTool } from "@/server/lib/artifact-tool";
 
 const MessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -164,19 +165,59 @@ export async function POST(request: Request) {
       temperature: 0.7,
       max_tokens: 1024,
       stream: true,
+      tools: [createArtifactTool],
+      tool_choice: "auto",
     });
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          const toolCallsMap = new Map<
+            number,
+            {
+              id: string;
+              name: string;
+              arguments: string;
+            }
+          >();
+
           for await (const chunk of completion) {
-            const content = chunk.choices[0]?.delta?.content;
-            if (content) {
-              const data = JSON.stringify({ content });
+            const delta = chunk.choices[0]?.delta;
+
+            if (delta?.content) {
+              const data = JSON.stringify({ type: "content", content: delta.content });
               controller.enqueue(encoder.encode(`data: ${data}\n\n`));
             }
+
+            if (delta?.tool_calls) {
+              for (const toolCall of delta.tool_calls) {
+                const index = toolCall.index;
+                const existing = toolCallsMap.get(index);
+
+                if (!existing) {
+                  toolCallsMap.set(index, {
+                    id: toolCall.id || "",
+                    name: toolCall.function?.name || "",
+                    arguments: toolCall.function?.arguments || "",
+                  });
+                } else {
+                  existing.arguments += toolCall.function?.arguments || "";
+                }
+              }
+            }
           }
+
+          for (const toolCall of toolCallsMap.values()) {
+            const data = JSON.stringify({
+              type: "tool-call",
+              toolCallId: toolCall.id,
+              toolName: toolCall.name,
+              args: toolCall.arguments,
+            });
+            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          }
+
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         } catch (error) {
