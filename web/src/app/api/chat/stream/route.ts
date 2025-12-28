@@ -4,8 +4,6 @@ import { generateEmbedding } from '@/server/lib/rag/embeddings';
 import { searchSimilarDocuments } from '@/server/lib/rag/vector-search';
 import { checkRateLimit, getClientIdentifier } from '@/server/lib/rate-limit';
 
-export const runtime = 'edge';
-
 const MessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
   content: z.string(),
