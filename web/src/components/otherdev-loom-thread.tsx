@@ -5,11 +5,13 @@ import {
   MessagePrimitive,
   ComposerPrimitive,
   MessagePartPrimitive,
+  useAssistantApi,
 } from "@assistant-ui/react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import { Send, User, Sparkles } from "lucide-react";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const SUGGESTED_PROMPTS = [
   "What services does OtherDev offer?",
@@ -17,6 +19,25 @@ const SUGGESTED_PROMPTS = [
   "What technologies do you use?",
   "Where is OtherDev based?",
 ];
+
+function SuggestionButton({ prompt }: { prompt: string }) {
+  const api = useAssistantApi();
+
+  const handleClick = () => {
+    api.thread().append({ role: "user", content: [{ type: "text", text: prompt }] });
+  };
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      onClick={handleClick}
+      className="h-auto justify-start rounded-xl border-[#00000015] bg-white p-4 text-left font-serif text-sm font-normal text-[#1a1a18] shadow-[0_0.25rem_1.25rem_rgba(0,0,0,0.035)] transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:bg-white hover:shadow-[0_0.5rem_1.5rem_rgba(0,0,0,0.05)] active:scale-[0.98] dark:border-[#ffffff15] dark:bg-[#1f1e1b] dark:text-[#eee] dark:hover:bg-[#1f1e1b]"
+    >
+      {prompt}
+    </Button>
+  );
+}
 
 function UserMessage() {
   return (
@@ -122,13 +143,7 @@ export function OtherDevLoomThread() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 {SUGGESTED_PROMPTS.map((prompt) => (
-                  <ComposerPrimitive.Send
-                    key={prompt}
-                    value={prompt}
-                    className="rounded-xl border border-[#00000015] bg-white p-4 text-left font-serif text-sm text-[#1a1a18] shadow-[0_0.25rem_1.25rem_rgba(0,0,0,0.035)] transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-[0_0.5rem_1.5rem_rgba(0,0,0,0.05)] active:scale-[0.98] dark:border-[#ffffff15] dark:bg-[#1f1e1b] dark:text-[#eee]"
-                  >
-                    {prompt}
-                  </ComposerPrimitive.Send>
+                  <SuggestionButton key={prompt} prompt={prompt} />
                 ))}
               </div>
             </div>
