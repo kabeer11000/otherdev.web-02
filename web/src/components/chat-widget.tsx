@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { MessageCircle, X, ArrowDown } from 'lucide-react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-}
+import { type Message } from '@/components/ui/chat-message';
+import { CopyButton } from '@/components/ui/copy-button';
+import { MessageInput } from '@/components/ui/message-input';
+import { MessageList } from '@/components/ui/message-list';
+import { PromptSuggestions } from '@/components/ui/prompt-suggestions';
+import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { cn } from '@/lib/utils';
 
 const SUGGESTED_PROMPTS = [
   'What services does OtherDev offer?',
@@ -23,37 +24,45 @@ export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const lastMessage = messages.at(-1);
+  const isEmpty = messages.length === 0;
+  const isTyping = lastMessage?.role === 'user';
 
+  // Handle client-side mounting
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    setIsMounted(true);
+  }, []);
 
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isOpen]);
+  const {
+    containerRef,
+    scrollToBottom,
+    handleScroll,
+    shouldAutoScroll,
+    handleTouchStart,
+  } = useAutoScroll([messages]);
 
-  const handleSend = async (content?: string) => {
-    const messageContent = content || input.trim();
-    if (!messageContent || isLoading) return;
+  const handleSubmit = async (event?: React.FormEvent) => {
+    event?.preventDefault();
+
+    const messageContent = input.trim();
+    if (!messageContent || isGenerating) return;
 
     setInput('');
     setError(null);
 
-    const userMessage: Message = { role: 'user', content: messageContent };
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: messageContent,
+      createdAt: new Date(),
+    };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
-
-    setIsLoading(true);
+    setIsGenerating(true);
 
     try {
       const response = await fetch('/api/chat/stream', {
@@ -62,7 +71,10 @@ export function ChatWidget() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: updatedMessages,
+          messages: updatedMessages.map(m => ({
+            role: m.role,
+            content: m.content,
+          })),
         }),
       });
 
@@ -84,9 +96,16 @@ export function ChatWidget() {
       }
 
       let assistantMessage = '';
+      const assistantMsgId = (Date.now() + 1).toString();
+
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: '' },
+        {
+          id: assistantMsgId,
+          role: 'assistant',
+          content: '',
+          createdAt: new Date(),
+        },
       ]);
 
       while (true) {
@@ -100,7 +119,7 @@ export function ChatWidget() {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
             if (data === '[DONE]') {
-              setIsLoading(false);
+              setIsGenerating(false);
               return;
             }
 
@@ -110,8 +129,10 @@ export function ChatWidget() {
                 assistantMessage += parsed.content;
                 setMessages((prev) => {
                   const newMessages = [...prev];
-                  newMessages[newMessages.length - 1].content =
-                    assistantMessage;
+                  const lastIdx = newMessages.length - 1;
+                  if (newMessages[lastIdx]?.role === 'assistant') {
+                    newMessages[lastIdx].content = assistantMessage;
+                  }
                   return newMessages;
                 });
               }
@@ -122,7 +143,7 @@ export function ChatWidget() {
         }
       }
 
-      setIsLoading(false);
+      setIsGenerating(false);
     } catch (err) {
       console.error('Chat error:', err);
       setError(
@@ -131,36 +152,74 @@ export function ChatWidget() {
           : 'Something went wrong. Please try again.'
       );
       setMessages((prev) => prev.slice(0, -1));
-      setIsLoading(false);
+      setIsGenerating(false);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
   };
 
-  const handleSuggestedPrompt = (prompt: string) => {
-    handleSend(prompt);
+  const append = (message: { role: 'user'; content: string }) => {
+    setInput(message.content);
+    setTimeout(() => {
+      handleSubmit();
+    }, 100);
   };
+
+  const stop = useCallback(() => {
+    setIsGenerating(false);
+  }, []);
+
+  const messageOptions = useCallback(
+    (message: Message) => ({
+      actions: message.role === 'assistant' ? (
+        <CopyButton
+          content={message.content}
+          copyMessage="Copied response to clipboard!"
+        />
+      ) : undefined,
+    }),
+    []
+  );
 
   if (!isOpen) {
     return (
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-black text-white shadow-lg transition-all hover:scale-110 hover:shadow-xl"
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-card shadow-lg transition-all hover:scale-110 hover:opacity-80"
         aria-label="Open chat"
       >
-        <MessageCircle className="h-6 w-6" />
+        <Image
+          src="/otherdev-chat-logo.svg"
+          alt="OtherDev AI"
+          width={32}
+          height={32}
+          className="h-8 w-8"
+        />
       </button>
     );
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 z-50 flex flex-col bg-white shadow-2xl md:h-[600px] md:w-96 sm:inset-0 sm:m-0 sm:h-screen sm:w-screen sm:rounded-none md:rounded-2xl">
+    <Card
+      className={cn(
+        "fixed flex flex-col shadow-2xl border overflow-hidden bg-card",
+        "inset-0 rounded-none",
+        "sm:inset-4 sm:rounded-2xl sm:max-w-[90vw] sm:max-h-[calc(100vh-2rem)]",
+        "md:w-96 md:h-[600px] md:max-h-[calc(100vh-4rem)]"
+      )}
+      style={{
+        zIndex: 9999,
+        ...(isMounted && window.innerWidth >= 768 ? {
+          top: 'auto',
+          left: 'auto',
+          bottom: '1.5rem',
+          right: '1.5rem'
+        } : {})
+      }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
         <div className="flex items-center gap-2">
@@ -177,62 +236,45 @@ export function ChatWidget() {
         </Button>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-3">
-        {messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-4">
-            <p className="text-center text-sm text-neutral-600">
-              Ask me anything about OtherDev's projects, services, or team!
-            </p>
-            <div className="grid gap-2">
-              {SUGGESTED_PROMPTS.map((prompt, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleSuggestedPrompt(prompt)}
-                  className="rounded-lg border border-neutral-200 px-3 py-2 text-left text-xs text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
-                  disabled={isLoading}
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
+      {/* Messages Container */}
+      <div className="grid flex-1 grid-cols-1 overflow-hidden">
+        {isEmpty && append ? (
+          <div className="flex items-center justify-center p-4">
+            <PromptSuggestions
+              label="Ask me anything about OtherDev"
+              append={append}
+              suggestions={SUGGESTED_PROMPTS}
+            />
           </div>
         ) : (
-          <div className="space-y-4">
-            {messages.map((message, idx) => (
-              <div
-                key={idx}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                    message.role === 'user'
-                      ? 'bg-black text-white'
-                      : 'bg-neutral-100 text-neutral-900'
-                  }`}
-                >
-                  {message.role === 'assistant' ? (
-                    <div className="prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {message.content || '...'}
-                      </ReactMarkdown>
-                    </div>
-                  ) : (
-                    <p className="whitespace-pre-wrap">{message.content}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-            {isLoading && messages[messages.length - 1]?.role === 'user' && (
-              <div className="flex justify-start">
-                <div className="flex items-center gap-2 rounded-lg bg-neutral-100 px-3 py-2 text-sm">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-neutral-600">Thinking...</span>
+          <div
+            className="grid grid-cols-1 overflow-y-auto px-4 py-3"
+            ref={containerRef}
+            onScroll={handleScroll}
+            onTouchStart={handleTouchStart}
+          >
+            <div className="max-w-full [grid-column:1/1] [grid-row:1/1]">
+              <MessageList
+                messages={messages}
+                isTyping={isTyping && isGenerating}
+                messageOptions={messageOptions}
+              />
+            </div>
+
+            {!shouldAutoScroll && (
+              <div className="pointer-events-none flex flex-1 items-end justify-end [grid-column:1/1] [grid-row:1/1]">
+                <div className="sticky bottom-0 left-0 flex w-full justify-end">
+                  <Button
+                    onClick={scrollToBottom}
+                    className="pointer-events-auto mb-2 mr-2 h-8 w-8 rounded-full animate-in fade-in-0 slide-in-from-bottom-1"
+                    size="icon"
+                    variant="ghost"
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} />
           </div>
         )}
       </div>
@@ -246,31 +288,18 @@ export function ChatWidget() {
 
       {/* Input Area */}
       <div className="border-t border-neutral-200 p-4">
-        <div className="flex gap-2">
-          <textarea
-            ref={inputRef}
+        <form onSubmit={handleSubmit}>
+          <MessageInput
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onChange={handleInputChange}
             placeholder="Type your message..."
-            disabled={isLoading}
-            className="flex-1 resize-none rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none disabled:bg-neutral-50 disabled:text-neutral-400"
-            rows={1}
+            disabled={isGenerating}
+            isGenerating={isGenerating}
+            stop={stop}
+            onSubmit={handleSubmit}
             maxLength={500}
           />
-          <Button
-            onClick={() => handleSend()}
-            disabled={!input.trim() || isLoading}
-            size="icon"
-            className="h-10 w-10 shrink-0 bg-black hover:bg-neutral-800"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+        </form>
         <p className="mt-1 text-xs text-neutral-500">
           {input.length}/500 characters
         </p>
