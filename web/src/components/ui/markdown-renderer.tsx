@@ -62,7 +62,17 @@ interface MarkdownRendererProps {
   children: string;
 }
 
+function autoLinkPhoneNumbers(text: string): string {
+  const phoneRegex = /(\+?\d{1,3}[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{4})/g;
+  return text.replace(phoneRegex, (match) => {
+    const cleanNumber = match.replace(/[\s-]/g, '');
+    return `[${match}](tel:${cleanNumber})`;
+  });
+}
+
 export function MarkdownRenderer({ children }: MarkdownRendererProps) {
+  const processedContent = autoLinkPhoneNumbers(children);
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -121,11 +131,13 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
           );
         },
         a({ href, children }) {
+          const isTelLink = href?.startsWith('tel:');
           return (
             <a
               href={href}
-              target="_blank"
-              rel="noopener noreferrer"
+              target={isTelLink ? undefined : "_blank"}
+              rel={isTelLink ? undefined : "noopener noreferrer"}
+              className={isTelLink ? "text-foreground hover:underline" : undefined}
             >
               {children}
             </a>
@@ -170,7 +182,7 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
         },
       }}
     >
-      {children}
+      {processedContent}
     </ReactMarkdown>
   );
 }
