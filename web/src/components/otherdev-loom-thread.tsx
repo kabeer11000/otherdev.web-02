@@ -27,7 +27,7 @@ function SuggestionButton({ prompt }: { prompt: string }) {
       type="button"
       variant="outline"
       onClick={handleClick}
-      className="h-auto justify-start rounded-xl bg-card p-4 text-left font-serif text-sm font-normal text-foreground shadow-sm transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-md active:scale-[0.98]"
+      className="h-auto justify-start rounded-xl bg-card p-3 text-left font-serif text-xs font-normal text-foreground shadow-sm transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-md active:scale-[0.98] sm:p-4 sm:text-sm whitespace-normal break-words"
     >
       {prompt}
     </Button>
@@ -38,15 +38,15 @@ function UserMessage() {
   return (
     <MessagePrimitive.Root>
       <div className="flex justify-end">
-        <div className="flex max-w-[80%] items-start gap-3">
+        <div className="flex w-full max-w-[95%] items-start gap-2 sm:max-w-[85%] sm:gap-3 md:max-w-[80%]">
           <div className="flex-1 space-y-2">
-            <div className="rounded-2xl bg-accent px-4 py-3 font-serif text-accent-foreground">
+            <div className="rounded-2xl bg-accent px-3 py-2 font-serif text-sm text-accent-foreground sm:px-4 sm:py-3 sm:text-base">
               <MessagePrimitive.Content />
             </div>
           </div>
-          <Avatar>
+          <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
             <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-            <AvatarFallback className="bg-muted font-serif text-sm text-muted-foreground">
+            <AvatarFallback className="bg-muted font-serif text-xs text-muted-foreground sm:text-sm">
               U
             </AvatarFallback>
           </Avatar>
@@ -60,21 +60,21 @@ function AssistantMessage() {
   return (
     <MessagePrimitive.Root>
       <div className="flex justify-start">
-        <div className="flex max-w-[90%] items-start gap-3">
+        <div className="flex w-full max-w-[95%] items-start gap-2 sm:max-w-[90%] sm:gap-3 md:max-w-[85%]">
           <AssistantIf condition={({ message }) => message.status?.type !== "running"}>
             <Image
               src="/otherdev-chat-logo.svg"
               alt="OtherDev Loom"
               width={32}
               height={32}
-              className="h-8 w-8 flex-shrink-0"
+              className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
             />
           </AssistantIf>
           <AssistantIf condition={({ message }) => message.status?.type === "running"}>
-            <div className="flex h-8 w-8 flex-shrink-0" />
+            <div className="flex h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8" />
           </AssistantIf>
           <div className="flex-1 space-y-2">
-            <div className="text-card-foreground text-sm leading-relaxed prose dark:prose-invert prose-sm max-w-none font-serif">
+            <div className="prose prose-sm max-w-none font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
               <MessagePrimitive.Content
                 components={{
                   Text: (props) => (
@@ -109,27 +109,27 @@ export function OtherDevLoomThread() {
     <ThreadPrimitive.Root className="flex h-full flex-col bg-background">
       <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto scroll-smooth">
         <ThreadPrimitive.Empty>
-          <div className="flex h-full items-center justify-center p-4">
-            <div className="w-full max-w-2xl space-y-8">
-              <div className="space-y-4 text-center">
+          <div className="flex h-full items-center justify-center p-4 sm:p-6 md:p-8">
+            <div className="w-full max-w-2xl space-y-6 sm:space-y-8">
+              <div className="space-y-3 text-center sm:space-y-4">
                 <div className="flex justify-center">
                   <Image
                     src="/otherdev-chat-logo.svg"
                     alt="OtherDev Loom"
                     width={32}
                     height={32}
-                    className="h-8 w-8"
+                    className="h-7 w-7 sm:h-8 sm:w-8"
                   />
                 </div>
-                <h2 className="font-serif text-3xl font-normal text-foreground md:text-4xl">
+                <h2 className="font-serif text-2xl font-normal text-foreground sm:text-3xl md:text-4xl">
                   How can I help you today?
                 </h2>
-                <p className="font-serif text-base text-muted-foreground">
+                <p className="font-serif text-sm text-muted-foreground sm:text-base">
                   Ask me anything about OtherDev
                 </p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
                 {SUGGESTED_PROMPTS.map((prompt) => (
                   <SuggestionButton key={prompt} prompt={prompt} />
                 ))}
@@ -138,7 +138,7 @@ export function OtherDevLoomThread() {
           </div>
         </ThreadPrimitive.Empty>
 
-        <div className="space-y-6 px-4 py-8 md:px-8">
+        <div className="space-y-4 px-3 py-6 sm:space-y-6 sm:px-4 sm:py-8 md:px-8">
           <ThreadPrimitive.Messages
             components={{
               UserMessage,
@@ -147,26 +147,26 @@ export function OtherDevLoomThread() {
           />
 
           <ThreadPrimitive.If running>
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2 sm:gap-3">
               <Image
                 src="/otherdev-chat-logo.svg"
                 alt="OtherDev Loom"
                 width={32}
                 height={32}
-                className="h-8 w-8 flex-shrink-0 animate-pulse"
+                className="h-7 w-7 flex-shrink-0 animate-pulse sm:h-8 sm:w-8"
               />
-              <div className="flex items-center gap-2 font-serif text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 font-serif text-xs text-muted-foreground sm:text-sm">
                 <div className="flex gap-1">
                   <div
-                    className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground"
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
                     style={{ animationDelay: "0ms" }}
                   />
                   <div
-                    className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground"
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
                     style={{ animationDelay: "150ms" }}
                   />
                   <div
-                    className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground"
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
                     style={{ animationDelay: "300ms" }}
                   />
                 </div>
@@ -177,16 +177,16 @@ export function OtherDevLoomThread() {
         </div>
       </ThreadPrimitive.Viewport>
 
-      <div className="border-t border-border bg-card p-4">
+      <div className="border-t border-border bg-card p-3 sm:p-4">
         <ComposerPrimitive.Root className="relative">
           <ComposerPrimitive.Input
             placeholder="Type your message..."
-            className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 pr-12 font-serif text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 pr-10 font-serif text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 sm:px-4 sm:py-3 sm:pr-12 sm:text-base"
             rows={1}
             autoFocus
           />
-          <ComposerPrimitive.Send className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:opacity-90 active:scale-[0.98] disabled:opacity-50">
-            <Send className="h-4 w-4" />
+          <ComposerPrimitive.Send className="absolute bottom-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:opacity-90 active:scale-[0.98] disabled:opacity-50 sm:bottom-3 sm:right-3 sm:h-8 sm:w-8">
+            <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </ComposerPrimitive.Send>
         </ComposerPrimitive.Root>
       </div>

@@ -11,7 +11,7 @@ export default function AIPage() {
   return (
     <>
       <Navigation />
-      <main className="h-screen pt-[60px]">
+      <main className="h-screen pt-14 sm:pt-[60px]">
         <AssistantRuntimeProvider runtime={runtime}>
           <OtherDevLoomThread />
         </AssistantRuntimeProvider>

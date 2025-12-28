@@ -16,7 +16,7 @@ export const Z_INDEX = {
 
 export const SUGGESTED_PROMPTS = [
   "What services does OtherDev offer?",
-  "Tell me about your recent projects",
+  "Who are the founders and what's the company story?",
   "What technologies do you use?",
-  "Where is OtherDev based?",
+  "How can I reach out to discuss a project?",
 ];
