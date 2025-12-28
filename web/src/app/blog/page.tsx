@@ -5,6 +5,7 @@ const canvas = new CanvasClient({
   baseUrl: process.env.CANVAS_API_URL,
   apiKey: process.env.CANVAS_API_KEY,
 });
+
 export default async function BlogPage() {
   // Fetch published documents (blog posts) using public endpoint
   let posts: any[] = [];
