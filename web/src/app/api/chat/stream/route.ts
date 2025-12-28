@@ -26,13 +26,20 @@ const SYSTEM_PROMPT_TEMPLATE = `You are a helpful assistant representing Other D
 
 Answer questions about Other Dev's projects, services, technologies, and capabilities in a professional, conversational tone.
 
+CRITICAL RULES
+1. NEVER say "I don't have information", "I don't have data", "I cannot find", or similar phrases claiming lack of knowledge.
+2. NEVER mention technical limitations, missing data, or system constraints.
+3. If a question is unclear, vague, or conversational (like "ok", "sure", "thanks"), respond naturally and helpfully without claiming you lack information.
+4. Always provide value in your response, even for brief or unclear queries.
+
 GUIDELINES
 1. Use the context provided below to answer questions accurately and factually.
-2. If information isn't available, suggest the user reach out directly via the website or simply acknowledge what you can share without mentioning technical limitations.
-3. When discussing projects, include relevant details like the project name and year.
+2. When specific details aren't in the context, provide general helpful information about Other Dev and invite them to connect for specifics.
+3. When discussing projects, include relevant details like the project name and year when available.
 4. Keep responses concise and well-structured, using 2-3 short paragraphs maximum.
 5. Use Markdown formatting when it helps clarity.
-6. Focus on being helpful and client-friendly.
+6. Focus on being helpful, engaging, and client-friendly.
+7. For conversational inputs like "sure", "ok", "thanks", respond naturally and ask how you can help further.
 
 === CONTEXT ===
 {context}
@@ -43,7 +50,7 @@ CONTACT INFORMATION
 - Location: Karachi, Pakistan
 - Specializations: fashion, e-commerce, real estate, legal tech, SaaS, enterprise systems
 
-Be professional, friendly, and focused on helping potential clients learn about Other Dev.`;
+Be professional, friendly, and focused on helping potential clients learn about Other Dev. Always be helpful and engaging, never claim to lack information.`;
 
 function sanitizeInput(text: string): string {
   const dangerousPatterns = [
@@ -65,6 +72,72 @@ function sanitizeInput(text: string): string {
     process.env.RAG_MAX_MESSAGE_LENGTH || "500",
   );
   return sanitized.slice(0, maxLength);
+}
+
+function detectQueryQuality(query: string): {
+  isLowQuality: boolean;
+  isConversational: boolean;
+  tokenCount: number;
+  hasRepeatedWords: boolean;
+} {
+  const normalized = query.toLowerCase().trim();
+  const tokens = normalized.split(/\s+/).filter((t) => t.length > 0);
+  const uniqueTokens = new Set(tokens);
+
+  const conversationalPhrases = [
+    "ok",
+    "okay",
+    "sure",
+    "thanks",
+    "thank you",
+    "yes",
+    "no",
+    "yeah",
+    "yep",
+    "nope",
+    "cool",
+    "nice",
+    "great",
+    "good",
+    "alright",
+    "hi",
+    "hello",
+    "hey",
+  ];
+
+  const isConversational = conversationalPhrases.includes(normalized) ||
+    tokens.every((t) => conversationalPhrases.includes(t));
+
+  const hasRepeatedWords = tokens.length > 0 && uniqueTokens.size < tokens.length * 0.6;
+
+  const isLowQuality = tokens.length < 3 || hasRepeatedWords || isConversational;
+
+  return {
+    isLowQuality,
+    isConversational,
+    tokenCount: tokens.length,
+    hasRepeatedWords,
+  };
+}
+
+function getAdaptiveThreshold(queryQuality: ReturnType<typeof detectQueryQuality>): number {
+  const baseThreshold = Number.parseFloat(
+    process.env.RAG_SIMILARITY_THRESHOLD || "0.1",
+  );
+
+  if (queryQuality.isConversational) {
+    return baseThreshold * 0.5;
+  }
+
+  if (queryQuality.isLowQuality || queryQuality.hasRepeatedWords) {
+    return baseThreshold * 0.7;
+  }
+
+  if (queryQuality.tokenCount < 5) {
+    return baseThreshold * 0.8;
+  }
+
+  return baseThreshold;
 }
 
 export async function POST(request: Request) {
@@ -126,28 +199,34 @@ export async function POST(request: Request) {
       .replace(/OtherDev/gi, "Other Dev")
       .replace(/otherdev/gi, "Other Dev");
 
+    const queryQuality = detectQueryQuality(normalizedQuery);
+
     const queryEmbedding = await generateEmbedding(normalizedQuery);
 
-    const matchThreshold = Number.parseFloat(
-      process.env.RAG_SIMILARITY_THRESHOLD || "0.05",
-    );
+    const adaptiveThreshold = getAdaptiveThreshold(queryQuality);
     const matchCount = Number.parseInt(process.env.RAG_MATCH_COUNT || "10");
 
     const similarDocs = await searchSimilarDocuments(
       queryEmbedding,
-      matchThreshold,
+      adaptiveThreshold,
       matchCount,
     );
 
-    const context =
-      similarDocs.length > 0
-        ? similarDocs
-            .map(
-              (doc, idx) =>
-                `Document ${idx + 1} (Relevance: ${(doc.similarity * 100).toFixed(1)}%):\nTitle: ${doc.metadata.title}\n${doc.content}\n`,
-            )
-            .join("\n---\n\n")
-        : "No specific information found in the knowledge base.";
+    let context: string;
+    if (similarDocs.length > 0) {
+      context = similarDocs
+        .map(
+          (doc, idx) =>
+            `Document ${idx + 1} (Relevance: ${(doc.similarity * 100).toFixed(1)}%):\nTitle: ${doc.metadata.title}\n${doc.content}\n`,
+        )
+        .join("\n---\n\n");
+    } else if (queryQuality.isConversational) {
+      context = "User sent a conversational message. Respond naturally and helpfully, offering to answer questions about Other Dev.";
+    } else if (queryQuality.isLowQuality || queryQuality.hasRepeatedWords) {
+      context = "User query is unclear. Respond naturally, acknowledge their message, and offer to help with information about Other Dev's work, services, or projects.";
+    } else {
+      context = "Provide helpful general information about Other Dev based on common topics: projects (fashion, e-commerce, real estate, legal tech, SaaS), web development services, design capabilities, and technologies used.";
+    }
 
     const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{context}", context);
 
