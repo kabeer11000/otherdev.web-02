@@ -2,7 +2,11 @@ import { z } from "zod";
 import Groq from "groq-sdk";
 import { generateEmbedding } from "@/server/lib/rag/embeddings";
 import { searchSimilarDocuments } from "@/server/lib/rag/vector-search";
-import { checkRateLimit, getClientIdentifier } from "@/server/lib/rate-limit";
+import {
+  checkRateLimit,
+  getClientIdentifier,
+  REQUESTS_PER_WINDOW,
+} from "@/server/lib/rate-limit";
 
 const MessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -82,7 +86,7 @@ export async function POST(request: Request) {
           headers: {
             "Content-Type": "application/json",
             "Retry-After": retryAfter.toString(),
-            "X-RateLimit-Limit": "10",
+            "X-RateLimit-Limit": REQUESTS_PER_WINDOW.toString(),
             "X-RateLimit-Remaining": "0",
             "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
           },
@@ -189,7 +193,7 @@ export async function POST(request: Request) {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
-        "X-RateLimit-Limit": "10",
+        "X-RateLimit-Limit": REQUESTS_PER_WINDOW.toString(),
         "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
         "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
       },

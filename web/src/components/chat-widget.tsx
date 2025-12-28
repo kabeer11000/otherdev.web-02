@@ -14,15 +14,8 @@ import { useAutoScroll } from "@/hooks/use-auto-scroll";
 import { useAutosizeTextArea } from "@/hooks/use-autosize-textarea";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { PromptSuggestions } from "@/components/ui/prompt-suggestions";
-import { Z_INDEX } from "@/lib/constants";
+import { Z_INDEX, SUGGESTED_PROMPTS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-
-const SUGGESTED_PROMPTS = [
-  "What services does OtherDev offer?",
-  "Tell me about your recent projects",
-  "What technologies do you use?",
-  "Where is OtherDev based?",
-];
 
 const MAX_INPUT_LENGTH = 500;
 

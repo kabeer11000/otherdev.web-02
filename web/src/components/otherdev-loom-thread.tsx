@@ -7,17 +7,13 @@ import {
   useAssistantApi,
   AssistantIf,
 } from "@assistant-ui/react";
-import { Send, User, Sparkles } from "lucide-react";
+import { Send } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { CopyButton } from "@/components/ui/copy-button";
-
-const SUGGESTED_PROMPTS = [
-  "What services does OtherDev offer?",
-  "Tell me about your recent projects",
-  "What technologies do you use?",
-  "Where is OtherDev based?",
-];
+import { SUGGESTED_PROMPTS } from "@/lib/constants";
 
 function SuggestionButton({ prompt }: { prompt: string }) {
   const api = useAssistantApi();
@@ -48,9 +44,12 @@ function UserMessage() {
               <MessagePrimitive.Content />
             </div>
           </div>
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary">
-            <User className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <Avatar>
+            <AvatarImage src="https://github.com/shadcn.png" alt="User" />
+            <AvatarFallback className="bg-muted font-serif text-sm text-muted-foreground">
+              U
+            </AvatarFallback>
+          </Avatar>
         </div>
       </div>
     </MessagePrimitive.Root>
@@ -63,9 +62,13 @@ function AssistantMessage() {
       <div className="flex justify-start">
         <div className="flex max-w-[90%] items-start gap-3">
           <AssistantIf condition={({ message }) => message.status?.type !== "running"}>
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <Image
+              src="/otherdev-chat-logo.svg"
+              alt="OtherDev Loom"
+              width={32}
+              height={32}
+              className="h-8 w-8 flex-shrink-0"
+            />
           </AssistantIf>
           <AssistantIf condition={({ message }) => message.status?.type === "running"}>
             <div className="flex h-8 w-8 flex-shrink-0" />
@@ -110,9 +113,13 @@ export function OtherDevLoomThread() {
             <div className="w-full max-w-2xl space-y-8">
               <div className="space-y-4 text-center">
                 <div className="flex justify-center">
-                  <div className="rounded-full bg-primary p-4">
-                    <Sparkles className="h-8 w-8 text-primary-foreground" />
-                  </div>
+                  <Image
+                    src="/otherdev-chat-logo.svg"
+                    alt="OtherDev Loom"
+                    width={32}
+                    height={32}
+                    className="h-8 w-8"
+                  />
                 </div>
                 <h2 className="font-serif text-3xl font-normal text-foreground md:text-4xl">
                   How can I help you today?
@@ -141,21 +148,25 @@ export function OtherDevLoomThread() {
 
           <ThreadPrimitive.If running>
             <div className="flex items-start gap-3">
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary">
-                <Sparkles className="h-4 w-4 text-primary-foreground animate-pulse" />
-              </div>
+              <Image
+                src="/otherdev-chat-logo.svg"
+                alt="OtherDev Loom"
+                width={32}
+                height={32}
+                className="h-8 w-8 flex-shrink-0 animate-pulse"
+              />
               <div className="flex items-center gap-2 font-serif text-sm text-muted-foreground">
                 <div className="flex gap-1">
                   <div
-                    className="h-2 w-2 animate-bounce rounded-full bg-primary"
+                    className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground"
                     style={{ animationDelay: "0ms" }}
                   />
                   <div
-                    className="h-2 w-2 animate-bounce rounded-full bg-primary"
+                    className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground"
                     style={{ animationDelay: "150ms" }}
                   />
                   <div
-                    className="h-2 w-2 animate-bounce rounded-full bg-primary"
+                    className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground"
                     style={{ animationDelay: "300ms" }}
                   />
                 </div>
@@ -174,7 +185,7 @@ export function OtherDevLoomThread() {
             rows={1}
             autoFocus
           />
-          <ComposerPrimitive.Send className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:opacity-90 active:scale-[0.98] disabled:opacity-50">
+          <ComposerPrimitive.Send className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:opacity-90 active:scale-[0.98] disabled:opacity-50">
             <Send className="h-4 w-4" />
           </ComposerPrimitive.Send>
         </ComposerPrimitive.Root>

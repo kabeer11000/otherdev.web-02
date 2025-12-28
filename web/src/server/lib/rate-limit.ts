@@ -5,7 +5,7 @@ interface RateLimitEntry {
 
 const rateLimitMap = new Map<string, RateLimitEntry>();
 
-const REQUESTS_PER_WINDOW = 10;
+export const REQUESTS_PER_WINDOW = 10;
 const WINDOW_MS = 60 * 1000;
 
 function cleanupExpiredEntries() {

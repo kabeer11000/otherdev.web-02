@@ -13,3 +13,10 @@ export const Z_INDEX = {
   chatWidget: 2000,
   toast: 2100,
 } as const;
+
+export const SUGGESTED_PROMPTS = [
+  "What services does OtherDev offer?",
+  "Tell me about your recent projects",
+  "What technologies do you use?",
+  "Where is OtherDev based?",
+];
