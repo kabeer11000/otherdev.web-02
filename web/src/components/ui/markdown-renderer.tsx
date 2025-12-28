@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { BundledLanguage, codeToHtml } from 'shiki';
-import { CopyButton } from './copy-button';
+import React from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { BundledLanguage, codeToHtml } from "shiki";
+import { CopyButton } from "./copy-button";
 
 interface CodeBlockProps {
   children: string;
@@ -12,8 +12,9 @@ interface CodeBlockProps {
 }
 
 function CodeBlock({ children, className }: CodeBlockProps) {
-  const [highlightedCode, setHighlightedCode] = React.useState<string>('');
-  const language = className?.replace('language-', '') as BundledLanguage || 'plaintext';
+  const [highlightedCode, setHighlightedCode] = React.useState<string>("");
+  const language =
+    (className?.replace("language-", "") as BundledLanguage) || "plaintext";
 
   React.useEffect(() => {
     const highlightCode = async () => {
@@ -21,13 +22,13 @@ function CodeBlock({ children, className }: CodeBlockProps) {
         const html = await codeToHtml(children.trim(), {
           lang: language,
           themes: {
-            light: 'github-light',
-            dark: 'github-dark',
+            light: "github-light",
+            dark: "github-dark",
           },
         });
         setHighlightedCode(html);
       } catch (error) {
-        console.error('Error highlighting code:', error);
+        console.error("Error highlighting code:", error);
         setHighlightedCode(`<pre><code>${children}</code></pre>`);
       }
     };
@@ -61,7 +62,7 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
       remarkPlugins={[remarkGfm]}
       components={{
         code({ className, children, ...props }: any) {
-          const content = String(children).replace(/\n$/, '');
+          const content = String(children).replace(/\n$/, "");
           const isInline = !className;
 
           if (isInline) {
@@ -75,11 +76,7 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
             );
           }
 
-          return (
-            <CodeBlock className={className}>
-              {content}
-            </CodeBlock>
-          );
+          return <CodeBlock className={className}>{content}</CodeBlock>;
         },
         p({ children }) {
           return <p className="my-2 leading-relaxed">{children}</p>;
@@ -91,13 +88,21 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
           return <h2 className="text-xl font-bold mt-5 mb-2">{children}</h2>;
         },
         h3({ children }) {
-          return <h3 className="text-lg font-semibold mt-4 mb-2">{children}</h3>;
+          return (
+            <h3 className="text-lg font-semibold mt-4 mb-2">{children}</h3>
+          );
         },
         ul({ children }) {
-          return <ul className="list-disc list-inside my-2 space-y-1">{children}</ul>;
+          return (
+            <ul className="list-disc list-inside my-2 space-y-1">{children}</ul>
+          );
         },
         ol({ children }) {
-          return <ol className="list-decimal list-inside my-2 space-y-1">{children}</ol>;
+          return (
+            <ol className="list-decimal list-inside my-2 space-y-1">
+              {children}
+            </ol>
+          );
         },
         li({ children }) {
           return <li className="ml-4">{children}</li>;

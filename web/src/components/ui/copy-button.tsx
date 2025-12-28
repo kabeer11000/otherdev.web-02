@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
@@ -9,7 +9,10 @@ interface CopyButtonProps {
   copyMessage?: string;
 }
 
-export function CopyButton({ content, copyMessage = "Copied!" }: CopyButtonProps) {
+export function CopyButton({
+  content,
+  copyMessage = "Copied!",
+}: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -26,11 +29,7 @@ export function CopyButton({ content, copyMessage = "Copied!" }: CopyButtonProps
       onClick={handleCopy}
       aria-label={copied ? copyMessage : "Copy to clipboard"}
     >
-      {copied ? (
-        <Check className="h-4 w-4" />
-      ) : (
-        <Copy className="h-4 w-4" />
-      )}
+      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
     </Button>
   );
 }

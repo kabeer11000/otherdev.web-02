@@ -1,8 +1,8 @@
-import { HfInference } from '@huggingface/inference';
+import { HfInference } from "@huggingface/inference";
 
 const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
-const MODEL = 'sentence-transformers/all-MiniLM-L6-v2';
+const MODEL = "sentence-transformers/all-MiniLM-L6-v2";
 
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
@@ -18,10 +18,10 @@ export async function generateEmbedding(text: string): Promise<number[]> {
       return response as number[];
     }
 
-    throw new Error('Invalid embedding response format');
+    throw new Error("Invalid embedding response format");
   } catch (error) {
-    console.error('Error generating embedding:', error);
-    throw new Error('Failed to generate embedding');
+    console.error("Error generating embedding:", error);
+    throw new Error("Failed to generate embedding");
   }
 }
 
@@ -31,7 +31,7 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   for (const text of texts) {
     const embedding = await generateEmbedding(text);
     embeddings.push(embedding);
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
   return embeddings;

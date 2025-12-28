@@ -1,11 +1,11 @@
-import { z } from 'zod';
-import Groq from 'groq-sdk';
-import { generateEmbedding } from '@/server/lib/rag/embeddings';
-import { searchSimilarDocuments } from '@/server/lib/rag/vector-search';
-import { checkRateLimit, getClientIdentifier } from '@/server/lib/rate-limit';
+import { z } from "zod";
+import Groq from "groq-sdk";
+import { generateEmbedding } from "@/server/lib/rag/embeddings";
+import { searchSimilarDocuments } from "@/server/lib/rag/vector-search";
+import { checkRateLimit, getClientIdentifier } from "@/server/lib/rate-limit";
 
 const MessageSchema = z.object({
-  role: z.enum(['user', 'assistant']),
+  role: z.enum(["user", "assistant"]),
   content: z.string(),
 });
 
@@ -55,11 +55,11 @@ function sanitizeInput(text: string): string {
 
   let sanitized = text;
   for (const pattern of dangerousPatterns) {
-    sanitized = sanitized.replace(pattern, '');
+    sanitized = sanitized.replace(pattern, "");
   }
 
   const maxLength = Number.parseInt(
-    process.env.RAG_MAX_MESSAGE_LENGTH || '500'
+    process.env.RAG_MAX_MESSAGE_LENGTH || "500",
   );
   return sanitized.slice(0, maxLength);
 }
@@ -71,22 +71,22 @@ export async function POST(request: Request) {
 
     if (!rateLimitResult.allowed) {
       const retryAfter = Math.ceil(
-        (rateLimitResult.resetTime - Date.now()) / 1000
+        (rateLimitResult.resetTime - Date.now()) / 1000,
       );
       return new Response(
         JSON.stringify({
-          error: 'Too many requests. Please try again later.',
+          error: "Too many requests. Please try again later.",
         }),
         {
           status: 429,
           headers: {
-            'Content-Type': 'application/json',
-            'Retry-After': retryAfter.toString(),
-            'X-RateLimit-Limit': '10',
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+            "Content-Type": "application/json",
+            "Retry-After": retryAfter.toString(),
+            "X-RateLimit-Limit": "10",
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
           },
-        }
+        },
       );
     }
 
@@ -96,68 +96,62 @@ export async function POST(request: Request) {
     if (!validation.success) {
       return new Response(
         JSON.stringify({
-          error: 'Invalid request format',
+          error: "Invalid request format",
           details: validation.error.issues,
         }),
         {
           status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
+          headers: { "Content-Type": "application/json" },
+        },
       );
     }
 
     const { messages } = validation.data;
-    const lastUserMessage = messages
-      .filter((m) => m.role === 'user')
-      .pop();
+    const lastUserMessage = messages.filter((m) => m.role === "user").pop();
 
     if (!lastUserMessage) {
-      return new Response(
-        JSON.stringify({ error: 'No user message found' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ error: "No user message found" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const sanitizedQuery = sanitizeInput(lastUserMessage.content);
     const queryEmbedding = await generateEmbedding(sanitizedQuery);
 
     const matchThreshold = Number.parseFloat(
-      process.env.RAG_SIMILARITY_THRESHOLD || '0.1'
+      process.env.RAG_SIMILARITY_THRESHOLD || "0.1",
     );
-    const matchCount = Number.parseInt(
-      process.env.RAG_MATCH_COUNT || '5'
-    );
+    const matchCount = Number.parseInt(process.env.RAG_MATCH_COUNT || "5");
 
     const similarDocs = await searchSimilarDocuments(
       queryEmbedding,
       matchThreshold,
-      matchCount
+      matchCount,
     );
 
-    const context = similarDocs.length > 0
-      ? similarDocs
-          .map(
-            (doc, idx) =>
-              `Document ${idx + 1} (Relevance: ${(doc.similarity * 100).toFixed(1)}%):\nTitle: ${doc.metadata.title}\n${doc.content}\n`
-          )
-          .join('\n---\n\n')
-      : 'No specific information found in the knowledge base.';
+    const context =
+      similarDocs.length > 0
+        ? similarDocs
+            .map(
+              (doc, idx) =>
+                `Document ${idx + 1} (Relevance: ${(doc.similarity * 100).toFixed(1)}%):\nTitle: ${doc.metadata.title}\n${doc.content}\n`,
+            )
+            .join("\n---\n\n")
+        : "No specific information found in the knowledge base.";
 
-    const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace('{context}', context);
+    const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{context}", context);
 
     const chatMessages = [
-      { role: 'system' as const, content: systemPrompt },
+      { role: "system" as const, content: systemPrompt },
       ...messages.map((m) => ({
-        role: m.role as 'user' | 'assistant',
+        role: m.role as "user" | "assistant",
         content: sanitizeInput(m.content),
       })),
     ];
 
     const completion = await groq.chat.completions.create({
-      model: 'openai/gpt-oss-120b',
+      model: "openai/gpt-oss-120b",
       messages: chatMessages,
       temperature: 0.7,
       max_tokens: 1024,
@@ -175,10 +169,10 @@ export async function POST(request: Request) {
               controller.enqueue(encoder.encode(`data: ${data}\n\n`));
             }
           }
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         } catch (error) {
-          console.error('Streaming error:', error);
+          console.error("Streaming error:", error);
           controller.error(error);
         }
       },
@@ -186,24 +180,24 @@ export async function POST(request: Request) {
 
     return new Response(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-        'X-RateLimit-Limit': '10',
-        'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
-        'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        "X-RateLimit-Limit": "10",
+        "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+        "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
       },
     });
   } catch (error) {
-    console.error('Chat API error:', error);
+    console.error("Chat API error:", error);
     return new Response(
       JSON.stringify({
-        error: 'Internal server error. Please try again.',
+        error: "Internal server error. Please try again.",
       }),
       {
         status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
+        headers: { "Content-Type": "application/json" },
+      },
     );
   }
 }

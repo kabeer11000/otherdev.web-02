@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from "next/server";
 
 /**
  * Proxy (Next.js 16 replacement for middleware)
@@ -10,16 +10,16 @@ import { NextRequest, NextResponse } from 'next/server'
  * - localhost:3000 → localhost (development)
  */
 export function proxy(request: NextRequest) {
-  const hostname = request.headers.get('host') || ''
+  const hostname = request.headers.get("host") || "";
 
   // Extract domain (remove port for localhost)
-  const domain = hostname.split(':')[0]
+  const domain = hostname.split(":")[0];
 
   // Create response and add tenant domain header
-  const response = NextResponse.next()
-  response.headers.set('x-tenant-domain', domain)
+  const response = NextResponse.next();
+  response.headers.set("x-tenant-domain", domain);
 
-  return response
+  return response;
 }
 
 export const config = {
@@ -32,6 +32,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public files (images, etc.)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*|_next).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\..*|_next).*)",
   ],
-}
+};

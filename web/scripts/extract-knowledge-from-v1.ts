@@ -92,7 +92,9 @@ function extractProjectDocuments(projects: ProjectData[]): KnowledgeDocument[] {
       for (const section of project.page.splitSections) {
         if (!section.content || section.content.trim().length < 50) continue;
 
-        const tags = section.tags ? ` Technologies: ${section.tags.join(", ")}.` : "";
+        const tags = section.tags
+          ? ` Technologies: ${section.tags.join(", ")}.`
+          : "";
 
         documents.push({
           content: `${project.title} - ${section.heading}: ${section.content}${tags}`,
@@ -133,7 +135,9 @@ function extractServiceDocuments(services: ServiceData[]): KnowledgeDocument[] {
     // 1. Service overview
     documents.push({
       content: `${service.title}: ${service.description} ${service.excerpt} Keywords: ${service.keywords}.${
-        service.startingPrice ? ` Starting price: $${service.startingPrice}` : ""
+        service.startingPrice
+          ? ` Starting price: $${service.startingPrice}`
+          : ""
       }`,
       metadata: {
         source: "services",
@@ -212,28 +216,44 @@ function extractServiceDocuments(services: ServiceData[]): KnowledgeDocument[] {
 function deriveProjectCategory(title: string): string {
   const lower = title.toLowerCase();
   if (lower.includes("seo")) return "seo";
-  if (lower.includes("real estate") || lower.includes("property")) return "real-estate";
+  if (lower.includes("real estate") || lower.includes("property"))
+    return "real-estate";
   if (lower.includes("legal") || lower.includes("ai")) return "legal-tech";
-  if (lower.includes("fashion") || lower.includes("e-commerce") || lower.includes("branding"))
+  if (
+    lower.includes("fashion") ||
+    lower.includes("e-commerce") ||
+    lower.includes("branding")
+  )
     return "fashion-ecommerce";
   if (lower.includes("saas") || lower.includes("platform")) return "saas";
-  if (lower.includes("payment") || lower.includes("migration")) return "migration";
-  if (lower.includes("ngo") || lower.includes("enterprise")) return "enterprise";
+  if (lower.includes("payment") || lower.includes("migration"))
+    return "migration";
+  if (lower.includes("ngo") || lower.includes("enterprise"))
+    return "enterprise";
   return "general";
 }
 
 function deriveServiceCategory(title: string): string {
   const lower = title.toLowerCase();
-  if (lower.includes("web") || lower.includes("app") || lower.includes("mobile")) return "development";
-  if (lower.includes("ar") || lower.includes("vr") || lower.includes("xr")) return "ar-vr";
+  if (
+    lower.includes("web") ||
+    lower.includes("app") ||
+    lower.includes("mobile")
+  )
+    return "development";
+  if (lower.includes("ar") || lower.includes("vr") || lower.includes("xr"))
+    return "ar-vr";
   if (lower.includes("cloud") || lower.includes("devops")) return "cloud";
-  if (lower.includes("simulation") || lower.includes("industrial")) return "simulation";
+  if (lower.includes("simulation") || lower.includes("industrial"))
+    return "simulation";
   return "general";
 }
 
 function extractCompanyInfo(): KnowledgeDocument[] {
   try {
-    const seoData = JSON.parse(readFileSync(join(V1_PATH, "seo.json"), "utf-8"));
+    const seoData = JSON.parse(
+      readFileSync(join(V1_PATH, "seo.json"), "utf-8"),
+    );
 
     return [
       {
@@ -244,7 +264,8 @@ function extractCompanyInfo(): KnowledgeDocument[] {
         } | ${seoData.business?.email || "hello@otherdev.com"}. Website: ${
           seoData.url || "https://www.otherdev.com"
         }. Service areas: ${
-          seoData.business?.serviceArea?.join(", ") || "US, Canada, UK, Australia, Pakistan, Germany"
+          seoData.business?.serviceArea?.join(", ") ||
+          "US, Canada, UK, Australia, Pakistan, Germany"
         }. Languages: ${seoData.business?.languages?.join(", ") || "English, German, Urdu"}.`,
         metadata: {
           source: "company",
@@ -284,10 +305,10 @@ async function main() {
   try {
     // Read source files
     const projects: ProjectData[] = JSON.parse(
-      readFileSync(join(V1_PATH, "projects.json"), "utf-8")
+      readFileSync(join(V1_PATH, "projects.json"), "utf-8"),
     );
     const services: ServiceData[] = JSON.parse(
-      readFileSync(join(V1_PATH, "services.json"), "utf-8")
+      readFileSync(join(V1_PATH, "services.json"), "utf-8"),
     );
 
     console.log(`📊 Found ${projects.length} projects`);

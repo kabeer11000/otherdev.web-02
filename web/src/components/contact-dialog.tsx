@@ -45,7 +45,7 @@ type ContactFormValues = z.infer<typeof contactFormSchema>;
 
 interface ContactDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void; 
+  onOpenChange: (open: boolean) => void;
 }
 
 export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {

@@ -5,71 +5,71 @@
 
 // Type definitions based on Payload collections
 export interface BlogPost {
-  id: number
-  title: string
-  slug: string
-  content: any // Lexical rich text
-  excerpt?: string
-  status: 'draft' | 'published'
+  id: number;
+  title: string;
+  slug: string;
+  content: any; // Lexical rich text
+  excerpt?: string;
+  status: "draft" | "published";
   author: {
-    id: number
-    email: string
-  }
+    id: number;
+    email: string;
+  };
   featuredImage?: {
-    id: number
-    url: string
-    alt: string
-    filename: string
-  }
-  categories?: Category[]
-  publishedAt?: string
-  createdAt: string
-  updatedAt: string
+    id: number;
+    url: string;
+    alt: string;
+    filename: string;
+  };
+  categories?: Category[];
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Category {
-  id: number
-  name: string
-  slug: string
-  description?: string
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
 }
 
 export interface PayloadResponse<T> {
-  docs: T[]
-  totalDocs: number
-  limit: number
-  totalPages: number
-  page: number
-  pagingCounter: number
-  hasPrevPage: boolean
-  hasNextPage: boolean
-  prevPage: number | null
-  nextPage: number | null
+  docs: T[];
+  totalDocs: number;
+  limit: number;
+  totalPages: number;
+  page: number;
+  pagingCounter: number;
+  hasPrevPage: boolean;
+  hasNextPage: boolean;
+  prevPage: number | null;
+  nextPage: number | null;
 }
 
 class PayloadAPIClient {
-  private baseUrl: string
+  private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.PAYLOAD_API_URL || 'http://localhost:3000'
+    this.baseUrl = process.env.PAYLOAD_API_URL || "http://localhost:3000";
   }
 
   private async fetch<T>(endpoint: string): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`
+    const url = `${this.baseUrl}${endpoint}`;
 
     const res = await fetch(url, {
       next: { revalidate: 60 }, // Cache for 60 seconds
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-    })
+    });
 
     if (!res.ok) {
-      const error = await res.text()
-      throw new Error(`Payload API error (${res.status}): ${error}`)
+      const error = await res.text();
+      throw new Error(`Payload API error (${res.status}): ${error}`);
     }
 
-    return res.json()
+    return res.json();
   }
 
   /**
@@ -77,18 +77,16 @@ class PayloadAPIClient {
    */
   async getBlogPosts(
     domain: string,
-    options: { limit?: number; page?: number } = {}
+    options: { limit?: number; page?: number } = {},
   ): Promise<PayloadResponse<BlogPost>> {
-    const { limit = 10, page = 1 } = options
+    const { limit = 10, page = 1 } = options;
     const params = new URLSearchParams({
       domain,
       limit: String(limit),
       page: String(page),
-    })
+    });
 
-    return this.fetch<PayloadResponse<BlogPost>>(
-      `/api/public/blogs?${params}`
-    )
+    return this.fetch<PayloadResponse<BlogPost>>(`/api/public/blogs?${params}`);
   }
 
   /**
@@ -96,13 +94,11 @@ class PayloadAPIClient {
    */
   async getBlogPost(slug: string, domain: string): Promise<BlogPost | null> {
     try {
-      const params = new URLSearchParams({ domain })
-      return await this.fetch<BlogPost>(
-        `/api/public/blogs/${slug}?${params}`
-      )
+      const params = new URLSearchParams({ domain });
+      return await this.fetch<BlogPost>(`/api/public/blogs/${slug}?${params}`);
     } catch (error) {
-      console.error('Error fetching blog post:', error)
-      return null
+      console.error("Error fetching blog post:", error);
+      return null;
     }
   }
 
@@ -110,11 +106,11 @@ class PayloadAPIClient {
    * Get all categories for a domain
    */
   async getCategories(domain: string): Promise<PayloadResponse<Category>> {
-    const params = new URLSearchParams({ domain })
+    const params = new URLSearchParams({ domain });
     return this.fetch<PayloadResponse<Category>>(
-      `/api/public/categories?${params}`
-    )
+      `/api/public/categories?${params}`,
+    );
   }
 }
 
-export const payloadAPI = new PayloadAPIClient()
+export const payloadAPI = new PayloadAPIClient();

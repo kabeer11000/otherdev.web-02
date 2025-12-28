@@ -39,7 +39,7 @@ const chatBubbleVariants = cva(
         class: "origin-bottom-left",
       },
     ],
-  }
+  },
 );
 
 type Animation = VariantProps<typeof chatBubbleVariants>["animation"];
@@ -92,7 +92,7 @@ export function ChatMessage({
           dateTime={createdAt.toISOString()}
           className={cn(
             "mt-1 block px-1 text-xs opacity-50",
-            animation !== "none" && "duration-500 animate-in fade-in-0"
+            animation !== "none" && "duration-500 animate-in fade-in-0",
           )}
         >
           {formattedTime}

@@ -1,23 +1,26 @@
-import { knowledgeBase } from '../src/lib/knowledge-base';
-import { generateEmbedding } from '../src/server/lib/rag/embeddings';
-import { insertDocument, deleteAllDocuments } from '../src/server/lib/rag/vector-search';
+import { knowledgeBase } from "../src/lib/knowledge-base";
+import { generateEmbedding } from "../src/server/lib/rag/embeddings";
+import {
+  insertDocument,
+  deleteAllDocuments,
+} from "../src/server/lib/rag/vector-search";
 
 async function main() {
-  console.log('========================================');
-  console.log('Document Ingestion Pipeline');
-  console.log('========================================\n');
+  console.log("========================================");
+  console.log("Document Ingestion Pipeline");
+  console.log("========================================\n");
 
-  console.log('Step 1: Clearing old embeddings from database...');
+  console.log("Step 1: Clearing old embeddings from database...");
   try {
     await deleteAllDocuments();
-    console.log('  Successfully cleared all old documents\n');
+    console.log("  Successfully cleared all old documents\n");
   } catch (error) {
-    console.error('  Failed to clear old documents:', error);
-    console.error('  Aborting ingestion to prevent pollution\n');
+    console.error("  Failed to clear old documents:", error);
+    console.error("  Aborting ingestion to prevent pollution\n");
     process.exit(1);
   }
 
-  console.log('Step 2: Ingesting new documents...');
+  console.log("Step 2: Ingesting new documents...");
   console.log(`Total documents to process: ${knowledgeBase.length}\n`);
 
   let successCount = 0;
@@ -35,22 +38,18 @@ async function main() {
 
       if (!embedding || embedding.length !== 384) {
         throw new Error(
-          `Invalid embedding dimension: ${embedding?.length || 0}`
+          `Invalid embedding dimension: ${embedding?.length || 0}`,
         );
       }
 
       console.log(`  Inserting into database...`);
-      const docId = await insertDocument(
-        doc.content,
-        doc.metadata,
-        embedding
-      );
+      const docId = await insertDocument(doc.content, doc.metadata, embedding);
 
       console.log(`  Success! Document ID: ${docId}\n`);
       successCount++;
 
       if (i < knowledgeBase.length - 1) {
-        console.log('  Waiting 500ms before next request...\n');
+        console.log("  Waiting 500ms before next request...\n");
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
     } catch (error) {
@@ -60,12 +59,12 @@ async function main() {
     }
   }
 
-  console.log('========================================');
-  console.log('Ingestion Complete!');
+  console.log("========================================");
+  console.log("Ingestion Complete!");
   console.log(`  Successful: ${successCount}`);
   console.log(`  Failed: ${errorCount}`);
   console.log(`  Total: ${knowledgeBase.length}`);
-  console.log('========================================');
+  console.log("========================================");
 
   if (errorCount > 0) {
     process.exit(1);
@@ -73,6 +72,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('Fatal error during ingestion:', error);
+  console.error("Fatal error during ingestion:", error);
   process.exit(1);
 });

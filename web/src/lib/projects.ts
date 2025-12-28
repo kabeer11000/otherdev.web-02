@@ -167,11 +167,12 @@ export const projects: Project[] = [
     title: "Website Development for Cultured Legacy",
     slug: "cultured-legacy-2025",
     image: "/images/projects/cultured-legacy-2025/culturedlegacy.shop_.png",
-    description: "Strategic e-commerce website development for Cultured Legacy that honors the brand's refined heritage. A sophisticated yet accessible digital space that guides customers through a curated journey of exploration and discovery.",
+    description:
+      "Strategic e-commerce website development for Cultured Legacy that honors the brand's refined heritage. A sophisticated yet accessible digital space that guides customers through a curated journey of exploration and discovery.",
     url: "culturedlegacy.shop",
     media: [
       "/images/projects/cultured-legacy-2025/culturedlegacy.shop_.png",
-      "/images/projects/cultured-legacy-2025/other.dev-13-11-2025-0004.webp"
+      "/images/projects/cultured-legacy-2025/other.dev-13-11-2025-0004.webp",
     ],
   },
   {
@@ -179,17 +180,25 @@ export const projects: Project[] = [
     title: "Enterprise infrastructure development for Ek Qadam Aur",
     slug: "ekqadamaur-2024",
     image: "/images/projects/eqa-2024/www.ekqadamaur.org_.webp",
-    description: "Long-term technical partnership serving as the core technology team for Ek Qadam Aur NGO. Comprehensive end-to-end management including website design, development, hosting infrastructure, and ongoing technical support. From inception to present day, we've been their dedicated technology partner, ensuring seamless digital operations for their social impact initiatives.",
+    description:
+      "Long-term technical partnership serving as the core technology team for Ek Qadam Aur NGO. Comprehensive end-to-end management including website design, development, hosting infrastructure, and ongoing technical support. From inception to present day, we've been their dedicated technology partner, ensuring seamless digital operations for their social impact initiatives.",
     url: "ekqadamaur.org",
-    media: ["/images/projects/eqa-2024/www.ekqadamaur.org_.webp", "/images/projects/eqa-2024/ekqadamaur.webp"],
+    media: [
+      "/images/projects/eqa-2024/www.ekqadamaur.org_.webp",
+      "/images/projects/eqa-2024/ekqadamaur.webp",
+    ],
   },
   {
     id: "13",
     title: "Enterprise infrastructure development for NTL Exchange",
     slug: "ntl-2024",
     image: "/images/projects/ntl-trading-2024/1743818053315_100.png",
-    description: "Comprehensive digital transformation for NTL Exchange, encompassing complete brand identity creation, custom mobile application development for seamless on-the-go trading, responsive website design and development, and robust enterprise infrastructure solutions. A unified ecosystem that delivers secure, efficient, and user-friendly exchange services across all platforms.",
+    description:
+      "Comprehensive digital transformation for NTL Exchange, encompassing complete brand identity creation, custom mobile application development for seamless on-the-go trading, responsive website design and development, and robust enterprise infrastructure solutions. A unified ecosystem that delivers secure, efficient, and user-friendly exchange services across all platforms.",
     url: "www.ntlex.com",
-    media: ["/images/projects/ntl-trading-2024/1743818053315_100.png", "/images/projects/ntl-trading-2024/IMG_20250405_065546_880.webp"],
+    media: [
+      "/images/projects/ntl-trading-2024/1743818053315_100.png",
+      "/images/projects/ntl-trading-2024/IMG_20250405_065546_880.webp",
+    ],
   },
 ];

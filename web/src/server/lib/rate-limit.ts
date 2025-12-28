@@ -60,11 +60,11 @@ export function checkRateLimit(identifier: string): {
 }
 
 export function getClientIdentifier(request: Request): string {
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  const realIp = request.headers.get('x-real-ip');
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  const realIp = request.headers.get("x-real-ip");
 
   if (forwardedFor) {
-    const ips = forwardedFor.split(',');
+    const ips = forwardedFor.split(",");
     return ips[0].trim();
   }
 
@@ -72,5 +72,5 @@ export function getClientIdentifier(request: Request): string {
     return realIp.trim();
   }
 
-  return 'unknown';
+  return "unknown";
 }

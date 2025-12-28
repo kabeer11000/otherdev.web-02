@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   keywords: [
     "web development",
     "web design",
-    "digital platforms", 
+    "digital platforms",
     "fashion design",
     "creative studio",
     "Karachi",

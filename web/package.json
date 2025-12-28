@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
-    "ingest": "bun run scripts/ingest-documents.ts"
+    "ingest": "bun run scripts/ingest-documents.ts",
+    "clear": "bun run scripts/clear-documents.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

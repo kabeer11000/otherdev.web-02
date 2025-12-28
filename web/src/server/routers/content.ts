@@ -1,6 +1,6 @@
-import { z } from 'zod'
-import { publicProcedure, router } from '../trpc'
-import { payloadAPI } from '@/lib/payload-api'
+import { z } from "zod";
+import { publicProcedure, router } from "../trpc";
+import { payloadAPI } from "@/lib/payload-api";
 
 /**
  * Content router for fetching blog posts and categories from Canvas (Payload CMS)
@@ -15,13 +15,13 @@ export const contentRouter = router({
       z.object({
         limit: z.number().optional().default(10),
         page: z.number().optional().default(1),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       return await payloadAPI.getBlogPosts(ctx.domain, {
         limit: input.limit,
         page: input.page,
-      })
+      });
     }),
 
   /**
@@ -31,16 +31,16 @@ export const contentRouter = router({
     .input(
       z.object({
         slug: z.string(),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
-      return await payloadAPI.getBlogPost(input.slug, ctx.domain)
+      return await payloadAPI.getBlogPost(input.slug, ctx.domain);
     }),
 
   /**
    * Get all categories for the current domain (from context)
    */
   getCategories: publicProcedure.query(async ({ ctx }) => {
-    return await payloadAPI.getCategories(ctx.domain)
+    return await payloadAPI.getCategories(ctx.domain);
   }),
-})
+});
