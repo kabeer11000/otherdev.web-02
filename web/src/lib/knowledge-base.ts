@@ -13,7 +13,7 @@ export interface KnowledgeDocument {
 
 export const knowledgeBase: KnowledgeDocument[] = [
   {
-    "content": "PROJECT: Narkins Builders\nYEAR: 2025\nSERVICE: SEO & Technical Optimization\nINDUSTRY: Real Estate\nSTACK: Google Analytics 4, Google Search Console, Schema.org, WordPress to MDX Migration, XML Sitemap, Canonical Tags\nRESULTS: 30% traffic increase in first month, enhanced search indexing, first-page ranking positioning\nCOMPETITORS: Zameen.com, OLX.com\nURL: https://narkinsbuilders.com",
+    "content": "PROJECT: Narkins Builders\nYEAR: 2025\nSERVICE: SEO & Technical Optimization\nINDUSTRY: Real Estate\nSTACK: Google Analytics 4, Google Search Console, Schema.org, WordPress to MDX Migration, XML Sitemap, Canonical Tags\nFEATURES: GA4 event tracking, XML sitemaps, canonical tags, schema markup, MDX blog platform\nRESULTS: 30% traffic increase in first month, enhanced search indexing, first-page ranking positioning\nCOMPETITORS: Zameen.com, OLX.com\nURL: https://narkinsbuilders.com",
     "metadata": {
       "source": "projects",
       "title": "Narkins Builders - Facts",
@@ -84,7 +84,7 @@ export const knowledgeBase: KnowledgeDocument[] = [
     }
   },
   {
-    "content": "PROJECT: Bin Yousuf Group\nYEAR: 2025\nSERVICE: Real Estate Platform Development\nINDUSTRY: Luxury Real Estate\nSTACK: Astro 5.10.0, React, TypeScript, GSAP Animations, Google Sheets API, WhatsApp Integration\nFEATURES: Interactive property galleries, real-time lead tracking, location-based filtering\nPARTNERS: Official sales partners of Emaar Oceanfront, HMR Waterfront\nURL: https://binyousufgroup.com",
+    "content": "PROJECT: Bin Yousuf Group\nYEAR: 2025\nSERVICE: Real Estate Platform Development\nINDUSTRY: Luxury Real Estate\nSTACK: Astro 5.10.0, React, TypeScript, GSAP Animations, Google Sheets API, WhatsApp Integration\nFEATURES: Interactive property galleries, real-time lead tracking, location-based filtering\nRESULTS: Significant increase in qualified luxury property inquiries, zero lead loss, streamlined sales workflow\nPARTNERS: Official sales partners of Emaar Oceanfront, HMR Waterfront\nURL: https://binyousufgroup.com",
     "metadata": {
       "source": "projects",
       "title": "Bin Yousuf Group - Facts",
@@ -132,7 +132,7 @@ export const knowledgeBase: KnowledgeDocument[] = [
     }
   },
   {
-    "content": "Lead generation: Significant increase in qualified luxury property inquiries after launch. Sales process: Google Sheets integration streamlined entire sales workflow with real-time tracking. Credibility: Enhanced market positioning as official Emaar and HMR partners through professional design. User experience: Smooth navigation and interactive property galleries improved prospect engagement. Lead tracking: Zero lead loss achieved with robust API integration and instant notifications. Conversion: Optional form fields maximized conversion rates from visitors to prospects.",
+    "content": "Lead generation: Sustained increase in qualified luxury property inquiries post launch. Sales process: Google Sheets integration streamlined entire sales workflow with real-time tracking. Credibility: Enhanced market positioning as official Emaar and HMR partners through professional design. User experience: Smooth navigation and interactive property galleries improved prospect engagement. Lead tracking: Zero lead loss achieved with robust API integration and instant notifications. Conversion: Optional form fields maximized conversion rates from visitors to prospects.",
     "metadata": {
       "source": "projects",
       "title": "Bin Yousuf Group - Results",
@@ -155,7 +155,7 @@ export const knowledgeBase: KnowledgeDocument[] = [
     }
   },
   {
-    "content": "PROJECT: Lexa\nYEAR: 2025\nSERVICE: AI Legal Assistant Platform\nINDUSTRY: Legal Tech / SaaS\nSTACK: Astro 5.13, React 19, Y.js, WebSocket, TipTap Extensions, Nanostores, AI/NLP Integration\nFEATURES: Real-time collaborative editing, AI contract analysis, automated document generation, digital signatures, GDPR compliance\nMARKETS: Asia, Middle East\nURL: https://lexa.deployments.otherdev.com",
+    "content": "PROJECT: Lexa\nYEAR: 2025\nSERVICE: AI Legal Assistant Platform\nINDUSTRY: Legal Tech / SaaS\nSTACK: Astro 5.13, React 19, Y.js, WebSocket, TipTap Extensions, Nanostores, AI/NLP Integration\nFEATURES: Real-time collaborative editing, AI contract analysis, automated document generation, digital signatures, GDPR compliance\nRESULTS: Transformed legal document workflow, perfect team synchronization, measurable improvement in processing efficiency\nMARKETS: Asia, Middle East\nURL: https://lexa.deployments.otherdev.com",
     "metadata": {
       "source": "projects",
       "title": "Lexa - Facts",
@@ -203,7 +203,7 @@ export const knowledgeBase: KnowledgeDocument[] = [
     }
   },
   {
-    "content": "Workflow transformation: AI-powered analysis and automated recommendations revolutionized legal document processing. Collaboration: Real-time editing features achieved perfect team synchronization. AI capabilities: Intelligent legal context understanding and suggestions proved game-changing. Processing efficiency: Dramatic improvement in document processing speed and accuracy. Client satisfaction: Clients amazed by AI-driven insights and recommendations. Security: Enterprise-grade measures met strict legal industry compliance requirements. Document management: Seamless export capabilities and formatting preservation across all editing sessions.",
+    "content": "Workflow transformation: AI-powered analysis and automated recommendations transformed legal document processing. Collaboration: Real-time editing features achieved perfect team synchronization. AI capabilities: Intelligent legal context understanding and suggestions changed workflow efficiency. Processing efficiency: Measurable improvement in document processing speed and accuracy. Client satisfaction: Positive client response to AI-driven insights and recommendations. Security: Enterprise-grade measures met strict legal industry compliance requirements. Document management: Seamless export capabilities and formatting preservation across all editing sessions.",
     "metadata": {
       "source": "projects",
       "title": "Lexa - Results",
@@ -226,7 +226,7 @@ export const knowledgeBase: KnowledgeDocument[] = [
     }
   },
   {
-    "content": "PROJECT: Kiswa Noire\nYEAR: 2025\nSERVICE: E-commerce Platform Development\nINDUSTRY: Premium Children's Fashion\nBRAND: Danish children's lifestyle brand\nSTACK: Shopify Custom Theme, CSS Variables, JavaScript, Geolocation API, Multi-currency, Multilingual\nLANGUAGES: English, German, French, Danish\nPAYMENTS: Apple Pay, Google Pay, PayPal\nMARKETS: European markets\nURL: https://kiswanoire.com",
+    "content": "PROJECT: Kiswa Noire\nYEAR: 2025\nSERVICE: E-commerce Platform Development\nINDUSTRY: Premium Children's Fashion\nSTACK: Shopify Custom Theme, CSS Variables, JavaScript, Geolocation API, Multi-currency, Multilingual\nFEATURES: Multilingual support, geolocation personalization, mega menu navigation, GDPR compliance, international inventory\nRESULTS: Sustained growth across European markets, successful multi-market operations with automatic localization\nBRAND: Danish children's lifestyle brand\nLANGUAGES: English, German, French, Danish\nPAYMENTS: Apple Pay, Google Pay, PayPal\nMARKETS: European markets\nURL: https://kiswanoire.com",
     "metadata": {
       "source": "projects",
       "title": "Kiswa Noire - Facts",
@@ -274,7 +274,7 @@ export const knowledgeBase: KnowledgeDocument[] = [
     }
   },
   {
-    "content": "Online engagement: Remarkable growth after launch across European markets. Customer feedback: Consistent praise for intuitive shopping experience and Scandinavian aesthetic. European expansion: Multilingual capabilities and performance crucial for market growth. Brand representation: Platform perfectly captures premium brand essence and Danish design philosophy. Technical quality: Exceptional attention to detail in design and technical implementation. User experience: Seamless shopping across all touchpoints and devices. International reach: Successful multi-market operations with automatic localization.",
+    "content": "Online engagement: Sustained growth after launch across European markets. Customer feedback: Consistent praise for intuitive shopping experience and Scandinavian aesthetic. European expansion: Multilingual capabilities and performance enabled market growth. Brand representation: Platform captures premium brand essence and Danish design philosophy. Technical quality: High attention to detail in design and technical implementation. User experience: Seamless shopping across all touchpoints and devices. International reach: Successful multi-market operations with automatic localization.",
     "metadata": {
       "source": "projects",
       "title": "Kiswa Noire - Results",
@@ -353,7 +353,7 @@ URL: https://wishapparels.com/`,
     }
   },
   {
-    content: `Results. Post launch metrics showed improved engagement and a measurable uplift in sales. The brand identity increased recognition across channels and the optimized checkout reduced abandonment. The platform now supports future expansion in product lines and markets.`,
+    content: `Results. Post launch metrics showed improved engagement and sustained increase in sales performance. The brand identity increased recognition across channels and the optimized checkout reduced abandonment. The platform now supports future expansion in product lines and markets.`,
     metadata: {
       source: "projects",
       title: "Wish Results",
@@ -432,7 +432,7 @@ URL: https://parcheh81.com/`,
     }
   },
   {
-    content: `Results. The site improved conversion and average order value through better product presentation and narrative. Brand perception strengthened and sales rose notably after launch. The platform is now used as the primary sales channel and brand showcase.`,
+    content: `Results. The site improved conversion and average order value through better product presentation and narrative. Brand perception strengthened and sales increased after launch. The platform is now used as the primary sales channel and brand showcase.`,
     metadata: {
       source: "projects",
       title: "Parcheh81 Results",
