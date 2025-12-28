@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { CopyButton } from "@/components/ui/copy-button";
-import { useArtifact } from "@/app/ai/page";
+import { useArtifact } from "@/app/otherdevloom/page";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
 
 function SuggestionButton({ prompt }: { prompt: string }) {

@@ -34,10 +34,15 @@ const navItemVariants = cva(
 
 type NavItemVariantProps = VariantProps<typeof navItemVariants>;
 
-export function Navigation() {
+interface NavigationProps {
+  variant?: "default" | "ai";
+}
+
+export function Navigation({ variant = "default" }: NavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const pathname = usePathname();
+  const isAIVariant = variant === "ai";
 
   useEffect(() => {
     const saved = sessionStorage.getItem("mobileMenuOpen");
@@ -56,8 +61,43 @@ export function Navigation() {
 
   return (
     <nav className="fixed top-[15px] left-0 right-0 z-[60] px-3 pointer-events-none">
-      {/* Mobile Navigation */}
-      <div className="sm:hidden flex items-center gap-[6px] w-full pointer-events-auto relative z-50">
+      {/* Mobile Navigation (or AI variant) */}
+      <div className={cn("flex items-center gap-[6px] w-full pointer-events-auto relative z-50", isAIVariant ? "" : "sm:hidden")}>
+        {/* Hamburger/X Button */}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          data-slot="nav-item"
+          className={cn(
+            navItemVariants({ size: "icon" }),
+            "text-foreground",
+          )}
+          aria-label="Toggle menu"
+        >
+          <AnimatePresence mode="wait">
+            {isOpen ? (
+              <motion.div
+                key="x-icon"
+                initial={{ opacity: 0, rotate: -90 }}
+                animate={{ opacity: 1, rotate: 0 }}
+                exit={{ opacity: 0, rotate: 90 }}
+                transition={{ duration: 0.2 }}
+              >
+                <X size={16} strokeWidth={1.5} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="menu-icon"
+                initial={{ opacity: 0, rotate: 90 }}
+                animate={{ opacity: 1, rotate: 0 }}
+                exit={{ opacity: 0, rotate: -90 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Menu size={16} strokeWidth={1.5} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </button>
+
         <AnimatePresence mode="wait">
           {!isOpen && (
             <motion.div
@@ -150,16 +190,16 @@ export function Navigation() {
                 transition={{ delay: 0.25, duration: 0.3 }}
               >
                 <Link
-                  href="/ai"
+                  href="/otherdevloom"
                   data-slot="nav-item"
                   className={cn(
                     navItemVariants({
                       size: "mobile",
-                      active: pathname?.startsWith("/ai"),
+                      active: pathname?.startsWith("/otherdevloom"),
                     }),
                   )}
                 >
-                  ai
+                  OD Ai
                 </Link>
               </motion.div>
               <motion.div
@@ -197,44 +237,10 @@ export function Navigation() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Hamburger/X Button */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          data-slot="nav-item"
-          className={cn(
-            navItemVariants({ size: "icon" }),
-            "text-foreground ml-auto",
-          )}
-          aria-label="Toggle menu"
-        >
-          <AnimatePresence mode="wait">
-            {isOpen ? (
-              <motion.div
-                key="x-icon"
-                initial={{ opacity: 0, rotate: -90 }}
-                animate={{ opacity: 1, rotate: 0 }}
-                exit={{ opacity: 0, rotate: 90 }}
-                transition={{ duration: 0.2 }}
-              >
-                <X size={16} strokeWidth={1.5} />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="menu-icon"
-                initial={{ opacity: 0, rotate: 90 }}
-                animate={{ opacity: 1, rotate: 0 }}
-                exit={{ opacity: 0, rotate: -90 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Menu size={16} strokeWidth={1.5} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </button>
       </div>
 
       {/* Tablet/Desktop Navigation */}
+      {!isAIVariant && (
       <div className="hidden sm:flex items-center gap-1.5 pointer-events-auto">
         <Link
           href="/"
@@ -282,16 +288,16 @@ export function Navigation() {
           about
         </Link>
         <Link
-          href="/ai"
+          href="/otherdevloom"
           data-slot="nav-item"
           className={cn(
             navItemVariants({
               size: "default",
-              active: pathname?.startsWith("/ai"),
+              active: pathname?.startsWith("/otherdevloom"),
             }),
           )}
         >
-          ai
+          Od AI
         </Link>
         <button
           onClick={handleContactClick}
@@ -310,10 +316,11 @@ export function Navigation() {
           whatsapp
         </Link>
       </div>
+      )}
 
       {/* Backdrop */}
       {isOpen && (
-        <div className="sm:hidden fixed inset-0 z-30 -backdrop-blur-lg pointer-events-none" />
+        <div className={cn("fixed inset-0 z-30 -backdrop-blur-lg pointer-events-none", isAIVariant ? "" : "sm:hidden")} />
       )}
 
       {/* Contact Dialog */}

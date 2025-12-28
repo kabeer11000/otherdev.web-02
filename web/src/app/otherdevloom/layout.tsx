@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     description:
       "Chat with OtherDev Loom to learn about our projects, services, and expertise.",
     type: "website",
-    url: "https://otherdev.com/ai",
+    url: "https://otherdev.com/otherdevloom",
     images: [
       {
         url: "/og-image.png",

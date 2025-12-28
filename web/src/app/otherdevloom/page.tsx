@@ -31,7 +31,7 @@ export default function AIPage() {
 
   return (
     <>
-      <Navigation />
+      <Navigation variant="ai" />
       <main className="h-screen pt-14 sm:pt-[60px]">
         <AssistantRuntimeProvider runtime={runtime}>
           <ArtifactContext.Provider value={{ activeArtifact, setActiveArtifact }}>

@@ -22,7 +22,7 @@ const MAX_INPUT_LENGTH = 500;
 export function ChatWidget() {
   const pathname = usePathname();
 
-  if (pathname?.startsWith("/ai")) {
+  if (pathname?.startsWith("/otherdevloom")) {
     return null;
   }
 
