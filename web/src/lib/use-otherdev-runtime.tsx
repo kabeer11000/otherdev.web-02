@@ -1,0 +1,199 @@
+"use client";
+
+import { useExternalStoreRuntime } from "@assistant-ui/react";
+import type { AppendMessage, ThreadMessage } from "@assistant-ui/react";
+import { useState, useCallback, useRef } from "react";
+
+export function useOtherDevRuntime() {
+  const [messages, setMessages] = useState<ThreadMessage[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const onNew = useCallback(
+    async (message: AppendMessage) => {
+      const textContent = message.content.find((part) => part.type === "text");
+      if (!textContent || textContent.type !== "text") return;
+
+      const userMessage: ThreadMessage = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content: [textContent],
+        createdAt: new Date(),
+        attachments: [],
+        metadata: {
+          custom: {},
+        },
+      };
+
+      setMessages((prev) => [...prev, userMessage]);
+      setIsRunning(true);
+
+      abortControllerRef.current = new AbortController();
+      const assistantMessageId = `assistant-${Date.now()}`;
+      let messageAdded = false;
+
+      try {
+        const apiMessages = messages.concat(userMessage).map((msg) => ({
+          role: msg.role,
+          content: msg.content.find((c) => c.type === "text")?.text ?? "",
+        }));
+
+        const response = await fetch("/api/chat/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: apiMessages }),
+          signal: abortControllerRef.current.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) {
+          throw new Error("Response body is not readable");
+        }
+
+        let accumulatedContent = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+
+              if (data === "[DONE]") {
+                break;
+              }
+
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.content) {
+                  accumulatedContent += parsed.content;
+
+                  if (!messageAdded) {
+                    const assistantMessage: ThreadMessage = {
+                      id: assistantMessageId,
+                      role: "assistant",
+                      content: [{ type: "text", text: accumulatedContent }],
+                      createdAt: new Date(),
+                      status: { type: "running" },
+                      metadata: {
+                        unstable_state: null,
+                        unstable_annotations: [],
+                        unstable_data: [],
+                        steps: [],
+                        custom: {},
+                      },
+                    };
+                    setMessages((prev) => [...prev, assistantMessage]);
+                    messageAdded = true;
+                  } else {
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMessageId
+                          ? {
+                              ...msg,
+                              content: [{ type: "text", text: accumulatedContent }],
+                            }
+                          : msg,
+                      ),
+                    );
+                  }
+                }
+              } catch (parseError) {
+                console.error("Error parsing SSE data:", parseError);
+              }
+            }
+          }
+        }
+
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId
+              ? {
+                  ...msg,
+                  status: { type: "complete", reason: "stop" },
+                }
+              : msg,
+          ),
+        );
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? {
+                    ...msg,
+                    status: { type: "incomplete", reason: "cancelled" },
+                  }
+                : msg,
+            ),
+          );
+          return;
+        }
+
+        console.error("Chat error:", error);
+
+        if (!messageAdded) {
+          const errorMessage: ThreadMessage = {
+            id: assistantMessageId,
+            role: "assistant",
+            content: [
+              { type: "text", text: "Failed to get response. Please try again." },
+            ],
+            createdAt: new Date(),
+            status: { type: "incomplete", reason: "error", error: String(error) },
+            metadata: {
+              unstable_state: null,
+              unstable_annotations: [],
+              unstable_data: [],
+              steps: [],
+              custom: {},
+            },
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+        } else {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? {
+                    ...msg,
+                    content: [
+                      { type: "text", text: "Failed to get response. Please try again." },
+                    ],
+                    status: { type: "incomplete", reason: "error", error: String(error) },
+                  }
+                : msg,
+            ),
+          );
+        }
+      } finally {
+        setIsRunning(false);
+        abortControllerRef.current = null;
+      }
+    },
+    [messages],
+  );
+
+  const onCancel = useCallback(async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  }, []);
+
+  return useExternalStoreRuntime({
+    messages,
+    isRunning,
+    onNew,
+    onCancel,
+  });
+}

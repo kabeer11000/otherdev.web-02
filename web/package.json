@@ -13,6 +13,9 @@
     "clear": "bun run scripts/clear-documents.ts"
   },
   "dependencies": {
+    "@assistant-ui/react": "^0.11.53",
+    "@assistant-ui/react-ai-sdk": "^1.1.20",
+    "@assistant-ui/react-markdown": "^0.11.9",
     "@hookform/resolvers": "^5.2.2",
     "@huggingface/inference": "^4.13.5",
     "@od-canvas/sdk": "^1.0.0",
@@ -57,7 +60,7 @@
     "googleapis": "^166.0.0",
     "groq-sdk": "^0.37.0",
     "input-otp": "^1.4.2",
-    "lucide-react": "^0.553.0",
+    "lucide-react": "^0.562.0",
     "next": "^16.0.7",
     "next-sitemap": "^4.2.3",
     "next-themes": "^0.4.6",
@@ -75,7 +78,8 @@
     "superjson": "^2.2.5",
     "tailwind-merge": "^3.4.0",
     "vaul": "^1.1.2",
-    "zod": "^4.1.12"
+    "zod": "^4.1.12",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.0",

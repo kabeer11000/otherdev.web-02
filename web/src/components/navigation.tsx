@@ -149,6 +149,24 @@ export function Navigation() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.25, duration: 0.3 }}
               >
+                <Link
+                  href="/ai"
+                  data-slot="nav-item"
+                  className={cn(
+                    navItemVariants({
+                      size: "mobile",
+                      active: pathname?.startsWith("/ai"),
+                    }),
+                  )}
+                >
+                  ai
+                </Link>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.27, duration: 0.3 }}
+              >
                 <button
                   onClick={handleContactClick}
                   data-slot="nav-item"
@@ -162,7 +180,7 @@ export function Navigation() {
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3, duration: 0.3 }}
+                transition={{ delay: 0.32, duration: 0.3 }}
               >
                 <Link
                   href="https://wa.me/923156893331?text=Hi!%20I%20found%20you%20through%20otherdev.com%20and%20would%20love%20to%20discuss%20a%20project."
@@ -262,6 +280,18 @@ export function Navigation() {
           )}
         >
           about
+        </Link>
+        <Link
+          href="/ai"
+          data-slot="nav-item"
+          className={cn(
+            navItemVariants({
+              size: "default",
+              active: pathname?.startsWith("/ai"),
+            }),
+          )}
+        >
+          ai
         </Link>
         <button
           onClick={handleContactClick}

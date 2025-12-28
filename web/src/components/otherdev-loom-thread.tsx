@@ -1,0 +1,183 @@
+"use client";
+
+import {
+  ThreadPrimitive,
+  MessagePrimitive,
+  ComposerPrimitive,
+  MessagePartPrimitive,
+} from "@assistant-ui/react";
+import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
+import { Send, User, Sparkles } from "lucide-react";
+import remarkGfm from "remark-gfm";
+import { cn } from "@/lib/utils";
+
+const SUGGESTED_PROMPTS = [
+  "What services does OtherDev offer?",
+  "Tell me about your recent projects",
+  "What technologies do you use?",
+  "Where is OtherDev based?",
+];
+
+function UserMessage() {
+  return (
+    <MessagePrimitive.Root>
+      <div className="flex justify-end">
+        <div className="flex max-w-[80%] items-start gap-3">
+          <div className="flex-1 space-y-2">
+            <div className="rounded-2xl bg-[#DDD9CE] px-4 py-3 font-serif text-[#1a1a18] dark:bg-[#393937] dark:text-[#eee]">
+              <MessagePrimitive.Content />
+            </div>
+          </div>
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#ae5630]">
+            <User className="h-4 w-4 text-white" />
+          </div>
+        </div>
+      </div>
+    </MessagePrimitive.Root>
+  );
+}
+
+function AssistantMessage() {
+  return (
+    <MessagePrimitive.Root>
+      <div className="flex justify-start">
+        <div className="flex max-w-[90%] items-start gap-3">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#ae5630]">
+            <Sparkles className="h-4 w-4 text-white" />
+          </div>
+          <div className="flex-1 space-y-2">
+            <div className="prose prose-sm max-w-none font-serif text-[#1a1a18] dark:prose-invert dark:text-[#eee]">
+              <MessagePrimitive.Content
+                components={{
+                  Text: () => (
+                    <MarkdownTextPrimitive
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({ children }) => (
+                          <p className="mb-4 leading-relaxed last:mb-0">{children}</p>
+                        ),
+                        ul: ({ children }) => (
+                          <ul className="mb-4 list-disc space-y-2 pl-6">{children}</ul>
+                        ),
+                        ol: ({ children }) => (
+                          <ol className="mb-4 list-decimal space-y-2 pl-6">{children}</ol>
+                        ),
+                        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                        code: ({ className, children, ...props }) => {
+                          const isInline = !className;
+                          if (isInline) {
+                            return (
+                              <code
+                                className="rounded bg-[#00000010] px-1.5 py-0.5 font-mono text-sm dark:bg-[#ffffff10]"
+                                {...props}
+                              >
+                                {children}
+                              </code>
+                            );
+                          }
+                          return (
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          );
+                        },
+                        pre: ({ children }) => (
+                          <pre className="mb-4 overflow-x-auto rounded-lg bg-[#1a1a18] p-4 dark:bg-[#0d0d0c]">
+                            {children}
+                          </pre>
+                        ),
+                      }}
+                    />
+                  ),
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </MessagePrimitive.Root>
+  );
+}
+
+export function OtherDevLoomThread() {
+  return (
+    <ThreadPrimitive.Root className="flex h-full flex-col bg-[#F5F5F0] dark:bg-[#2b2a27]">
+      <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto scroll-smooth">
+        <ThreadPrimitive.Empty>
+          <div className="flex h-full items-center justify-center p-4">
+            <div className="w-full max-w-2xl space-y-8">
+              <div className="space-y-4 text-center">
+                <div className="flex justify-center">
+                  <div className="rounded-full bg-[#ae5630] p-4">
+                    <Sparkles className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+                <h2 className="font-serif text-3xl font-normal text-[#1a1a18] dark:text-[#eee] md:text-4xl">
+                  How can I help you today?
+                </h2>
+                <p className="font-serif text-base text-[#6b6a68] dark:text-[#9a9893]">
+                  Ask me anything about OtherDev
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {SUGGESTED_PROMPTS.map((prompt) => (
+                  <ComposerPrimitive.Send
+                    key={prompt}
+                    value={prompt}
+                    className="rounded-xl border border-[#00000015] bg-white p-4 text-left font-serif text-sm text-[#1a1a18] shadow-[0_0.25rem_1.25rem_rgba(0,0,0,0.035)] transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-[0_0.5rem_1.5rem_rgba(0,0,0,0.05)] active:scale-[0.98] dark:border-[#ffffff15] dark:bg-[#1f1e1b] dark:text-[#eee]"
+                  >
+                    {prompt}
+                  </ComposerPrimitive.Send>
+                ))}
+              </div>
+            </div>
+          </div>
+        </ThreadPrimitive.Empty>
+
+        <div className="space-y-6 px-4 py-8 md:px-8">
+          <ThreadPrimitive.Messages
+            components={{
+              UserMessage,
+              AssistantMessage,
+            }}
+          />
+        </div>
+      </ThreadPrimitive.Viewport>
+
+      <div className="border-t border-[#00000015] bg-white p-4 dark:border-[#ffffff15] dark:bg-[#1f1e1b]">
+        <ComposerPrimitive.Root className="relative">
+          <ComposerPrimitive.Input
+            placeholder="Type your message..."
+            className="w-full resize-none rounded-xl border border-[#00000015] bg-[#F5F5F0] px-4 py-3 pr-12 font-serif text-[#1a1a18] placeholder:text-[#6b6a68] focus:outline-none focus:ring-2 focus:ring-[#ae5630] focus:ring-offset-2 dark:border-[#ffffff15] dark:bg-[#2b2a27] dark:text-[#eee] dark:placeholder:text-[#9a9893]"
+            rows={1}
+            autoFocus
+          />
+          <ComposerPrimitive.Send className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#ae5630] text-white transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:bg-[#8d4526] active:scale-[0.98] disabled:opacity-50">
+            <Send className="h-4 w-4" />
+          </ComposerPrimitive.Send>
+        </ComposerPrimitive.Root>
+
+        <ThreadPrimitive.If running>
+          <div className="mt-2 flex items-center gap-2 font-serif text-sm text-[#6b6a68] dark:text-[#9a9893]">
+            <div className="flex gap-1">
+              <div
+                className="h-2 w-2 animate-bounce rounded-full bg-[#ae5630]"
+                style={{ animationDelay: "0ms" }}
+              />
+              <div
+                className="h-2 w-2 animate-bounce rounded-full bg-[#ae5630]"
+                style={{ animationDelay: "150ms" }}
+              />
+              <div
+                className="h-2 w-2 animate-bounce rounded-full bg-[#ae5630]"
+                style={{ animationDelay: "300ms" }}
+              />
+            </div>
+            <span>Thinking...</span>
+          </div>
+        </ThreadPrimitive.If>
+      </div>
+    </ThreadPrimitive.Root>
+  );
+}
