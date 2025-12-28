@@ -31,7 +31,7 @@ function SuggestionButton({ prompt }: { prompt: string }) {
       type="button"
       variant="outline"
       onClick={handleClick}
-      className="h-auto justify-start rounded-xl border-[#00000015] bg-white p-4 text-left font-serif text-sm font-normal text-[#1a1a18] shadow-[0_0.25rem_1.25rem_rgba(0,0,0,0.035)] transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:bg-white hover:shadow-[0_0.5rem_1.5rem_rgba(0,0,0,0.05)] active:scale-[0.98] dark:border-[#ffffff15] dark:bg-[#1f1e1b] dark:text-[#eee] dark:hover:bg-[#1f1e1b]"
+      className="h-auto justify-start rounded-xl bg-card p-4 text-left font-serif text-sm font-normal text-foreground shadow-sm transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-md active:scale-[0.98]"
     >
       {prompt}
     </Button>
@@ -44,12 +44,12 @@ function UserMessage() {
       <div className="flex justify-end">
         <div className="flex max-w-[80%] items-start gap-3">
           <div className="flex-1 space-y-2">
-            <div className="rounded-2xl bg-[#DDD9CE] px-4 py-3 font-serif text-[#1a1a18] dark:bg-[#393937] dark:text-[#eee]">
+            <div className="rounded-2xl bg-accent px-4 py-3 font-serif text-accent-foreground">
               <MessagePrimitive.Content />
             </div>
           </div>
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#ae5630]">
-            <User className="h-4 w-4 text-white" />
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary">
+            <User className="h-4 w-4 text-primary-foreground" />
           </div>
         </div>
       </div>
@@ -63,8 +63,8 @@ function AssistantMessage() {
       <div className="flex justify-start">
         <div className="flex max-w-[90%] items-start gap-3">
           <AssistantIf condition={({ message }) => message.status?.type !== "running"}>
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#ae5630]">
-              <Sparkles className="h-4 w-4 text-white" />
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary">
+              <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
           </AssistantIf>
           <AssistantIf condition={({ message }) => message.status?.type === "running"}>
@@ -103,21 +103,21 @@ function AssistantMessage() {
 
 export function OtherDevLoomThread() {
   return (
-    <ThreadPrimitive.Root className="flex h-full flex-col bg-[#F5F5F0] dark:bg-[#2b2a27]">
+    <ThreadPrimitive.Root className="flex h-full flex-col bg-background">
       <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto scroll-smooth">
         <ThreadPrimitive.Empty>
           <div className="flex h-full items-center justify-center p-4">
             <div className="w-full max-w-2xl space-y-8">
               <div className="space-y-4 text-center">
                 <div className="flex justify-center">
-                  <div className="rounded-full bg-[#ae5630] p-4">
-                    <Sparkles className="h-8 w-8 text-white" />
+                  <div className="rounded-full bg-primary p-4">
+                    <Sparkles className="h-8 w-8 text-primary-foreground" />
                   </div>
                 </div>
-                <h2 className="font-serif text-3xl font-normal text-[#1a1a18] dark:text-[#eee] md:text-4xl">
+                <h2 className="font-serif text-3xl font-normal text-foreground md:text-4xl">
                   How can I help you today?
                 </h2>
-                <p className="font-serif text-base text-[#6b6a68] dark:text-[#9a9893]">
+                <p className="font-serif text-base text-muted-foreground">
                   Ask me anything about OtherDev
                 </p>
               </div>
@@ -141,21 +141,21 @@ export function OtherDevLoomThread() {
 
           <ThreadPrimitive.If running>
             <div className="flex items-start gap-3">
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#ae5630]">
-                <Sparkles className="h-4 w-4 text-white animate-pulse" />
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary">
+                <Sparkles className="h-4 w-4 text-primary-foreground animate-pulse" />
               </div>
-              <div className="flex items-center gap-2 font-serif text-sm text-[#6b6a68] dark:text-[#9a9893]">
+              <div className="flex items-center gap-2 font-serif text-sm text-muted-foreground">
                 <div className="flex gap-1">
                   <div
-                    className="h-2 w-2 animate-bounce rounded-full bg-[#ae5630]"
+                    className="h-2 w-2 animate-bounce rounded-full bg-primary"
                     style={{ animationDelay: "0ms" }}
                   />
                   <div
-                    className="h-2 w-2 animate-bounce rounded-full bg-[#ae5630]"
+                    className="h-2 w-2 animate-bounce rounded-full bg-primary"
                     style={{ animationDelay: "150ms" }}
                   />
                   <div
-                    className="h-2 w-2 animate-bounce rounded-full bg-[#ae5630]"
+                    className="h-2 w-2 animate-bounce rounded-full bg-primary"
                     style={{ animationDelay: "300ms" }}
                   />
                 </div>
@@ -166,15 +166,15 @@ export function OtherDevLoomThread() {
         </div>
       </ThreadPrimitive.Viewport>
 
-      <div className="border-t border-[#00000015] bg-white p-4 dark:border-[#ffffff15] dark:bg-[#1f1e1b]">
+      <div className="border-t border-border bg-card p-4">
         <ComposerPrimitive.Root className="relative">
           <ComposerPrimitive.Input
             placeholder="Type your message..."
-            className="w-full resize-none rounded-xl border border-[#00000015] bg-[#F5F5F0] px-4 py-3 pr-12 font-serif text-[#1a1a18] placeholder:text-[#6b6a68] focus:outline-none focus:ring-2 focus:ring-[#ae5630] focus:ring-offset-2 dark:border-[#ffffff15] dark:bg-[#2b2a27] dark:text-[#eee] dark:placeholder:text-[#9a9893]"
+            className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 pr-12 font-serif text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             rows={1}
             autoFocus
           />
-          <ComposerPrimitive.Send className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#ae5630] text-white transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:bg-[#8d4526] active:scale-[0.98] disabled:opacity-50">
+          <ComposerPrimitive.Send className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:opacity-90 active:scale-[0.98] disabled:opacity-50">
             <Send className="h-4 w-4" />
           </ComposerPrimitive.Send>
         </ComposerPrimitive.Root>
