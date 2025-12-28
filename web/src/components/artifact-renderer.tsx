@@ -1,17 +1,24 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { ToolCallMessagePart } from "@assistant-ui/react";
 import { Button } from "@/components/ui/button";
-import { Maximize2, Minimize2, Copy, Check } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { X, Code2, Eye, Copy, Check, ChevronLeft } from "lucide-react";
 
 interface ArtifactRendererProps {
   toolCall: ToolCallMessagePart;
+  mode?: "panel" | "inline";
+  onClose?: () => void;
 }
 
-export function ArtifactRenderer({ toolCall }: ArtifactRendererProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function ArtifactRenderer({
+  toolCall,
+  mode = "inline",
+  onClose,
+}: ArtifactRendererProps) {
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState("preview");
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const { title, code, description } = toolCall.args as {
@@ -20,7 +27,7 @@ export function ArtifactRenderer({ toolCall }: ArtifactRendererProps) {
     description: string;
   };
 
-  useEffect(() => {
+  const writeIframeContent = useCallback(() => {
     if (iframeRef.current) {
       const iframe = iframeRef.current;
       const doc = iframe.contentDocument || iframe.contentWindow?.document;
@@ -32,6 +39,16 @@ export function ArtifactRenderer({ toolCall }: ArtifactRendererProps) {
     }
   }, [code]);
 
+  useEffect(() => {
+    writeIframeContent();
+  }, [writeIframeContent]);
+
+  useEffect(() => {
+    if (activeTab === "preview") {
+      writeIframeContent();
+    }
+  }, [activeTab, writeIframeContent]);
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(code);
@@ -41,6 +58,99 @@ export function ArtifactRenderer({ toolCall }: ArtifactRendererProps) {
       console.error("Failed to copy code:", error);
     }
   };
+
+  if (mode === "panel") {
+    return (
+      <div className="flex h-full flex-col border-l border-border bg-background">
+        <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="h-8 w-8 shrink-0 p-0 md:hidden"
+                title="Back to chat"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            )}
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate font-serif text-base font-medium text-foreground">
+                {title}
+              </h3>
+              {description && (
+                <p className="mt-0.5 truncate font-serif text-sm text-muted-foreground">
+                  {description}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="ml-3 flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopy}
+              className="h-8 w-8 p-0"
+              title="Copy code"
+            >
+              {copied ? (
+                <Check className="h-4 w-4 text-green-600" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="hidden h-8 w-8 p-0 md:flex"
+                title="Close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <Tabs
+          defaultValue="preview"
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="flex flex-1 flex-col overflow-hidden"
+        >
+          <div className="border-b border-border px-4 py-2">
+            <TabsList>
+              <TabsTrigger value="preview">
+                <Eye className="h-4 w-4" />
+                Preview
+              </TabsTrigger>
+              <TabsTrigger value="code">
+                <Code2 className="h-4 w-4" />
+                Code
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="preview" className="m-0 flex-1 overflow-hidden">
+            <iframe
+              ref={iframeRef}
+              sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
+              className="h-full w-full"
+              title={title}
+            />
+          </TabsContent>
+
+          <TabsContent value="code" className="m-0 flex-1 overflow-auto">
+            <pre className="h-full p-4 font-mono text-sm">
+              <code className="text-foreground">{code}</code>
+            </pre>
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
+  }
 
   return (
     <div className="my-4 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -69,27 +179,10 @@ export function ArtifactRenderer({ toolCall }: ArtifactRendererProps) {
               <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             )}
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="h-7 w-7 p-0 hover:bg-muted sm:h-8 sm:w-8"
-            title={isExpanded ? "Minimize" : "Maximize"}
-          >
-            {isExpanded ? (
-              <Minimize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            ) : (
-              <Maximize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            )}
-          </Button>
         </div>
       </div>
 
-      <div
-        className={`bg-background transition-all duration-300 ${
-          isExpanded ? "h-[70vh]" : "h-[400px] sm:h-[500px]"
-        }`}
-      >
+      <div className="h-[400px] bg-background sm:h-[500px]">
         <iframe
           ref={iframeRef}
           sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
