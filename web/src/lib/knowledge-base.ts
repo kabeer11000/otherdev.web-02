@@ -920,6 +920,73 @@ TEAM APPROACH: Combined technical excellence with data-driven growth strategy`,
     },
   },
 
+  // ===== FOUNDER FAQ DOCUMENTS (type: 'about', category: 'faq') =====
+
+  // FAQ: Who founded Other Dev?
+  {
+    content: `Who founded Other Dev? Other Dev was founded in 2021 by two entrepreneurs: Kabeer Jaffri and Ossaid Qadri. They met at Habib Public School in Karachi and later established the agency to deliver premium web development and digital marketing services. Kabeer serves as Founder and Technical Lead, bringing 8+ years of full-stack development experience. Ossaid serves as Co-Founder, Frontend Architect, and Growth Lead, specializing in Next.js, React, and growth marketing campaigns.`,
+    metadata: {
+      source: "about",
+      title: "FAQ - Who Founded Other Dev",
+      type: "about",
+      category: "faq",
+      subtype: "facts",
+      year: "2025",
+    },
+  },
+
+  // FAQ: Tell me about the founders
+  {
+    content: `The founders of Other Dev are Kabeer Jaffri and Ossaid Qadri. Kabeer is the Founder and Technical Lead with expertise in AI, cloud deployment, and backend architecture. He also serves as Technical Director for the non-profit Ek Qadam Aur. Ossaid is the Co-Founder, Frontend Architect, and Growth Lead, specializing in frontend technologies like Next.js and React, while also leading digital marketing campaigns. Together, they combine technical excellence with data-driven growth strategy to serve clients across fashion, real estate, legal tech, and SaaS industries.`,
+    metadata: {
+      source: "about",
+      title: "FAQ - About the Founders",
+      type: "about",
+      category: "faq",
+      subtype: "overview",
+      year: "2025",
+    },
+  },
+
+  // FAQ: Tell me about Ossaid
+  {
+    content: `Who is Ossaid Qadri? Ossaid Qadri is the Co-Founder, Frontend Architect, and Growth Lead at Other Dev. He specializes in building high-performance frontend interfaces using Next.js, React, and Headless CMS architectures. Currently pursuing a BS in Accounting and Finance, Ossaid leads the agency's digital marketing division and handles end-to-end project execution from client acquisition to DevOps. His proven track record includes delivering 40% sales increases and scaling revenue by over Rs 5 million for clients. You can reach him at ossaid@otherdev.com, LinkedIn: https://www.linkedin.com/in/imossaidqadri/, Instagram: @ossaidqadri.`,
+    metadata: {
+      source: "about",
+      title: "FAQ - About Ossaid Qadri",
+      type: "about",
+      category: "faq",
+      subtype: "overview",
+      year: "2025",
+    },
+  },
+
+  // FAQ: Tell me about Kabeer
+  {
+    content: `Who is Kabeer Jaffri? Kabeer Jaffri is the Founder and Technical Lead of Other Dev with over 8 years of experience in full-stack web and application development. A Computer Science major at IBA, Kabeer specializes in solving complex architectural problems and building scalable infrastructure. Beyond Other Dev, he serves as Technical Director for the non-profit Ek Qadam Aur, managing services handling 3,000 daily requests. His expertise includes AI and Machine Learning, cloud deployment, backend architecture, and high-performance system design. You can reach him at kabeer@otherdev.com, LinkedIn: https://www.linkedin.com/in/kabeer-jaffri/, GitHub: https://github.com/kabeer11000.`,
+    metadata: {
+      source: "about",
+      title: "FAQ - About Kabeer Jaffri",
+      type: "about",
+      category: "faq",
+      subtype: "overview",
+      year: "2025",
+    },
+  },
+
+  // FAQ: When was Other Dev founded?
+  {
+    content: `When was Other Dev founded? Other Dev was founded in 2021 by Kabeer Jaffri and Ossaid Qadri in Karachi, Pakistan. The agency was established to provide clean code web development and data-driven digital marketing services, operating under a philosophy of zero unnecessary fluff and no drag-and-drop builders.`,
+    metadata: {
+      source: "about",
+      title: "FAQ - When Was Other Dev Founded",
+      type: "about",
+      category: "faq",
+      subtype: "facts",
+      year: "2025",
+    },
+  },
+
   // ===== SERVICE DOCUMENTS (type: 'service') =====
 
   // Web Development Service - Overview

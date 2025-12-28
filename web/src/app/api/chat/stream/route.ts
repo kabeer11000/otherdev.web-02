@@ -117,12 +117,18 @@ export async function POST(request: Request) {
     }
 
     const sanitizedQuery = sanitizeInput(lastUserMessage.content);
-    const queryEmbedding = await generateEmbedding(sanitizedQuery);
+
+    // Normalize query variations (OtherDev -> Other Dev)
+    const normalizedQuery = sanitizedQuery
+      .replace(/OtherDev/gi, "Other Dev")
+      .replace(/otherdev/gi, "Other Dev");
+
+    const queryEmbedding = await generateEmbedding(normalizedQuery);
 
     const matchThreshold = Number.parseFloat(
-      process.env.RAG_SIMILARITY_THRESHOLD || "0.1",
+      process.env.RAG_SIMILARITY_THRESHOLD || "0.05",
     );
-    const matchCount = Number.parseInt(process.env.RAG_MATCH_COUNT || "5");
+    const matchCount = Number.parseInt(process.env.RAG_MATCH_COUNT || "10");
 
     const similarDocs = await searchSimilarDocuments(
       queryEmbedding,
