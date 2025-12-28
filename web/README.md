@@ -11,7 +11,7 @@ A modern portfolio and agency website showcasing otherdev's work - a full-servic
 
 ## Overview
 
-otherdev produces digital platforms for pioneering creatives across fashion, design, and enterprise sectors. This repository contains our portfolio website, featuring project showcases, client work, and interactive contact capabilities.
+Otherdev produces digital platforms for pioneering creatives across fashion, design, and enterprise sectors. This repository contains our portfolio website, featuring project showcases, client work, and interactive contact capabilities.
 
 ### Key Highlights
 
