@@ -60,10 +60,11 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
-        code({ node, inline, className, children, ...props }) {
+        code({ className, children, ...props }: any) {
           const content = String(children).replace(/\n$/, '');
+          const isInline = !className;
 
-          if (inline) {
+          if (isInline) {
             return (
               <code
                 className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono"

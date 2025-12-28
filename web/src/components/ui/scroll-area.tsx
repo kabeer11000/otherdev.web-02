@@ -6,7 +6,7 @@ import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import { cn } from "@/lib/utils";
 
 interface ScrollAreaProps extends React.ComponentProps<typeof ScrollAreaPrimitive.Root> {
-  viewportRef?: React.RefObject<HTMLDivElement>;
+  viewportRef?: React.RefObject<HTMLDivElement | null>;
   onScroll?: (event: React.UIEvent<HTMLDivElement>) => void;
   onTouchStart?: (event: React.TouchEvent<HTMLDivElement>) => void;
 }
