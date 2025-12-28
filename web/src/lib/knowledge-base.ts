@@ -3,163 +3,297 @@ export interface KnowledgeDocument {
   metadata: {
     source: string;
     title: string;
-    type: 'project' | 'service' | 'about' | 'general';
+    type: 'project' | 'service' | 'about' | 'general' | 'testimonial';
     category?: string;
+    subtype?: 'overview' | 'tech' | 'stack' | 'results' | 'facts' | 'challenge' | 'process' | 'benefits' | 'implementation';
+    project?: string;
+    year?: string;
   };
 }
 
 export const knowledgeBase: KnowledgeDocument[] = [
   {
-    "content": "SEO Implementation & Technical Optimization for Narkins Builders (2025): Comprehensive SEO strategy and technical optimization for real estate lead generation Our collaboration with Narkins Builders involved implementing a comprehensive SEO transformation that elevated their digital presence from non-ranking status to competing directly with industry giants like Zameen.com and OLX.com in Pakistan's competitive real estate market. We executed a complete technical SEO overhaul featuring advanced schema markup, blog system migration from WordPress to MDX, and strategic content optimization. The project included developing custom SEO components, implementing analytics tracking, and establishing a scalable content architecture. Our systematic approach resulted in a 30% immediate traffic improvement, enhanced search engine indexing, and a robust technical foundation that positions Narkins Builders for first-page rankings in their target market. Visit: https://narkinsbuilders.com/",
+    "content": "PROJECT: Narkins Builders\nYEAR: 2025\nSERVICE: SEO & Technical Optimization\nINDUSTRY: Real Estate\nSTACK: Google Analytics 4, Google Search Console, Schema.org, WordPress to MDX Migration, XML Sitemap, Canonical Tags\nRESULTS: 30% traffic increase in first month, enhanced search indexing, first-page ranking positioning\nCOMPETITORS: Zameen.com, OLX.com\nURL: https://narkinsbuilders.com",
     "metadata": {
       "source": "projects",
-      "title": "SEO Implementation & Technical Optimization for Narkins Builders",
+      "title": "Narkins Builders - Facts",
       "type": "project",
-      "category": "seo"
+      "category": "seo",
+      "subtype": "facts",
+      "project": "narkins-builders",
+      "year": "2025"
     }
   },
   {
-    "content": "SEO Implementation & Technical Optimization for Narkins Builders - Technical SEO Foundation & Analytics: Complete Technical Infrastructure: We executed a comprehensive technical SEO transformation addressing Narkins Builders' non-ranking status against major competitors. Our implementation included Google Analytics 4 setup with advanced event tracking, Google Search Console verification, XML sitemap generation, and canonical tag implementation across all pages. Advanced Schema Implementation: We deployed multiple schema types including Organization, Property, BlogPosting, LocalBusiness, and Review schemas to create rich snippets and knowledge panel eligibility. Our custom SEOImage component system ensures automatic alt text generation with context-aware optimization for different image interactions while maintaining optimal Core Web Vitals performance standards. Technologies: Google Analytics 4, Google Search Console, Schema.org Implementation, Technical SEO Audit, Performance Optimization, XML Sitemap Generation.",
+    "content": "Narkins Builders is a real estate construction company in Pakistan facing a critical digital visibility problem. Despite 30 years of market experience, they had zero ranking against major competitors Zameen.com and OLX.com. Their WordPress website lacked technical SEO foundation, proper analytics tracking, and structured data implementation. The challenge was transforming their non-existent digital presence into a competitive platform that could attract organic real estate leads in Pakistan's highly competitive market.",
     "metadata": {
       "source": "projects",
-      "title": "Narkins Builders - Technical SEO Foundation & Analytics",
+      "title": "Narkins Builders - Overview",
       "type": "project",
-      "category": "seo"
+      "category": "seo",
+      "subtype": "overview",
+      "project": "narkins-builders",
+      "year": "2025"
     }
   },
   {
-    "content": "SEO Implementation & Technical Optimization for Narkins Builders - Content Migration & Competitive Strategy: WordPress to MDX Blog System Migration: We architected and executed a complete blog system transformation from WordPress to a custom MDX-based publishing platform, enabling advanced SEO optimization and performance improvements. The new system supports dynamic blog posts with React components, automatic meta tag generation, and integrated contact optimization. Strategic Content Optimization: Our research identified high-value search opportunities in the local real estate market. We developed competitive positioning strategies targeting major portal weaknesses, emphasizing Narkins Builders' specialized local expertise, direct builder communication, and 30-year market experience. The content framework integrates local SEO elements with precise geo-targeting and investment-focused content. Technologies: MDX Blog System, Competitive Analysis, Content Strategy, Local Market Positioning, WordPress Migration, Search Optimization.",
+    "content": "Core technologies: Google Analytics 4 with advanced event tracking, Google Search Console for indexing verification, XML sitemap generation, canonical tag implementation. Schema markup: Organization schema, Property schema, BlogPosting schema, LocalBusiness schema, Review schemas for rich snippets and knowledge panel eligibility. Custom components: SEOImage component with automatic alt text generation and context-aware optimization. Performance: Core Web Vitals optimization, mobile-first indexing, lazy loading implementation.",
     "metadata": {
       "source": "projects",
-      "title": "Narkins Builders - Content Migration & Competitive Strategy",
+      "title": "Narkins Builders - Tech Stack",
       "type": "project",
-      "category": "seo"
+      "category": "seo",
+      "subtype": "stack",
+      "project": "narkins-builders",
+      "year": "2025"
     }
   },
   {
-    "content": "SEO Implementation & Technical Optimization for Narkins Builders - Implementation Results & Performance: Technical Foundation Delivery: We completed comprehensive technical SEO implementation including Google Analytics setup, schema markup deployment, meta tag optimization, and internal linking structure. The technical foundation established proper indexing, mobile-first optimization, and conversion tracking for lead generation analysis. Content Strategy Framework: We developed a strategic content plan with integrated optimization and cross-referencing capabilities. The MDX system enables advanced content features including property comparisons, investment calculators, and neighborhood guides. Measurable Performance Gains: Our systematic approach delivered immediate results with 30% traffic improvement from technical optimizations, enhanced search engine indexing, and improved user experience through mobile optimization. The foundation supports scalable content marketing and positions Narkins Builders for competitive rankings in their target market. Technologies: Traffic Growth, Search Engine Indexing, Mobile Optimization, Lead Generation, Competitive Positioning, Performance Metrics.",
+    "content": "Technical SEO foundation: Implemented GA4 with event tracking, verified Google Search Console, generated XML sitemaps, deployed canonical tags across all pages. Schema deployment: Added Organization, Property, BlogPosting, LocalBusiness, and Review schemas. Blog migration: Transformed WordPress blog to custom MDX-based publishing platform supporting React components, automatic meta tag generation, and integrated contact optimization. Content strategy: Researched high-value search opportunities, developed competitive positioning targeting portal weaknesses, emphasized local expertise and 30-year experience. Internal linking structure and meta tag optimization completed for proper indexing.",
     "metadata": {
       "source": "projects",
-      "title": "Narkins Builders - Implementation Results & Performance",
+      "title": "Narkins Builders - Implementation",
       "type": "project",
-      "category": "seo"
+      "category": "seo",
+      "subtype": "implementation",
+      "project": "narkins-builders",
+      "year": "2025"
     }
   },
   {
-    "content": "Client testimonial for SEO Implementation & Technical Optimization for Narkins Builders: \"Other Dev transformed our digital presence from invisible to competitive against Zameen.com and OLX.com. We saw a 30% traffic increase within the first month of implementation. The WordPress to MDX migration and schema markup now have our properties appearing in rich snippets, positioning us perfectly for long-term growth.\" - Sarim Nara, Managing Director",
+    "content": "Immediate impact: 30% traffic improvement within first month of technical optimizations. Indexing: Enhanced search engine indexing with proper sitemap and canonical structure. Ranking: Positioned for first-page rankings in target real estate market. Mobile performance: Improved mobile-first optimization and Core Web Vitals scores. Lead generation: Conversion tracking enabled for analyzing real estate lead sources. Rich snippets: Properties now appearing in search results with structured data. Long-term positioning: Scalable content marketing foundation established for competitive growth against Zameen.com and OLX.com.",
+    "metadata": {
+      "source": "projects",
+      "title": "Narkins Builders - Results",
+      "type": "project",
+      "category": "seo",
+      "subtype": "results",
+      "project": "narkins-builders",
+      "year": "2025"
+    }
+  },
+  {
+    "content": "Other Dev transformed our digital presence from invisible to competitive against Zameen.com and OLX.com. We saw a 30% traffic increase within the first month of implementation. The WordPress to MDX migration and schema markup now have our properties appearing in rich snippets, positioning us perfectly for long-term growth. - Sarim Nara, Managing Director, Narkins Builders",
     "metadata": {
       "source": "testimonials",
-      "title": "Narkins Builders Testimonial",
-      "type": "project",
-      "category": "testimonial"
+      "title": "Narkins Builders - Client Testimonial",
+      "type": "testimonial",
+      "category": "seo",
+      "project": "narkins-builders",
+      "year": "2025"
     }
   },
   {
-    "content": "Real Estate Platform Development for Bin Yousuf Group (2025): Premium waterfront property showcase platform with advanced lead management Our collaboration with Bin Yousuf Group involved creating a sophisticated real estate platform that showcases premium waterfront properties in Karachi's most exclusive developments. As official sales partners of Emaar Oceanfront and HMR Waterfront, they required a digital presence that matched their premium positioning while providing advanced lead management capabilities. We delivered a comprehensive solution featuring interactive property galleries, seamless Google Sheets integration for real-time lead tracking, and optimized user experience that converts visitors into qualified prospects for luxury oceanfront investments. Visit: https://binyousufgroup.com/",
+    "content": "PROJECT: Bin Yousuf Group\nYEAR: 2025\nSERVICE: Real Estate Platform Development\nINDUSTRY: Luxury Real Estate\nSTACK: Astro 5.10.0, React, TypeScript, GSAP Animations, Google Sheets API, WhatsApp Integration\nFEATURES: Interactive property galleries, real-time lead tracking, location-based filtering\nPARTNERS: Official sales partners of Emaar Oceanfront, HMR Waterfront\nURL: https://binyousufgroup.com",
     "metadata": {
       "source": "projects",
-      "title": "Real Estate Platform Development for Bin Yousuf Group",
+      "title": "Bin Yousuf Group - Facts",
       "type": "project",
-      "category": "real-estate"
+      "category": "real-estate",
+      "subtype": "facts",
+      "project": "bin-yousuf-group",
+      "year": "2025"
     }
   },
   {
-    "content": "Real Estate Platform Development for Bin Yousuf Group - Challenges: Creating a Premium Real Estate Experience: Bin Yousuf Group needed a platform that could effectively showcase luxury waterfront properties while maintaining the sophisticated aesthetic expected by high-end real estate clients. The challenge was balancing visual appeal with functionality, ensuring that property details, galleries, and contact forms worked seamlessly across all devices. Advanced Lead Management Integration: As official partners of major developers like Emaar and HMR, they required sophisticated lead tracking and management. We needed to integrate Google Sheets API for real-time lead capture while maintaining data security and ensuring zero lead loss. The system had to handle multiple property inquiries simultaneously while providing instant notifications to their sales team. Technologies: Real Estate Platform, Google Sheets API, Lead Management, Luxury Property Showcase, Astro Framework.",
+    "content": "Bin Yousuf Group is the official sales partner for Emaar Oceanfront and HMR Waterfront, two of Karachi's most exclusive waterfront developments. They needed a premium real estate platform that showcases luxury oceanfront properties while matching their high-end market positioning. The challenge was balancing sophisticated visual aesthetics with advanced lead management functionality. They required real-time lead tracking, zero lead loss, instant sales team notifications, and seamless multi-device experience for qualified luxury property prospects.",
     "metadata": {
       "source": "projects",
-      "title": "Bin Yousuf Group - Challenges",
+      "title": "Bin Yousuf Group - Overview",
       "type": "project",
-      "category": "real-estate"
+      "category": "real-estate",
+      "subtype": "overview",
+      "project": "bin-yousuf-group",
+      "year": "2025"
     }
   },
   {
-    "content": "Real Estate Platform Development for Bin Yousuf Group - Technical Implementation: Performance-Optimized Architecture: We built the platform using Astro 5.10.0 with React components for dynamic interactions, ensuring optimal performance and SEO. The TypeScript-based architecture provides scalability and maintainability while GSAP animations create engaging property showcases. All form fields were designed as optional to maximize conversion rates, with WhatsApp integration for immediate client communication. Advanced SEO and Structured Data: The platform includes comprehensive SEO optimization with structured data markup for real estate properties, ensuring maximum visibility in search engines. We implemented location-based filtering for Emaar and HMR properties, with detailed property galleries and interactive slideshows that highlight the luxury waterfront lifestyle. Technologies: Astro + React, TypeScript, GSAP Animations, SEO Optimization, Structured Data, WhatsApp Integration.",
+    "content": "Framework: Astro 5.10.0 with React components for dynamic interactions. Language: TypeScript for scalability and maintainability. Animations: GSAP for engaging property showcases and interactive slideshows. Lead management: Google Sheets API integration for real-time lead capture with data security. Communication: WhatsApp integration for immediate client contact. SEO: Structured data markup for real estate properties, location-based filtering. Forms: Optional fields design to maximize conversion rates. Performance: Optimized architecture for fast loading and smooth user experience.",
     "metadata": {
       "source": "projects",
-      "title": "Bin Yousuf Group - Technical Implementation",
+      "title": "Bin Yousuf Group - Tech Stack",
       "type": "project",
-      "category": "real-estate"
+      "category": "real-estate",
+      "subtype": "stack",
+      "project": "bin-yousuf-group",
+      "year": "2025"
     }
   },
   {
-    "content": "Client testimonial for Real Estate Platform Development for Bin Yousuf Group: \"Other Dev transformed our digital presence in the luxury real estate market. The platform they created perfectly captures the premium nature of our waterfront properties while providing us with powerful lead management tools. Since launch, we've experienced a significant increase in qualified inquiries and the Google Sheets integration has streamlined our entire sales process. The website's professional design and smooth user experience have significantly enhanced our credibility as official Emaar and HMR partners. We couldn't be happier with the results.\" - Wahib Yousuf, Managing Director",
+    "content": "Platform architecture: Built with Astro 5.10.0 and React for optimal performance and SEO. Interactive features: Implemented GSAP animations for property galleries and slideshows showcasing luxury waterfront lifestyle. Lead system: Integrated Google Sheets API for real-time lead capture, handling simultaneous inquiries with instant notifications. Form optimization: All fields designed as optional to maximize conversion rates. Communication: Added WhatsApp integration for immediate client communication. Property filtering: Implemented location-based filtering for Emaar and HMR properties. SEO implementation: Deployed structured data markup for maximum search visibility.",
+    "metadata": {
+      "source": "projects",
+      "title": "Bin Yousuf Group - Implementation",
+      "type": "project",
+      "category": "real-estate",
+      "subtype": "implementation",
+      "project": "bin-yousuf-group",
+      "year": "2025"
+    }
+  },
+  {
+    "content": "Lead generation: Significant increase in qualified luxury property inquiries after launch. Sales process: Google Sheets integration streamlined entire sales workflow with real-time tracking. Credibility: Enhanced market positioning as official Emaar and HMR partners through professional design. User experience: Smooth navigation and interactive property galleries improved prospect engagement. Lead tracking: Zero lead loss achieved with robust API integration and instant notifications. Conversion: Optional form fields maximized conversion rates from visitors to prospects.",
+    "metadata": {
+      "source": "projects",
+      "title": "Bin Yousuf Group - Results",
+      "type": "project",
+      "category": "real-estate",
+      "subtype": "results",
+      "project": "bin-yousuf-group",
+      "year": "2025"
+    }
+  },
+  {
+    "content": "Other Dev transformed our digital presence in the luxury real estate market. The platform they created perfectly captures the premium nature of our waterfront properties while providing us with powerful lead management tools. Since launch, we've experienced a significant increase in qualified inquiries and the Google Sheets integration has streamlined our entire sales process. The website's professional design and smooth user experience have significantly enhanced our credibility as official Emaar and HMR partners. We couldn't be happier with the results. - Wahib Yousuf, Managing Director, Bin Yousuf Group",
     "metadata": {
       "source": "testimonials",
-      "title": "Bin Yousuf Group Testimonial",
-      "type": "project",
-      "category": "testimonial"
+      "title": "Bin Yousuf Group - Client Testimonial",
+      "type": "testimonial",
+      "category": "real-estate",
+      "project": "bin-yousuf-group",
+      "year": "2025"
     }
   },
   {
-    "content": "AI Legal Assistant Platform Development for Lexa (2025): Intelligent legal AI assistant for contract drafting, collaboration and document automation Our collaboration with Lexa involved developing an intelligent AI legal assistant that transforms how law firms and SMEs approach contract drafting and document management. We built a sophisticated AI-powered platform that serves as a virtual legal assistant, providing real-time contract analysis, automated document generation, and intelligent legal recommendations. The platform combines advanced natural language processing with collaborative editing capabilities, enabling legal professionals across Asia and the Middle East to draft, review, and manage contracts with AI-driven insights while maintaining the highest standards of accuracy and compliance. Visit: https://lexa.deployments.otherdev.com/",
+    "content": "PROJECT: Lexa\nYEAR: 2025\nSERVICE: AI Legal Assistant Platform\nINDUSTRY: Legal Tech / SaaS\nSTACK: Astro 5.13, React 19, Y.js, WebSocket, TipTap Extensions, Nanostores, AI/NLP Integration\nFEATURES: Real-time collaborative editing, AI contract analysis, automated document generation, digital signatures, GDPR compliance\nMARKETS: Asia, Middle East\nURL: https://lexa.deployments.otherdev.com",
     "metadata": {
       "source": "projects",
-      "title": "AI Legal Assistant Platform Development for Lexa",
+      "title": "Lexa - Facts",
       "type": "project",
-      "category": "legal-tech"
+      "category": "legal-tech",
+      "subtype": "facts",
+      "project": "lexa",
+      "year": "2025"
     }
   },
   {
-    "content": "AI Legal Assistant Platform Development for Lexa - Technical Challenges: Real-time Collaborative Editing: Building a robust real-time collaboration system required implementing Y.js with WebSocket connections to handle simultaneous editing by multiple users without conflicts. We developed custom TipTap extensions for pagination and advanced document structuring, ensuring professional legal document formatting while maintaining real-time synchronization across all connected clients. Advanced Document Architecture: Legal documents require sophisticated multi-page layouts with precise formatting, headers, footers, and pagination. We created a custom document engine that handles complex legal document structures while preserving formatting integrity during collaborative editing sessions and providing seamless export capabilities. Technologies: Real-time Collaboration, Y.js Integration, TipTap Extensions, WebSocket Architecture, Document Pagination.",
+    "content": "Lexa is an AI-powered legal assistant platform transforming contract drafting and document management for law firms and SMEs across Asia and the Middle East. The platform combines advanced natural language processing with real-time collaborative editing, enabling legal professionals to draft, review, and manage contracts with AI-driven insights. Key challenges included building simultaneous multi-user editing without conflicts, maintaining professional legal document formatting, and implementing enterprise-grade security for sensitive legal documents while ensuring GDPR compliance and maintaining highest accuracy standards.",
     "metadata": {
       "source": "projects",
-      "title": "Lexa - Technical Challenges",
+      "title": "Lexa - Overview",
       "type": "project",
-      "category": "legal-tech"
+      "category": "legal-tech",
+      "subtype": "overview",
+      "project": "lexa",
+      "year": "2025"
     }
   },
   {
-    "content": "AI Legal Assistant Platform Development for Lexa - Platform Development: Full-stack Legal SaaS Architecture: We built Lexa using Astro 5.13 with React 19 components, creating a highly performant and scalable legal platform. The architecture includes advanced state management with Nanostores, comprehensive authentication systems, and a sophisticated document management vault. The platform supports multiple languages and includes AI-powered features for contract intelligence and automated workflows. Security and Compliance Implementation: Given the sensitive nature of legal documents, we implemented enterprise-grade security measures including GDPR-compliant data handling, encrypted document storage, and secure digital signature capabilities. The platform includes comprehensive audit trails, version control, and access management systems to meet strict legal industry requirements. Technologies: Astro + React, Legal SaaS Platform, AI Integration, GDPR Compliance, Digital Signatures, Enterprise Security.",
+    "content": "Framework: Astro 5.13 with React 19 components for high performance and scalability. Real-time collaboration: Y.js with WebSocket connections for simultaneous multi-user editing. Document engine: Custom TipTap extensions for pagination, headers, footers, and professional legal formatting. State management: Nanostores for advanced state handling. AI features: Natural language processing for contract intelligence and automated recommendations. Security: GDPR-compliant data handling, encrypted document storage, secure digital signatures. Document management: Comprehensive vault with audit trails, version control, and access management. Authentication: Enterprise-grade auth systems for legal industry compliance.",
     "metadata": {
       "source": "projects",
-      "title": "Lexa - Platform Development",
+      "title": "Lexa - Tech Stack",
       "type": "project",
-      "category": "legal-tech"
+      "category": "legal-tech",
+      "subtype": "stack",
+      "project": "lexa",
+      "year": "2025"
     }
   },
   {
-    "content": "Client testimonial for AI Legal Assistant Platform Development for Lexa: \"Other Dev delivered exactly what we envisioned for Lexa - an intelligent AI legal assistant that transforms how we approach contract drafting and legal document management. The AI-powered analysis and automated recommendations have revolutionized our workflow, while the real-time collaboration features keep our team perfectly synchronized. Having an AI assistant that understands legal context and provides intelligent suggestions has been game-changing for our firm. Since launch, we've dramatically improved our document processing efficiency and our clients are amazed by the AI-driven insights. The team's deep understanding of legal AI requirements and technical expertise made this project a tremendous success.\" - Team Lexa",
+    "content": "Platform architecture: Built full-stack legal SaaS using Astro 5.13 and React 19 for performance. Collaborative editing: Implemented Y.js with WebSocket for conflict-free simultaneous editing by multiple users. Document engine: Developed custom TipTap extensions handling multi-page layouts, pagination, headers, footers, and precise legal formatting. Real-time sync: Maintained formatting integrity during collaborative sessions across all connected clients. AI integration: Added natural language processing for contract analysis and intelligent legal recommendations. Security implementation: Deployed GDPR-compliant systems with encrypted storage and digital signature capabilities. Compliance features: Built audit trails, version control, and access management meeting legal industry requirements. Multi-language support included for international markets.",
+    "metadata": {
+      "source": "projects",
+      "title": "Lexa - Implementation",
+      "type": "project",
+      "category": "legal-tech",
+      "subtype": "implementation",
+      "project": "lexa",
+      "year": "2025"
+    }
+  },
+  {
+    "content": "Workflow transformation: AI-powered analysis and automated recommendations revolutionized legal document processing. Collaboration: Real-time editing features achieved perfect team synchronization. AI capabilities: Intelligent legal context understanding and suggestions proved game-changing. Processing efficiency: Dramatic improvement in document processing speed and accuracy. Client satisfaction: Clients amazed by AI-driven insights and recommendations. Security: Enterprise-grade measures met strict legal industry compliance requirements. Document management: Seamless export capabilities and formatting preservation across all editing sessions.",
+    "metadata": {
+      "source": "projects",
+      "title": "Lexa - Results",
+      "type": "project",
+      "category": "legal-tech",
+      "subtype": "results",
+      "project": "lexa",
+      "year": "2025"
+    }
+  },
+  {
+    "content": "Other Dev delivered exactly what we envisioned for Lexa - an intelligent AI legal assistant that transforms how we approach contract drafting and legal document management. The AI-powered analysis and automated recommendations have revolutionized our workflow, while the real-time collaboration features keep our team perfectly synchronized. Having an AI assistant that understands legal context and provides intelligent suggestions has been game-changing for our firm. Since launch, we've dramatically improved our document processing efficiency and our clients are amazed by the AI-driven insights. The team's deep understanding of legal AI requirements and technical expertise made this project a tremendous success. - Team Lexa",
     "metadata": {
       "source": "testimonials",
-      "title": "Lexa Testimonial",
-      "type": "project",
-      "category": "testimonial"
+      "title": "Lexa - Client Testimonial",
+      "type": "testimonial",
+      "category": "legal-tech",
+      "project": "lexa",
+      "year": "2025"
     }
   },
   {
-    "content": "E-commerce Platform Development for Kiswa Noire (2025): Premium children's lifestyle brand e-commerce platform with advanced Shopify customization Our collaboration with Kiswa Noire involved creating a sophisticated e-commerce platform for this premium Danish children's lifestyle brand. We developed a highly customized Shopify solution that embodies Scandinavian minimalism while delivering advanced functionality for international markets. The platform features comprehensive multilingual support, geolocation-based personalization, and seamless shopping experiences across all touchpoints. Our work focused on translating Kiswa Noire's design philosophy into a digital experience that resonates with parents seeking quality, sustainable children's products across European markets. Visit: https://kiswanoire.com/",
+    "content": "PROJECT: Kiswa Noire\nYEAR: 2025\nSERVICE: E-commerce Platform Development\nINDUSTRY: Premium Children's Fashion\nBRAND: Danish children's lifestyle brand\nSTACK: Shopify Custom Theme, CSS Variables, JavaScript, Geolocation API, Multi-currency, Multilingual\nLANGUAGES: English, German, French, Danish\nPAYMENTS: Apple Pay, Google Pay, PayPal\nMARKETS: European markets\nURL: https://kiswanoire.com",
     "metadata": {
       "source": "projects",
-      "title": "E-commerce Platform Development for Kiswa Noire",
+      "title": "Kiswa Noire - Facts",
       "type": "project",
-      "category": "fashion-ecommerce"
+      "category": "fashion-ecommerce",
+      "subtype": "facts",
+      "project": "kiswa-noire",
+      "year": "2025"
     }
   },
   {
-    "content": "E-commerce Platform Development for Kiswa Noire - Design & User Experience: Scandinavian Minimalism: We crafted a visual experience that reflects Kiswa Noire's Danish heritage, emphasizing clean lines, neutral color palettes, and generous white space. The design prioritizes lifestyle photography that showcases products in real family contexts, creating an emotional connection with parents. Every element was carefully considered to maintain the brand's premium positioning while ensuring accessibility and usability. Advanced Navigation Architecture: The platform features a sophisticated mega menu system with visual category blocks, making it intuitive for parents to shop by child's developmental stage or product category. We implemented dynamic product recommendations, comprehensive filtering systems, and seamless search functionality to help customers discover relevant products effortlessly. Technologies: Shopify Customization, Scandinavian Design, User Experience Design, Mega Menu System, Responsive Design.",
+    "content": "Kiswa Noire is a premium Danish children's lifestyle brand requiring a sophisticated e-commerce platform embodying Scandinavian minimalism. The challenge was translating their Danish design philosophy into a digital experience for European parents seeking quality, sustainable children's products. Key requirements included multilingual support across EN, DE, FR, DK markets, geolocation-based personalization for different European regions, seamless shopping across all touchpoints, and maintaining premium brand positioning while ensuring accessibility and usability for parent shoppers.",
     "metadata": {
       "source": "projects",
-      "title": "Kiswa Noire - Design & User Experience",
+      "title": "Kiswa Noire - Overview",
       "type": "project",
-      "category": "fashion-ecommerce"
+      "category": "fashion-ecommerce",
+      "subtype": "overview",
+      "project": "kiswa-noire",
+      "year": "2025"
     }
   },
   {
-    "content": "E-commerce Platform Development for Kiswa Noire - Technical Implementation: International E-commerce Architecture: We built a robust multi-market platform supporting multiple languages (EN, DE, FR, DK) and currencies, with geolocation-based personalization that automatically adapts content and pricing for different European markets. The custom Shopify theme includes advanced CSS variable management for consistent responsive behavior across all devices and market variations. Performance & Advanced Features: The platform includes sophisticated technical implementations including lazy-loaded assets, performance tracking systems, comprehensive analytics integration, and custom JavaScript-driven interactive elements. We integrated advanced payment solutions (Apple Pay, Google Pay, PayPal), GDPR-compliant systems, and comprehensive inventory management across international markets. Technologies: Multilingual Platform, Geolocation Technology, Performance Optimization, Payment Integration, GDPR Compliance, International Commerce.",
+    "content": "Platform: Custom Shopify theme for international e-commerce. Languages: Multilingual support for English, German, French, Danish. Geolocation: Automatic content and pricing adaptation for European markets. Payments: Apple Pay, Google Pay, PayPal integration. Styling: Advanced CSS variable management for responsive behavior across devices. Navigation: Sophisticated mega menu system with visual category blocks. Performance: Lazy-loaded assets, performance tracking, comprehensive analytics. Features: Dynamic product recommendations, comprehensive filtering, seamless search. Compliance: GDPR-compliant systems for European data protection. Inventory: International inventory management across multiple markets.",
     "metadata": {
       "source": "projects",
-      "title": "Kiswa Noire - Technical Implementation",
+      "title": "Kiswa Noire - Tech Stack",
       "type": "project",
-      "category": "fashion-ecommerce"
+      "category": "fashion-ecommerce",
+      "subtype": "stack",
+      "project": "kiswa-noire",
+      "year": "2025"
     }
   },
   {
-    "content": "Client testimonial for E-commerce Platform Development for Kiswa Noire: \"Other Dev understood our vision for bringing Scandinavian design principles to the digital space. The e-commerce platform they created perfectly captures our brand essence while delivering the sophisticated functionality we needed for international markets. The attention to detail in both design and technical implementation has been exceptional. Since launch, we've experienced remarkable growth in online engagement and our customers consistently praise the intuitive shopping experience. The platform's multilingual capabilities and performance have been crucial to our European expansion.\" - Kiswa Noire Team",
+    "content": "Design approach: Crafted Scandinavian minimalist visual experience reflecting Danish heritage with clean lines, neutral palettes, generous white space. Product photography: Lifestyle imagery showcasing products in real family contexts for emotional parent connection. Navigation system: Built mega menu with visual category blocks for shopping by child's developmental stage or product category. Technical implementation: Custom Shopify theme with CSS variables for consistent responsive behavior. Multilingual setup: Implemented EN, DE, FR, DK language support with geolocation personalization. Payment integration: Added Apple Pay, Google Pay, PayPal for European market preferences. Performance optimization: Lazy-loaded assets, custom JavaScript interactions, performance tracking. Compliance: Deployed GDPR-compliant systems for European data protection. Inventory management: Configured multi-market inventory synchronization.",
+    "metadata": {
+      "source": "projects",
+      "title": "Kiswa Noire - Implementation",
+      "type": "project",
+      "category": "fashion-ecommerce",
+      "subtype": "implementation",
+      "project": "kiswa-noire",
+      "year": "2025"
+    }
+  },
+  {
+    "content": "Online engagement: Remarkable growth after launch across European markets. Customer feedback: Consistent praise for intuitive shopping experience and Scandinavian aesthetic. European expansion: Multilingual capabilities and performance crucial for market growth. Brand representation: Platform perfectly captures premium brand essence and Danish design philosophy. Technical quality: Exceptional attention to detail in design and technical implementation. User experience: Seamless shopping across all touchpoints and devices. International reach: Successful multi-market operations with automatic localization.",
+    "metadata": {
+      "source": "projects",
+      "title": "Kiswa Noire - Results",
+      "type": "project",
+      "category": "fashion-ecommerce",
+      "subtype": "results",
+      "project": "kiswa-noire",
+      "year": "2025"
+    }
+  },
+  {
+    "content": "Other Dev understood our vision for bringing Scandinavian design principles to the digital space. The e-commerce platform they created perfectly captures our brand essence while delivering the sophisticated functionality we needed for international markets. The attention to detail in both design and technical implementation has been exceptional. Since launch, we've experienced remarkable growth in online engagement and our customers consistently praise the intuitive shopping experience. The platform's multilingual capabilities and performance have been crucial to our European expansion. - Kiswa Noire Team",
     "metadata": {
       "source": "testimonials",
-      "title": "Kiswa Noire Testimonial",
-      "type": "project",
-      "category": "testimonial"
+      "title": "Kiswa Noire - Client Testimonial",
+      "type": "testimonial",
+      "category": "fashion-ecommerce",
+      "project": "kiswa-noire",
+      "year": "2025"
     }
   },
   {

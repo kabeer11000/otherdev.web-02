@@ -13,6 +13,9 @@ export interface MatchedDocument {
     title: string;
     type: string;
     category?: string;
+    subtype?: string;
+    project?: string;
+    year?: string;
   };
   similarity: number;
 }
@@ -50,6 +53,23 @@ export async function searchSimilarDocuments(
   }
 }
 
+export async function deleteAllDocuments(): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('documents')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000');
+
+    if (error) {
+      console.error('Supabase delete error:', error);
+      throw new Error('Failed to delete documents');
+    }
+  } catch (error) {
+    console.error('Error deleting documents:', error);
+    throw new Error('Failed to delete documents');
+  }
+}
+
 export async function insertDocument(
   content: string,
   metadata: {
@@ -57,6 +77,9 @@ export async function insertDocument(
     title: string;
     type: string;
     category?: string;
+    subtype?: string;
+    project?: string;
+    year?: string;
   },
   embedding: number[]
 ): Promise<string> {

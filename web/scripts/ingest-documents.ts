@@ -1,9 +1,23 @@
 import { knowledgeBase } from '../src/lib/knowledge-base';
 import { generateEmbedding } from '../src/server/lib/rag/embeddings';
-import { insertDocument } from '../src/server/lib/rag/vector-search';
+import { insertDocument, deleteAllDocuments } from '../src/server/lib/rag/vector-search';
 
 async function main() {
-  console.log('Starting document ingestion...');
+  console.log('========================================');
+  console.log('Document Ingestion Pipeline');
+  console.log('========================================\n');
+
+  console.log('Step 1: Clearing old embeddings from database...');
+  try {
+    await deleteAllDocuments();
+    console.log('  Successfully cleared all old documents\n');
+  } catch (error) {
+    console.error('  Failed to clear old documents:', error);
+    console.error('  Aborting ingestion to prevent pollution\n');
+    process.exit(1);
+  }
+
+  console.log('Step 2: Ingesting new documents...');
   console.log(`Total documents to process: ${knowledgeBase.length}\n`);
 
   let successCount = 0;
