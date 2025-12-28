@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ChevronDown, Send, ArrowDown } from "lucide-react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { type Message } from "@/components/ui/chat-message";
@@ -26,6 +27,12 @@ const SUGGESTED_PROMPTS = [
 const MAX_INPUT_LENGTH = 500;
 
 export function ChatWidget() {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith("/ai")) {
+    return null;
+  }
+
   const [isOpen, setIsOpen] = React.useState(false);
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [input, setInput] = React.useState("");
