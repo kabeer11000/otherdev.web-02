@@ -7,13 +7,22 @@ interface UseLocalStorageMessagesProps<T> {
   initialValue?: T[];
   deserialize?: (data: string) => T[];
   serialize?: (data: T[]) => string;
+  expirationMinutes?: number;
 }
+
+interface StoredData<T> {
+  messages: T[];
+  timestamp: number;
+}
+
+const DEFAULT_EXPIRATION_MINUTES = 5;
 
 export function useLocalStorageMessages<T>({
   key,
   initialValue = [],
   deserialize,
   serialize,
+  expirationMinutes = DEFAULT_EXPIRATION_MINUTES,
 }: UseLocalStorageMessagesProps<T>) {
   const [messages, setMessages] = useState<T[]>(() => {
     if (typeof window === "undefined") {
@@ -26,11 +35,20 @@ export function useLocalStorageMessages<T>({
         return initialValue;
       }
 
-      if (deserialize) {
-        return deserialize(item);
+      const storedData: StoredData<T> = JSON.parse(item);
+      const now = Date.now();
+      const expirationMs = expirationMinutes * 60 * 1000;
+
+      if (now - storedData.timestamp > expirationMs) {
+        window.localStorage.removeItem(key);
+        return initialValue;
       }
 
-      return JSON.parse(item) as T[];
+      if (deserialize) {
+        return deserialize(JSON.stringify(storedData.messages));
+      }
+
+      return storedData.messages;
     } catch (error) {
       console.error(`Error loading messages from localStorage (${key}):`, error);
       return initialValue;
@@ -49,8 +67,20 @@ export function useLocalStorageMessages<T>({
     }
 
     try {
-      const serialized = serialize ? serialize(messages) : JSON.stringify(messages);
-      window.localStorage.setItem(key, serialized);
+      const storedData: StoredData<T> = {
+        messages,
+        timestamp: Date.now(),
+      };
+
+      const serializedMessages = serialize ? serialize(messages) : JSON.stringify(messages);
+      const parsedMessages = JSON.parse(serializedMessages);
+
+      const dataToStore: StoredData<unknown> = {
+        messages: parsedMessages,
+        timestamp: storedData.timestamp,
+      };
+
+      window.localStorage.setItem(key, JSON.stringify(dataToStore));
     } catch (error) {
       console.error(`Error saving messages to localStorage (${key}):`, error);
     }
