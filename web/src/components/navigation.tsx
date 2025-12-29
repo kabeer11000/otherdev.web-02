@@ -297,7 +297,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
             }),
           )}
         >
-          Od AI
+          ai
         </Link>
         <button
           onClick={handleContactClick}
