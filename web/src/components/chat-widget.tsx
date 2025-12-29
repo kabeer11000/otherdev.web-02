@@ -13,11 +13,30 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
 import { useAutosizeTextArea } from "@/hooks/use-autosize-textarea";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
+import { useLocalStorageMessages } from "@/hooks/use-local-storage-messages";
 import { PromptSuggestions } from "@/components/ui/prompt-suggestions";
 import { Z_INDEX, SUGGESTED_PROMPTS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 const MAX_INPUT_LENGTH = 500;
+const CHAT_WIDGET_STORAGE_KEY = "otherdev-chat-widget-messages";
+
+function serializeMessages(messages: Message[]): string {
+  return JSON.stringify(
+    messages.map((msg) => ({
+      ...msg,
+      createdAt: msg.createdAt?.toISOString(),
+    })),
+  );
+}
+
+function deserializeMessages(data: string): Message[] {
+  const parsed = JSON.parse(data);
+  return parsed.map((msg: Message & { createdAt?: string }) => ({
+    ...msg,
+    createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
+  }));
+}
 
 export function ChatWidget() {
   const pathname = usePathname();
@@ -27,7 +46,11 @@ export function ChatWidget() {
   }
 
   const [isOpen, setIsOpen] = React.useState(false);
-  const [messages, setMessages] = React.useState<Message[]>([]);
+  const { messages, setMessages } = useLocalStorageMessages<Message>({
+    key: CHAT_WIDGET_STORAGE_KEY,
+    serialize: serializeMessages,
+    deserialize: deserializeMessages,
+  });
   const [input, setInput] = React.useState("");
   const [isGenerating, setIsGenerating] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);

@@ -9,9 +9,33 @@ import type {
   ThreadAssistantMessage,
 } from "@assistant-ui/react";
 import { useState, useCallback, useRef } from "react";
+import { useLocalStorageMessages } from "@/hooks/use-local-storage-messages";
+
+const LOOM_STORAGE_KEY = "otherdev-loom-messages";
+
+function serializeLoomMessages(messages: ThreadMessage[]): string {
+  return JSON.stringify(
+    messages.map((msg) => ({
+      ...msg,
+      createdAt: msg.createdAt.toISOString(),
+    })),
+  );
+}
+
+function deserializeLoomMessages(data: string): ThreadMessage[] {
+  const parsed = JSON.parse(data);
+  return parsed.map((msg: ThreadMessage & { createdAt: string }) => ({
+    ...msg,
+    createdAt: new Date(msg.createdAt),
+  }));
+}
 
 export function useOtherDevRuntime() {
-  const [messages, setMessages] = useState<ThreadMessage[]>([]);
+  const { messages, setMessages } = useLocalStorageMessages<ThreadMessage>({
+    key: LOOM_STORAGE_KEY,
+    serialize: serializeLoomMessages,
+    deserialize: deserializeLoomMessages,
+  });
   const [isRunning, setIsRunning] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
