@@ -1,28 +1,34 @@
--- Update the documents table to support 768-dimension vectors (BGE-Base-EN-v1.5)
+-- Update the documents table to support 1024-dimension vectors (BAAI/bge-large-en-v1.5)
+-- Using halfvec for 50% storage reduction and better performance
 -- Run this in Supabase SQL Editor before re-ingesting documents
 
 -- Step 1: Drop the existing match_documents function (it references the old vector size)
 DROP FUNCTION IF EXISTS match_documents(vector(384), float, int);
 DROP FUNCTION IF EXISTS match_documents(vector(768), float, int);
+DROP FUNCTION IF EXISTS match_documents(halfvec(1024), float, int);
+DROP FUNCTION IF EXISTS match_documents(halfvec(2048), float, int);
+DROP FUNCTION IF EXISTS match_documents(halfvec(4096), float, int);
+DROP FUNCTION IF EXISTS match_documents(vector(4096), float, int);
 
--- Step 2: Recreate the documents table with 768-dimension vectors
+-- Step 2: Recreate the documents table with 1024-dimension halfvec
 DROP TABLE IF EXISTS documents;
 
 CREATE TABLE documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   content TEXT NOT NULL,
   metadata JSONB NOT NULL,
-  embedding vector(768) NOT NULL,
+  embedding halfvec(1024) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
 -- Step 3: Create an index for vector similarity search
-CREATE INDEX ON documents USING ivfflat (embedding vector_cosine_ops)
+-- Using ivfflat with halfvec (1024 dimensions is well within the 4000 limit)
+CREATE INDEX ON documents USING ivfflat (embedding halfvec_cosine_ops)
 WITH (lists = 100);
 
 -- Step 4: Create the match_documents RPC function for similarity search
 CREATE OR REPLACE FUNCTION match_documents(
-  query_embedding vector(768),
+  query_embedding halfvec(1024),
   match_threshold float,
   match_count int
 )
@@ -56,4 +62,4 @@ GRANT ALL ON documents TO service_role;
 
 -- Verification queries
 SELECT 'Schema update complete!' AS status;
-SELECT 'Documents table ready for 768D embeddings' AS info;
+SELECT 'Documents table ready for 1024D halfvec embeddings (BAAI/bge-large-en-v1.5)' AS info;

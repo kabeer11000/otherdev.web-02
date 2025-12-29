@@ -36,9 +36,9 @@ async function main() {
       console.log(`  Generating embedding...`);
       const embedding = await generateEmbedding(doc.content);
 
-      if (!embedding || embedding.length !== 768) {
+      if (!embedding || embedding.length !== 1024) {
         throw new Error(
-          `Invalid embedding dimension: ${embedding?.length || 0} (expected 768)`,
+          `Invalid embedding dimension: ${embedding?.length || 0} (expected 1024)`,
         );
       }
 
