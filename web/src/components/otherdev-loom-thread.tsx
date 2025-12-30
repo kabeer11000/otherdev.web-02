@@ -82,7 +82,7 @@ function AssistantMessage() {
       <MessagePrimitive.Root>
         <div className="flex justify-start">
           <div className="w-full max-w-[95%] space-y-3 sm:max-w-[90%] md:max-w-[85%] min-w-0">
-            <div className="flex items-start gap-2 sm:gap-3">
+            <div className="flex items-start gap-2 sm:gap-3 min-w-0">
               <Image
                 src="/otherdev-chat-logo.svg"
                 alt="OtherDev Loom"
@@ -98,14 +98,14 @@ function AssistantMessage() {
                       <span>View thinking process</span>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="mt-2">
-                      <div className="prose prose-sm w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm overflow-hidden">
+                      <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
                         <MarkdownRenderer>{reasoning}</MarkdownRenderer>
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
                 )}
                 {textPart && textPart.type === "text" && (
-                  <div className="prose prose-sm w-full break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base overflow-hidden">
+                  <div className="prose prose-sm max-w-full break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
                     <MarkdownRenderer>{textPart.text}</MarkdownRenderer>
                   </div>
                 )}
@@ -160,13 +160,13 @@ function AssistantMessage() {
                   <span>View thinking process</span>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2">
-                  <div className="prose prose-sm w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm overflow-hidden">
+                  <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
                     <MarkdownRenderer>{reasoning}</MarkdownRenderer>
                   </div>
                 </CollapsibleContent>
               </Collapsible>
             )}
-            <div className="prose prose-sm w-full break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base overflow-hidden">
+            <div className="prose prose-sm max-w-full break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
               <MessagePrimitive.Content
                 components={{
                   Text: (props) => <MarkdownRenderer>{props.text}</MarkdownRenderer>,
