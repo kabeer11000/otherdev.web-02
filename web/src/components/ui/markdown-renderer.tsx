@@ -37,7 +37,7 @@ function CodeBlock({ children, className }: CodeBlockProps) {
   }, [children, language]);
 
   return (
-    <div className="relative group my-4">
+    <div className="relative group my-4 w-full overflow-x-auto">
       <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
         <CopyButton
           content={children.trim()}
@@ -47,10 +47,10 @@ function CodeBlock({ children, className }: CodeBlockProps) {
       {highlightedCode ? (
         <div
           dangerouslySetInnerHTML={{ __html: highlightedCode }}
-          className="[&>pre]:p-4 [&>pre]:rounded-lg [&>pre]:overflow-x-auto [&>pre]:text-sm [&>pre]:leading-relaxed"
+          className="[&>pre]:p-4 [&>pre]:rounded-lg [&>pre]:overflow-x-auto [&>pre]:text-sm [&>pre]:leading-relaxed [&>pre]:max-w-full"
         />
       ) : (
-        <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+        <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm max-w-full">
           <code>{children}</code>
         </pre>
       )}
@@ -154,8 +154,8 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
         },
         table({ children }) {
           return (
-            <div className="my-4 overflow-x-auto">
-              <table className="min-w-full border-collapse border border-border">
+            <div className="my-4 w-full overflow-x-auto">
+              <table className="w-full border-collapse border border-border">
                 {children}
               </table>
             </div>

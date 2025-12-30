@@ -80,7 +80,7 @@ function AssistantMessage() {
     return (
       <MessagePrimitive.Root>
         <div className="flex justify-start">
-          <div className="w-full max-w-[95%] space-y-3 sm:max-w-[90%] md:max-w-[85%]">
+          <div className="w-full max-w-[95%] space-y-3 sm:max-w-[90%] md:max-w-[85%] min-w-0">
             <div className="flex items-start gap-2 sm:gap-3">
               <Image
                 src="/otherdev-chat-logo.svg"
@@ -89,7 +89,7 @@ function AssistantMessage() {
                 height={32}
                 className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
               />
-              <div className="flex-1 space-y-3">
+              <div className="flex-1 space-y-3 min-w-0">
                 {reasoning && (
                   <Collapsible defaultOpen={false}>
                     <CollapsibleTrigger className="flex items-center gap-1 font-serif text-xs text-muted-foreground transition-colors hover:text-foreground group">
@@ -97,14 +97,14 @@ function AssistantMessage() {
                       <span>View thinking process</span>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="mt-2">
-                      <div className="prose prose-sm max-w-none break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
+                      <div className="prose prose-sm w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm overflow-hidden">
                         <MarkdownRenderer>{reasoning}</MarkdownRenderer>
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
                 )}
                 {textPart && textPart.type === "text" && (
-                  <div className="prose prose-sm max-w-none break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
+                  <div className="prose prose-sm w-full break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base overflow-hidden">
                     <MarkdownRenderer>{textPart.text}</MarkdownRenderer>
                   </div>
                 )}
@@ -138,7 +138,7 @@ function AssistantMessage() {
   return (
     <MessagePrimitive.Root>
       <div className="flex justify-start">
-        <div className="flex w-full max-w-[95%] items-start gap-2 sm:max-w-[90%] sm:gap-3 md:max-w-[85%]">
+        <div className="flex w-full max-w-[95%] items-start gap-2 sm:max-w-[90%] sm:gap-3 md:max-w-[85%] min-w-0">
           <AssistantIf condition={({ message }) => message.status?.type !== "running"}>
             <Image
               src="/otherdev-chat-logo.svg"
@@ -151,7 +151,7 @@ function AssistantMessage() {
           <AssistantIf condition={({ message }) => message.status?.type === "running"}>
             <div className="flex h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8" />
           </AssistantIf>
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 space-y-2 min-w-0">
             {reasoning && (
               <Collapsible defaultOpen={false}>
                 <CollapsibleTrigger className="flex items-center gap-1 font-serif text-xs text-muted-foreground transition-colors hover:text-foreground group">
@@ -159,13 +159,13 @@ function AssistantMessage() {
                   <span>View thinking process</span>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2">
-                  <div className="prose prose-sm max-w-none break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
+                  <div className="prose prose-sm w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm overflow-hidden">
                     <MarkdownRenderer>{reasoning}</MarkdownRenderer>
                   </div>
                 </CollapsibleContent>
               </Collapsible>
             )}
-            <div className="prose prose-sm max-w-none break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
+            <div className="prose prose-sm w-full break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base overflow-hidden">
               <MessagePrimitive.Content
                 components={{
                   Text: (props) => <MarkdownRenderer>{props.text}</MarkdownRenderer>,
