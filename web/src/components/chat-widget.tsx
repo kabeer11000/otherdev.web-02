@@ -565,7 +565,7 @@ export function ChatWidget() {
                               alt="OtherDev AI"
                               width={16}
                               height={16}
-                              className="h-4 w-4 animate-pulse"
+                              className="h-4 w-4 animate-spin"
                             />
                             <div className="flex gap-1">
                               <div

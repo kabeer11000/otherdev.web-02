@@ -291,7 +291,7 @@ export function OtherDevLoomThread() {
                 alt="OtherDev Loom"
                 width={32}
                 height={32}
-                className="h-7 w-7 flex-shrink-0 animate-pulse sm:h-8 sm:w-8"
+                className="h-7 w-7 flex-shrink-0 animate-spin sm:h-8 sm:w-8"
               />
               <div className="flex items-center gap-2 font-serif text-xs text-muted-foreground sm:text-sm">
                 <div className="flex gap-1">
