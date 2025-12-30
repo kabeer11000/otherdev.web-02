@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Send, ArrowDown } from "lucide-react";
+import { ChevronDown, Send, ArrowDown, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,11 @@ import { type Message } from "@/components/ui/chat-message";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { CopyButton } from "@/components/ui/copy-button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent
+} from "@/components/ui/collapsible";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
 import { useAutosizeTextArea } from "@/hooks/use-autosize-textarea";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
@@ -131,6 +136,7 @@ export function ChatWidget() {
       }
 
       let accumulatedContent = "";
+      let accumulatedReasoning = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -150,7 +156,32 @@ export function ChatWidget() {
 
             try {
               const parsed = JSON.parse(data);
-              if (parsed.content) {
+
+              if (parsed.type === "reasoning" && parsed.content) {
+                accumulatedReasoning += parsed.content;
+
+                if (!messageAdded) {
+                  const assistantMessage: Message = {
+                    id: assistantMessageId,
+                    role: "assistant",
+                    content: accumulatedContent,
+                    reasoning: accumulatedReasoning,
+                    createdAt: new Date(),
+                  };
+                  setMessages((prev) => [...prev, assistantMessage]);
+                  messageAdded = true;
+                } else {
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessageId
+                        ? { ...msg, reasoning: accumulatedReasoning }
+                        : msg,
+                    ),
+                  );
+                }
+              }
+
+              if (parsed.type === "content" && parsed.content) {
                 accumulatedContent += parsed.content;
 
                 if (!messageAdded) {
@@ -158,6 +189,7 @@ export function ChatWidget() {
                     id: assistantMessageId,
                     role: "assistant",
                     content: accumulatedContent,
+                    reasoning: accumulatedReasoning,
                     createdAt: new Date(),
                   };
                   setMessages((prev) => [...prev, assistantMessage]);
@@ -251,6 +283,7 @@ export function ChatWidget() {
         }
 
         let accumulatedContent = "";
+        let accumulatedReasoning = "";
 
         while (true) {
           const { done, value } = await reader.read();
@@ -270,7 +303,32 @@ export function ChatWidget() {
 
               try {
                 const parsed = JSON.parse(data);
-                if (parsed.content) {
+
+                if (parsed.type === "reasoning" && parsed.content) {
+                  accumulatedReasoning += parsed.content;
+
+                  if (!messageAdded) {
+                    const assistantMessage: Message = {
+                      id: assistantMessageId,
+                      role: "assistant",
+                      content: accumulatedContent,
+                      reasoning: accumulatedReasoning,
+                      createdAt: new Date(),
+                    };
+                    setMessages((prev) => [...prev, assistantMessage]);
+                    messageAdded = true;
+                  } else {
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMessageId
+                          ? { ...msg, reasoning: accumulatedReasoning }
+                          : msg,
+                      ),
+                    );
+                  }
+                }
+
+                if (parsed.type === "content" && parsed.content) {
                   accumulatedContent += parsed.content;
 
                   if (!messageAdded) {
@@ -278,6 +336,7 @@ export function ChatWidget() {
                       id: assistantMessageId,
                       role: "assistant",
                       content: accumulatedContent,
+                      reasoning: accumulatedReasoning,
                       createdAt: new Date(),
                     };
                     setMessages((prev) => [...prev, assistantMessage]);
@@ -461,7 +520,22 @@ export function ChatWidget() {
                                 height={16}
                                 className="h-4 w-4 mt-1 flex-shrink-0"
                               />
-                              <div className="flex-1 min-w-0 overflow-x-auto">
+                              <div className="flex-1 min-w-0 overflow-x-auto space-y-2">
+                                {message.reasoning && (
+                                  <Collapsible defaultOpen={false}>
+                                    <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors group">
+                                      <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
+                                      <span>View thinking process</span>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="mt-2">
+                                      <div className="text-muted-foreground text-xs leading-relaxed bg-muted/50 rounded-lg p-3 border border-border prose dark:prose-invert prose-sm max-w-none">
+                                        <MarkdownRenderer>
+                                          {message.reasoning}
+                                        </MarkdownRenderer>
+                                      </div>
+                                    </CollapsibleContent>
+                                  </Collapsible>
+                                )}
                                 <div className="text-card-foreground text-sm leading-relaxed prose dark:prose-invert prose-sm max-w-none">
                                   <MarkdownRenderer>
                                     {message.content}

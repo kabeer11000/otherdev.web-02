@@ -87,6 +87,7 @@ export function useOtherDevRuntime() {
         }
 
         let accumulatedContent = "";
+        let accumulatedReasoning = "";
         const toolCalls: ToolCallMessagePart[] = [];
 
         while (true) {
@@ -107,6 +108,49 @@ export function useOtherDevRuntime() {
 
               try {
                 const parsed = JSON.parse(data);
+
+                if (parsed.type === "reasoning" && parsed.content) {
+                  accumulatedReasoning += parsed.content;
+
+                  const contentParts: (TextMessagePart | ToolCallMessagePart)[] = [];
+                  if (accumulatedContent) {
+                    contentParts.push({ type: "text" as const, text: accumulatedContent });
+                  }
+                  contentParts.push(...toolCalls);
+
+                  if (!messageAdded) {
+                    const assistantMessage: ThreadAssistantMessage = {
+                      id: assistantMessageId,
+                      role: "assistant",
+                      content: contentParts,
+                      createdAt: new Date(),
+                      status: { type: "running" },
+                      metadata: {
+                        unstable_state: null,
+                        unstable_annotations: [],
+                        unstable_data: [],
+                        steps: [],
+                        custom: { reasoning: accumulatedReasoning },
+                      },
+                    };
+                    setMessages((prev) => [...prev, assistantMessage]);
+                    messageAdded = true;
+                  } else {
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMessageId && msg.role === "assistant"
+                          ? {
+                              ...(msg as ThreadAssistantMessage),
+                              metadata: {
+                                ...(msg as ThreadAssistantMessage).metadata,
+                                custom: { reasoning: accumulatedReasoning },
+                              },
+                            }
+                          : msg,
+                      ),
+                    );
+                  }
+                }
 
                 if (parsed.type === "content" && parsed.content) {
                   accumulatedContent += parsed.content;
@@ -129,7 +173,7 @@ export function useOtherDevRuntime() {
                         unstable_annotations: [],
                         unstable_data: [],
                         steps: [],
-                        custom: {},
+                        custom: { reasoning: accumulatedReasoning },
                       },
                     };
                     setMessages((prev) => [...prev, assistantMessage]);
@@ -174,7 +218,7 @@ export function useOtherDevRuntime() {
                         unstable_annotations: [],
                         unstable_data: [],
                         steps: [],
-                        custom: {},
+                        custom: { reasoning: accumulatedReasoning },
                       },
                     };
                     setMessages((prev) => [...prev, assistantMessage]);

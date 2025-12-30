@@ -246,6 +246,7 @@ export async function POST(request: Request) {
       stream: true,
       tools: [createArtifactTool],
       tool_choice: "auto",
+      reasoning_format: "parsed",
     });
 
     const encoder = new TextEncoder();
@@ -263,6 +264,11 @@ export async function POST(request: Request) {
 
           for await (const chunk of completion) {
             const delta = chunk.choices[0]?.delta;
+
+            if (delta?.reasoning) {
+              const data = JSON.stringify({ type: "reasoning", content: delta.reasoning });
+              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            }
 
             if (delta?.content) {
               const data = JSON.stringify({ type: "content", content: delta.content });

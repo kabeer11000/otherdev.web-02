@@ -9,12 +9,17 @@ import {
   useMessage,
 } from "@assistant-ui/react";
 import type { ToolCallMessagePart } from "@assistant-ui/react";
-import { Send, FileCode2 } from "lucide-react";
+import { Send, FileCode2, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { CopyButton } from "@/components/ui/copy-button";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent
+} from "@/components/ui/collapsible";
 import { useArtifact } from "@/app/otherdevloom/page";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
 
@@ -65,6 +70,7 @@ function AssistantMessage() {
   const toolCallPart = message.content.find((part) => part.type === "tool-call") as
     | ToolCallMessagePart
     | undefined;
+  const reasoning = message.metadata?.custom?.reasoning as string | undefined;
 
   if (hasToolCall) {
     const artifactArgs = toolCallPart?.args as
@@ -84,6 +90,19 @@ function AssistantMessage() {
                 className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
               />
               <div className="flex-1 space-y-3">
+                {reasoning && (
+                  <Collapsible defaultOpen={false}>
+                    <CollapsibleTrigger className="flex items-center gap-1 font-serif text-xs text-muted-foreground transition-colors hover:text-foreground group">
+                      <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
+                      <span>View thinking process</span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2">
+                      <div className="prose prose-sm max-w-none break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
+                        <MarkdownRenderer>{reasoning}</MarkdownRenderer>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
                 {textPart && textPart.type === "text" && (
                   <div className="prose prose-sm max-w-none break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
                     <MarkdownRenderer>{textPart.text}</MarkdownRenderer>
@@ -133,6 +152,19 @@ function AssistantMessage() {
             <div className="flex h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8" />
           </AssistantIf>
           <div className="flex-1 space-y-2">
+            {reasoning && (
+              <Collapsible defaultOpen={false}>
+                <CollapsibleTrigger className="flex items-center gap-1 font-serif text-xs text-muted-foreground transition-colors hover:text-foreground group">
+                  <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
+                  <span>View thinking process</span>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <div className="prose prose-sm max-w-none break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
+                    <MarkdownRenderer>{reasoning}</MarkdownRenderer>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
             <div className="prose prose-sm max-w-none break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
               <MessagePrimitive.Content
                 components={{
