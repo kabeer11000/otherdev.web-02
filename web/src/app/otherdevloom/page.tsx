@@ -31,8 +31,8 @@ export default function AIPage() {
 
   return (
     <>
-      <Navigation variant="ai" />
-      <main className="h-screen pt-14 sm:pt-[60px]">
+      <Navigation />
+      <main className="h-screen">
         <AssistantRuntimeProvider runtime={runtime}>
           <ArtifactContext.Provider value={{ activeArtifact, setActiveArtifact }}>
             <div className="flex h-full overflow-hidden">

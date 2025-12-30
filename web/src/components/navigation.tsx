@@ -114,7 +114,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
                   navItemVariants({ size: "brand", active: pathname === "/" }),
                 )}
               >
-                other dev
+                Other dev
               </Link>
             </motion.div>
           )}
@@ -145,7 +145,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
                     }),
                   )}
                 >
-                  work
+                  Work
                 </Link>
               </motion.div>
               {/* <motion.div
@@ -181,7 +181,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
                     }),
                   )}
                 >
-                  about
+                  About
                 </Link>
               </motion.div>
               <motion.div
@@ -199,7 +199,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
                     }),
                   )}
                 >
-                  OD Ai
+                  Ai
                 </Link>
               </motion.div>
               <motion.div
@@ -214,7 +214,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
                     navItemVariants({ size: "mobileWide", active: false }),
                   )}
                 >
-                  contact
+                  Contact
                 </button>
               </motion.div>
               <motion.div
@@ -231,7 +231,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
                     navItemVariants({ size: "mobileWide", active: false }),
                   )}
                 >
-                  whatsapp
+                  Whatsapp
                 </Link>
               </motion.div>
             </motion.div>
@@ -249,7 +249,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
             navItemVariants({ size: "brand", active: pathname === "/" }),
           )}
         >
-          other dev
+          Other dev
         </Link>
         <Link
           href="/work"
@@ -261,7 +261,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
             }),
           )}
         >
-          work
+          Work
         </Link>
         {/* <Link
           href="/audio"
@@ -285,7 +285,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
             }),
           )}
         >
-          about
+          About
         </Link>
         <Link
           href="/otherdevloom"
@@ -297,14 +297,14 @@ export function Navigation({ variant = "default" }: NavigationProps) {
             }),
           )}
         >
-          ai
+          Ai
         </Link>
         <button
           onClick={handleContactClick}
           data-slot="nav-item"
           className={cn(navItemVariants({ size: "default", active: false }))}
         >
-          contact
+          Contact
         </button>
         <Link
           href="https://wa.me/923156893331?text=Hi!%20I%20found%20you%20through%20otherdev.com%20and%20would%20love%20to%20discuss%20a%20project."
@@ -313,7 +313,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
           data-slot="nav-item"
           className={cn(navItemVariants({ size: "default", active: false }))}
         >
-          whatsapp
+          Whatsapp
         </Link>
       </div>
       )}
