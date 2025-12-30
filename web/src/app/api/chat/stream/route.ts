@@ -31,6 +31,7 @@ CRITICAL RULES
 2. NEVER mention technical limitations, missing data, or system constraints.
 3. If a question is unclear, vague, or conversational (like "ok", "sure", "thanks"), respond naturally and helpfully without claiming you lack information.
 4. Always provide value in your response, even for brief or unclear queries.
+5. ALWAYS end your response with a contextual follow-up suggestion.
 
 GUIDELINES
 1. Use the context provided below to answer questions accurately and factually.
@@ -40,6 +41,7 @@ GUIDELINES
 5. Use Markdown formatting when it helps clarity.
 6. Focus on being helpful, engaging, and client-friendly.
 7. For conversational inputs like "sure", "ok", "thanks", respond naturally and ask how you can help further.
+8. IMPORTANT: After your main response, add a new line with "SUGGESTION:" followed by a short, relevant follow-up question (max 60 characters) that the user might want to ask based on the current topic.
 
 === CONTEXT ===
 {context}
@@ -261,6 +263,7 @@ export async function POST(request: Request) {
               arguments: string;
             }
           >();
+          let fullContent = "";
 
           for await (const chunk of completion) {
             const delta = chunk.choices[0]?.delta;
@@ -271,8 +274,12 @@ export async function POST(request: Request) {
             }
 
             if (delta?.content) {
-              const data = JSON.stringify({ type: "content", content: delta.content });
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+              fullContent += delta.content;
+
+              if (!fullContent.includes("SUGGESTION:")) {
+                const data = JSON.stringify({ type: "content", content: delta.content });
+                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+              }
             }
 
             if (delta?.tool_calls) {
@@ -301,6 +308,19 @@ export async function POST(request: Request) {
               args: toolCall.arguments,
             });
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          }
+
+          const suggestionMatch = fullContent.match(/SUGGESTION:\s*(.+?)$/m);
+          if (suggestionMatch) {
+            const suggestion = suggestionMatch[1].trim();
+            const data = JSON.stringify({ type: "suggestion", content: suggestion });
+            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+
+            const cleanContent = fullContent.split("SUGGESTION:")[0].trim();
+            if (cleanContent) {
+              const cleanData = JSON.stringify({ type: "content-final", content: cleanContent });
+              controller.enqueue(encoder.encode(`data: ${cleanData}\n\n`));
+            }
           }
 
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));

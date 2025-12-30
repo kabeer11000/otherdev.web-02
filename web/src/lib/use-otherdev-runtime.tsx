@@ -37,6 +37,7 @@ export function useOtherDevRuntime() {
     deserialize: deserializeLoomMessages,
   });
   const [isRunning, setIsRunning] = useState(false);
+  const [suggestion, setSuggestion] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const onNew = useCallback(
@@ -88,6 +89,7 @@ export function useOtherDevRuntime() {
 
         let accumulatedContent = "";
         let accumulatedReasoning = "";
+        let currentSuggestion = "";
         const toolCalls: ToolCallMessagePart[] = [];
 
         while (true) {
@@ -235,6 +237,25 @@ export function useOtherDevRuntime() {
                       ),
                     );
                   }
+                } else if (parsed.type === "suggestion" && parsed.content) {
+                  currentSuggestion = parsed.content;
+                  setSuggestion(currentSuggestion);
+                } else if (parsed.type === "content-final" && parsed.content) {
+                  const contentParts: (TextMessagePart | ToolCallMessagePart)[] = [
+                    { type: "text" as const, text: parsed.content }
+                  ];
+                  contentParts.push(...toolCalls);
+
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessageId && msg.role === "assistant"
+                        ? {
+                            ...(msg as ThreadAssistantMessage),
+                            content: contentParts,
+                          }
+                        : msg,
+                    ),
+                  );
                 }
               } catch (parseError) {
                 console.error("Error parsing SSE data:", parseError);
@@ -317,10 +338,16 @@ export function useOtherDevRuntime() {
     }
   }, []);
 
-  return useExternalStoreRuntime({
+  const runtime = useExternalStoreRuntime({
     messages,
     isRunning,
     onNew,
     onCancel,
   });
+
+  return {
+    ...runtime,
+    suggestion,
+    setSuggestion,
+  };
 }

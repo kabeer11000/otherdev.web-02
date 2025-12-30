@@ -23,6 +23,21 @@ export function useArtifact() {
   return context;
 }
 
+interface RuntimeContextType {
+  suggestion: string;
+  setSuggestion: (suggestion: string) => void;
+}
+
+const RuntimeContext = createContext<RuntimeContextType | null>(null);
+
+export function useRuntimeContext() {
+  const context = useContext(RuntimeContext);
+  if (!context) {
+    throw new Error("useRuntimeContext must be used within RuntimeContextProvider");
+  }
+  return context;
+}
+
 export default function AIPage() {
   const runtime = useOtherDevRuntime();
   const [activeArtifact, setActiveArtifact] = useState<ToolCallMessagePart | null>(
@@ -34,24 +49,28 @@ export default function AIPage() {
       <Navigation />
       <main className="h-screen">
         <AssistantRuntimeProvider runtime={runtime}>
-          <ArtifactContext.Provider value={{ activeArtifact, setActiveArtifact }}>
-            <div className="flex h-full overflow-hidden">
-              <div
-                className={`h-full ${activeArtifact ? "hidden md:block md:w-1/2" : "w-full"}`}
-              >
-                <OtherDevLoomThread />
-              </div>
-              {activeArtifact && (
-                <div className="h-full w-full md:w-1/2">
-                  <ArtifactRenderer
-                    toolCall={activeArtifact}
-                    mode="panel"
-                    onClose={() => setActiveArtifact(null)}
-                  />
+          <RuntimeContext.Provider
+            value={{ suggestion: runtime.suggestion, setSuggestion: runtime.setSuggestion }}
+          >
+            <ArtifactContext.Provider value={{ activeArtifact, setActiveArtifact }}>
+              <div className="flex h-full overflow-hidden">
+                <div
+                  className={`h-full ${activeArtifact ? "hidden md:block md:w-1/2" : "w-full"}`}
+                >
+                  <OtherDevLoomThread />
                 </div>
-              )}
-            </div>
-          </ArtifactContext.Provider>
+                {activeArtifact && (
+                  <div className="h-full w-full md:w-1/2">
+                    <ArtifactRenderer
+                      toolCall={activeArtifact}
+                      mode="panel"
+                      onClose={() => setActiveArtifact(null)}
+                    />
+                  </div>
+                )}
+              </div>
+            </ArtifactContext.Provider>
+          </RuntimeContext.Provider>
         </AssistantRuntimeProvider>
       </main>
     </>

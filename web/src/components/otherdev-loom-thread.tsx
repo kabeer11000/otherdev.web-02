@@ -11,6 +11,7 @@ import {
 import type { ToolCallMessagePart } from "@assistant-ui/react";
 import { Send, FileCode2, ChevronRight } from "lucide-react";
 import Image from "next/image";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
@@ -20,7 +21,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent
 } from "@/components/ui/collapsible";
-import { useArtifact } from "@/app/otherdevloom/page";
+import { useArtifact, useRuntimeContext } from "@/app/otherdevloom/page";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
 
 function SuggestionButton({ prompt }: { prompt: string }) {
@@ -194,6 +195,54 @@ function AssistantMessage() {
 }
 
 export function OtherDevLoomThread() {
+  const { suggestion, setSuggestion } = useRuntimeContext();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === "Tab" &&
+        suggestion &&
+        inputRef.current &&
+        !inputRef.current.value
+      ) {
+        e.preventDefault();
+
+        const input = inputRef.current;
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+          HTMLTextAreaElement.prototype,
+          "value"
+        )?.set;
+
+        if (nativeInputValueSetter) {
+          nativeInputValueSetter.call(input, suggestion);
+          const inputEvent = new Event("input", { bubbles: true });
+          input.dispatchEvent(inputEvent);
+        }
+
+        setSuggestion("");
+      }
+    };
+
+    const handleInput = () => {
+      if (inputRef.current && inputRef.current.value && suggestion) {
+        setSuggestion("");
+      }
+    };
+
+    const inputElement = inputRef.current;
+    if (inputElement) {
+      inputElement.addEventListener("keydown", handleKeyDown);
+      inputElement.addEventListener("input", handleInput);
+      return () => {
+        inputElement.removeEventListener("keydown", handleKeyDown);
+        inputElement.removeEventListener("input", handleInput);
+      };
+    }
+  }, [suggestion, setSuggestion]);
+
+  const placeholder = suggestion || "Type your message...";
+
   return (
     <ThreadPrimitive.Root className="flex h-full flex-col bg-background">
       <ThreadPrimitive.Viewport className="flex-1 overflow-x-hidden overflow-y-auto scroll-smooth">
@@ -269,7 +318,8 @@ export function OtherDevLoomThread() {
       <div className="border-t border-border bg-card p-3 sm:p-4">
         <ComposerPrimitive.Root className="relative">
           <ComposerPrimitive.Input
-            placeholder="Type your message..."
+            ref={inputRef}
+            placeholder={placeholder}
             className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 pr-10 font-serif text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 sm:px-4 sm:py-3 sm:pr-12 sm:text-base"
             rows={1}
             autoFocus
