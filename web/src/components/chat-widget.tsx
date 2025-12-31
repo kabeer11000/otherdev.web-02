@@ -46,7 +46,7 @@ function deserializeMessages(data: string): Message[] {
 export function ChatWidget() {
   const pathname = usePathname();
 
-  if (pathname?.startsWith("/otherdevloom")) {
+  if (pathname?.startsWith("/loom")) {
     return null;
   }
 

@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "About OtherDev - Digital Platforms for Pioneering Creatives",
+  title: "About | OtherDev",
   description:
     "Learn about OtherDev, a full-service web development and design studio based in Karachi. Discover our team, mission, and the clients we've worked with.",
   keywords: [

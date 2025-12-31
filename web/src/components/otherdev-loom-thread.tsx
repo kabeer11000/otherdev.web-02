@@ -21,7 +21,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent
 } from "@/components/ui/collapsible";
-import { useArtifact, useRuntimeContext } from "@/app/otherdevloom/page";
+import { useArtifact, useRuntimeContext } from "@/app/loom/page";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
 
 function SuggestionButton({ prompt }: { prompt: string }) {
@@ -201,7 +201,7 @@ export function OtherDevLoomThread() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
-        e.key === "Tab" &&
+        (e.key === "Tab" || e.key === "ArrowRight") &&
         suggestion &&
         inputRef.current &&
         !inputRef.current.value
@@ -324,6 +324,31 @@ export function OtherDevLoomThread() {
             rows={1}
             autoFocus
           />
+          {suggestion && !inputRef.current?.value && (
+            <div
+              onClick={() => {
+                if (inputRef.current) {
+                  const input = inputRef.current;
+                  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                    HTMLTextAreaElement.prototype,
+                    "value"
+                  )?.set;
+
+                  if (nativeInputValueSetter) {
+                    nativeInputValueSetter.call(input, suggestion);
+                    const inputEvent = new Event("input", { bubbles: true });
+                    input.dispatchEvent(inputEvent);
+                  }
+
+                  setSuggestion("");
+                  input.focus();
+                }
+              }}
+              className="absolute left-3 top-2.5 cursor-pointer font-serif text-sm text-muted-foreground sm:left-4 sm:top-3 sm:text-base md:hidden"
+            >
+              {suggestion}
+            </div>
+          )}
           <ComposerPrimitive.Send className="absolute bottom-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:opacity-90 active:scale-[0.98] disabled:opacity-50 sm:bottom-3 sm:right-3 sm:h-8 sm:w-8">
             <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </ComposerPrimitive.Send>

@@ -6,7 +6,7 @@ import { projects } from "@/lib/projects";
 import { ProjectCard } from "@/components/project-card";
 
 export const metadata: Metadata = {
-  title: "Our Work | OtherDev - Web & Design Solutions",
+  title: "Work | OtherDev",
   description:
     "Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.",
   keywords: [

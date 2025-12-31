@@ -11,7 +11,7 @@ import { projects } from "@/lib/projects";
 import { shuffle } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "OtherDev - Digital Platforms for Pioneering Creatives",
+  title: "OtherDev",
   description:
     "OtherDev produces digital platforms for pioneering creatives. Full-service web development and design studio based in Karachi, specializing in fashion and design fields.",
   keywords: [

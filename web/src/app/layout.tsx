@@ -9,9 +9,6 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://otherdev.com"),
   title: "OtherDev",
   description: "Digital platforms for pioneering creatives",
-  icons: {
-    icon: "/TheOtherDevLogo.svg",
-  },
   openGraph: {
     title: "OtherDev",
     description: "Digital platforms for pioneering creatives",

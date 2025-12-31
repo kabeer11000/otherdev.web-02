@@ -190,12 +190,12 @@ export function Navigation({ variant = "default" }: NavigationProps) {
                 transition={{ delay: 0.25, duration: 0.3 }}
               >
                 <Link
-                  href="/otherdevloom"
+                  href="/loom"
                   data-slot="nav-item"
                   className={cn(
                     navItemVariants({
                       size: "mobile",
-                      active: pathname?.startsWith("/otherdevloom"),
+                      active: pathname?.startsWith("/loom"),
                     }),
                   )}
                 >
@@ -288,12 +288,12 @@ export function Navigation({ variant = "default" }: NavigationProps) {
           About
         </Link>
         <Link
-          href="/otherdevloom"
+          href="/loom"
           data-slot="nav-item"
           className={cn(
             navItemVariants({
               size: "default",
-              active: pathname?.startsWith("/otherdevloom"),
+              active: pathname?.startsWith("/loom"),
             }),
           )}
         >

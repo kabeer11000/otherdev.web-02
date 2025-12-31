@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "OtherDev Loom | AI Chat Assistant",
+  title: "Loom | OtherDev",
   description:
-    "Chat with OtherDev Loom, our intelligent AI assistant. Get instant answers about our projects, services, technologies, and expertise powered by our knowledge base.",
+    "Chat with Loom, OtherDev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
   keywords: [
     "OtherDev Loom",
     "AI chat",
@@ -13,24 +13,24 @@ export const metadata: Metadata = {
     "OtherDev",
   ],
   openGraph: {
-    title: "OtherDev Loom | AI Chat Assistant",
+    title: "OtherDev Loom",
     description:
-      "Chat with OtherDev Loom to learn about our projects, services, and expertise.",
+      "Chat with Loom, OtherDev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
     type: "website",
-    url: "https://otherdev.com/otherdevloom",
+    url: "https://otherdev.com/loom",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "OtherDev Loom AI Chat Assistant",
+        alt: "OtherDev Loom",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "OtherDev Loom | AI Chat Assistant",
-    description: "Intelligent assistant for project and service inquiries",
+    title: "OtherDev Loom",
+    description: "Chat with Loom, OtherDev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
     images: ["/og-image.png"],
   },
   robots: {
