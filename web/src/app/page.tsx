@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
-import { ProjectCard } from "@/components/project-card";
+import { ShuffledProjectGrid } from "@/components/shuffled-project-grid";
 import {
   playlistsAndImages,
   type PlaylistOrImage,
 } from "@/lib/playlists-and-images";
 import { projects } from "@/lib/projects";
-import { shuffle } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "OtherDev",
@@ -67,7 +66,7 @@ const projectsWithExtraImages = projects.flatMap((project) => {
   return cards;
 });
 
-const data = shuffle([...playlistsAndImages, ...projectsWithExtraImages]);
+const data = [...playlistsAndImages, ...projectsWithExtraImages];
 
 // JSON-LD Structured Data
 const organizationSchema = {
@@ -98,18 +97,7 @@ export default function Home() {
             design studio specializing in the fashion and design fields.
           </p>
         </div>
-        <div className="mt-[30px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[12px] gap-y-[15px]">
-          {data.map((project) => (
-            <ProjectCard
-              key={project.id}
-              title={project.title}
-              slug={project?.slug ?? project.url}
-              image={project.image}
-              description={project.description}
-              variant={project?.isPlaylistOrImage ? "broll" : "home"}
-            />
-          ))}
-        </div>
+        <ShuffledProjectGrid initialData={data} />
         <Footer />
       </main>
     </div>

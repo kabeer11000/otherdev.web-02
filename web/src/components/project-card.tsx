@@ -1,6 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { cva, type VariantProps } from "class-variance-authority";
+import { useState } from "react";
 
 const cardVariants = cva(
   "relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center",
@@ -60,11 +63,30 @@ export function ProjectCard({
   variant,
   showText = false,
 }: ProjectCardProps) {
+  const showHoverTitle = variant === "home" || variant === "broll";
+  const [isHovered, setIsHovered] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePosition({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
   return (
     <div className="flex flex-col gap-[13px]">
       <Link
         href={variant === "broll" ? (slug ?? "#") : `/work/${slug}`}
         className="block group"
+        onMouseMove={showHoverTitle ? handleMouseMove : undefined}
+        onMouseEnter={showHoverTitle ? handleMouseEnter : undefined}
+        onMouseLeave={showHoverTitle ? handleMouseLeave : undefined}
       >
         <div className={cardVariants({ variant })}>
           <div className={imageContainerVariants({ variant })}>
@@ -77,6 +99,22 @@ export function ProjectCard({
           </div>
         </div>
       </Link>
+
+      {showHoverTitle && isHovered && (
+        <div
+          className="fixed pointer-events-none z-50"
+          style={{
+            left: `${mousePosition.x + 15}px`,
+            top: `${mousePosition.y + 15}px`,
+          }}
+        >
+          <div className="rounded-md backdrop-blur-sm bg-stone-200/70 px-3 py-1.5">
+            <p className="text-[#686868] text-[11px] font-normal leading-[14px] whitespace-nowrap">
+              {title}
+            </p>
+          </div>
+        </div>
+      )}
 
       {showText && (
         <Link
