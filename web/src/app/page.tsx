@@ -51,7 +51,23 @@ export const metadata: Metadata = {
   },
 };
 
-const data = shuffle([...playlistsAndImages, ...projects]);
+// Create additional cards for projects with multiple images
+const projectsWithExtraImages = projects.flatMap((project) => {
+  const cards = [project];
+
+  // If project has media array with 2+ images, add second image as separate card
+  if (project.media && project.media.length >= 2) {
+    cards.push({
+      ...project,
+      id: `${project.id}-media-2`,
+      image: project.media[1],
+    });
+  }
+
+  return cards;
+});
+
+const data = shuffle([...playlistsAndImages, ...projectsWithExtraImages]);
 
 // JSON-LD Structured Data
 const organizationSchema = {
