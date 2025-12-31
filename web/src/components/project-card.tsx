@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 const cardVariants = cva(
   "relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center",
@@ -100,21 +101,27 @@ export function ProjectCard({
         </div>
       </Link>
 
-      {showHoverTitle && isHovered && (
-        <div
-          className="fixed pointer-events-none z-50"
-          style={{
-            left: `${mousePosition.x + 15}px`,
-            top: `${mousePosition.y + 15}px`,
-          }}
-        >
-          <div className="rounded-md backdrop-blur-sm bg-stone-200/70 px-3 py-1.5">
-            <p className="text-[#686868] text-[11px] font-normal leading-[14px] whitespace-nowrap">
-              {title}
-            </p>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showHoverTitle && isHovered && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="fixed pointer-events-none z-50"
+            style={{
+              left: `${mousePosition.x + 15}px`,
+              top: `${mousePosition.y + 15}px`,
+            }}
+          >
+            <div className="rounded-md backdrop-blur-sm bg-stone-200/70 px-3 py-1.5">
+              <p className="text-[#686868] text-[11px] font-normal leading-[14px] whitespace-nowrap">
+                {title}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {showText && (
         <Link
