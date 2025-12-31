@@ -24,6 +24,13 @@ import {
 import { useArtifact, useRuntimeContext } from "@/app/loom/page";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
 
+function cleanSuggestionMarkers(content: string): string {
+  return content
+    .replace(/\s*SUGGESTION:[\s\S]*$/i, "")
+    .replace(/\n+SUGGESTION:[\s\S]*$/i, "")
+    .trim();
+}
+
 function SuggestionButton({ prompt }: { prompt: string }) {
   const api = useAssistantApi();
 
@@ -106,7 +113,7 @@ function AssistantMessage() {
                 )}
                 {textPart && textPart.type === "text" && (
                   <div className="prose prose-sm max-w-full break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
-                    <MarkdownRenderer>{textPart.text}</MarkdownRenderer>
+                    <MarkdownRenderer>{cleanSuggestionMarkers(textPart.text)}</MarkdownRenderer>
                   </div>
                 )}
                 {toolCallPart && toolCallPart.toolName === "create_artifact" && (
@@ -169,7 +176,7 @@ function AssistantMessage() {
             <div className="prose prose-sm max-w-full break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
               <MessagePrimitive.Content
                 components={{
-                  Text: (props) => <MarkdownRenderer>{props.text}</MarkdownRenderer>,
+                  Text: (props) => <MarkdownRenderer>{cleanSuggestionMarkers(props.text)}</MarkdownRenderer>,
                 }}
               />
             </div>
@@ -179,7 +186,7 @@ function AssistantMessage() {
                   components={{
                     Text: (props) => (
                       <CopyButton
-                        content={props.text}
+                        content={cleanSuggestionMarkers(props.text)}
                         copyMessage="Copied response to clipboard"
                       />
                     ),

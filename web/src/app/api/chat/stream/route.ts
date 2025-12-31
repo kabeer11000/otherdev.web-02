@@ -41,7 +41,7 @@ GUIDELINES
 5. Use Markdown formatting when it helps clarity.
 6. Focus on being helpful, engaging, and client-friendly.
 7. For conversational inputs like "sure", "ok", "thanks", respond naturally and ask how you can help further.
-8. IMPORTANT: After your main response, add a new line with "SUGGESTION:" followed by a short, relevant follow-up question (max 60 characters) that the user might want to ask based on the current topic.
+8. IMPORTANT: After your main response, add a new line with "SUGGESTION:" followed by a short, relevant question or prompt (max 60 characters) that the user might want to ask YOU next, phrased from the user's perspective. Examples: "Tell me about your SaaS projects", "What technologies do you use?", "Show me your e-commerce work".
 
 === CONTEXT ===
 {context}
@@ -264,6 +264,8 @@ export async function POST(request: Request) {
             }
           >();
           let fullContent = "";
+          let contentBeforeSuggestion = "";
+          let suggestionDetected = false;
 
           for await (const chunk of completion) {
             const delta = chunk.choices[0]?.delta;
@@ -276,7 +278,11 @@ export async function POST(request: Request) {
             if (delta?.content) {
               fullContent += delta.content;
 
-              if (!fullContent.includes("SUGGESTION:")) {
+              if (!suggestionDetected && fullContent.includes("SUGGESTION:")) {
+                suggestionDetected = true;
+                const parts = fullContent.split("SUGGESTION:");
+                contentBeforeSuggestion = parts[0].trim();
+              } else if (!suggestionDetected) {
                 const data = JSON.stringify({ type: "content", content: delta.content });
                 controller.enqueue(encoder.encode(`data: ${data}\n\n`));
               }
@@ -315,12 +321,6 @@ export async function POST(request: Request) {
             const suggestion = suggestionMatch[1].trim();
             const data = JSON.stringify({ type: "suggestion", content: suggestion });
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-
-            const cleanContent = fullContent.split("SUGGESTION:")[0].trim();
-            if (cleanContent) {
-              const cleanData = JSON.stringify({ type: "content-final", content: cleanContent });
-              controller.enqueue(encoder.encode(`data: ${cleanData}\n\n`));
-            }
           }
 
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));

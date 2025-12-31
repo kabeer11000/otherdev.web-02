@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { type Message } from "@/components/ui/chat-message";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { CopyButton } from "@/components/ui/copy-button";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -25,6 +25,13 @@ import { cn } from "@/lib/utils";
 
 const MAX_INPUT_LENGTH = 500;
 const CHAT_WIDGET_STORAGE_KEY = "otherdev-chat-widget-messages";
+
+function cleanSuggestionMarkers(content: string): string {
+  return content
+    .replace(/\s*SUGGESTION:[\s\S]*$/i, "")
+    .replace(/\n+SUGGESTION:[\s\S]*$/i, "")
+    .trim();
+}
 
 function serializeMessages(messages: Message[]): string {
   return JSON.stringify(
@@ -58,6 +65,7 @@ export function ChatWidget() {
   });
   const [input, setInput] = React.useState("");
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const [suggestion, setSuggestion] = React.useState("");
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
 
@@ -92,6 +100,50 @@ export function ChatWidget() {
       cardRef.current.scrollTop = 0;
     }
   }, [isOpen]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        (e.key === "Tab" || e.key === "ArrowRight") &&
+        suggestion &&
+        textareaRef.current &&
+        !textareaRef.current.value
+      ) {
+        e.preventDefault();
+
+        const textarea = textareaRef.current;
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+          HTMLTextAreaElement.prototype,
+          "value"
+        )?.set;
+
+        if (nativeInputValueSetter) {
+          nativeInputValueSetter.call(textarea, suggestion);
+          const inputEvent = new Event("input", { bubbles: true });
+          textarea.dispatchEvent(inputEvent);
+        }
+
+        setInput(suggestion);
+        setSuggestion("");
+      }
+    };
+
+    const handleInput = () => {
+      if (textareaRef.current && textareaRef.current.value && suggestion) {
+        setSuggestion("");
+      }
+    };
+
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.addEventListener("keydown", handleKeyDown);
+      textarea.addEventListener("input", handleInput);
+      return () => {
+        textarea.removeEventListener("keydown", handleKeyDown);
+        textarea.removeEventListener("input", handleInput);
+      };
+    }
+  }, [suggestion]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +189,7 @@ export function ChatWidget() {
 
       let accumulatedContent = "";
       let accumulatedReasoning = "";
+      let currentSuggestion = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -156,6 +209,11 @@ export function ChatWidget() {
 
             try {
               const parsed = JSON.parse(data);
+
+              if (parsed.type === "suggestion" && parsed.content) {
+                currentSuggestion = parsed.content;
+                setSuggestion(currentSuggestion);
+              }
 
               if (parsed.type === "reasoning" && parsed.content) {
                 accumulatedReasoning += parsed.content;
@@ -284,6 +342,7 @@ export function ChatWidget() {
 
         let accumulatedContent = "";
         let accumulatedReasoning = "";
+        let currentSuggestion = "";
 
         while (true) {
           const { done, value } = await reader.read();
@@ -303,6 +362,11 @@ export function ChatWidget() {
 
               try {
                 const parsed = JSON.parse(data);
+
+                if (parsed.type === "suggestion" && parsed.content) {
+                  currentSuggestion = parsed.content;
+                  setSuggestion(currentSuggestion);
+                }
 
                 if (parsed.type === "reasoning" && parsed.content) {
                   accumulatedReasoning += parsed.content;
@@ -487,13 +551,12 @@ export function ChatWidget() {
             ) : (
               <div className="flex-1 relative min-h-0 overflow-hidden">
                 <ScrollArea
-                  className="h-full w-full"
+                  className="h-full w-full overflow-x-hidden"
                   viewportRef={containerRef}
                   onScroll={handleScroll}
                   onTouchStart={handleTouchStart}
                 >
-                  <ScrollBar orientation="horizontal" />
-                  <div className="px-4 py-6 space-y-6 max-w-full">
+                  <div className="px-4 py-6 space-y-6">
                     {messages.map((message) => (
                       <div key={message.id} className="space-y-2">
                         {message.role === "user" ? (
@@ -538,13 +601,13 @@ export function ChatWidget() {
                                 )}
                                 <div className="text-card-foreground text-sm leading-relaxed prose dark:prose-invert prose-sm max-w-none">
                                   <MarkdownRenderer>
-                                    {message.content}
+                                    {cleanSuggestionMarkers(message.content)}
                                   </MarkdownRenderer>
                                 </div>
                                 {!isGenerating && (
                                   <div className="flex justify-start mt-2">
                                     <CopyButton
-                                      content={message.content}
+                                      content={cleanSuggestionMarkers(message.content)}
                                       copyMessage="Copied response to clipboard"
                                     />
                                   </div>
@@ -606,20 +669,46 @@ export function ChatWidget() {
             <div className={cn("flex-shrink-0 p-4 border-t")}>
               <form onSubmit={handleSubmit} className="relative">
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-end gap-2 bg-muted border rounded-xl p-3 focus-within:ring-1 focus-within:ring-primary/30 transition-all">
+                  <div className="relative flex items-end gap-2 bg-muted border rounded-xl p-3 focus-within:ring-1 focus-within:ring-primary/30 transition-all">
                     <ScrollArea className="flex-1 min-w-0 max-h-24">
                       <textarea
                         ref={textareaRef}
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Ask anything..."
+                        placeholder={suggestion || "Ask anything..."}
                         disabled={isGenerating}
                         rows={1}
                         maxLength={MAX_INPUT_LENGTH}
                         className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-base outline-none resize-none min-h-[24px] break-words"
                       />
                     </ScrollArea>
+                    {suggestion && !input && (
+                      <div
+                        onClick={() => {
+                          if (textareaRef.current) {
+                            const textarea = textareaRef.current;
+                            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                              HTMLTextAreaElement.prototype,
+                              "value"
+                            )?.set;
+
+                            if (nativeInputValueSetter) {
+                              nativeInputValueSetter.call(textarea, suggestion);
+                              const inputEvent = new Event("input", { bubbles: true });
+                              textarea.dispatchEvent(inputEvent);
+                            }
+
+                            setInput(suggestion);
+                            setSuggestion("");
+                            textarea.focus();
+                          }
+                        }}
+                        className="absolute left-3 top-3 cursor-pointer text-base text-muted-foreground md:hidden pointer-events-auto"
+                      >
+                        {suggestion}
+                      </div>
+                    )}
                     <button
                       type="submit"
                       disabled={isGenerating || !input.trim()}
