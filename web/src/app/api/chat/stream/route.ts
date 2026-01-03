@@ -241,7 +241,7 @@ export async function POST(request: Request) {
     ];
 
     const completion = await groq.chat.completions.create({
-      model: "moonshotai/kimi-k2-instruct-0905",
+      model: "openai/gpt-oss-120b",
       messages: chatMessages,
       temperature: 0.7,
       max_tokens: 8000,

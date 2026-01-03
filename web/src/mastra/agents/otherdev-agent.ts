@@ -35,7 +35,7 @@ export const otherDevAgent = new Agent({
   name: "otherdev-assistant",
   instructions: SYSTEM_PROMPT,
   model: {
-    provider: groq("moonshotai/kimi-k2-instruct-0905"),
+    provider: groq("openai/gpt-oss-120b"),
     temperature: 0.7,
     maxTokens: 1024,
   },
