@@ -11,7 +11,7 @@ export const createArtifactSchema = z.object({
     .min(1, "Code is required")
     .max(50000, "Code must be 50KB or less")
     .describe(
-      "Complete HTML code including CSS in <style> tags and JavaScript in <script> tags. Must be self-contained and work in a sandboxed iframe.",
+      "Complete HTML code. Can include modern frameworks like React, Vue, or Tailwind CSS via CDN (use unpkg.com or cdn.jsdelivr.net). For React, include React/ReactDOM from CDN and use Babel standalone for JSX. Include all CSS in <style> tags and JavaScript in <script> tags. Must be self-contained and work in a sandboxed iframe.",
     ),
   description: z
     .string()
@@ -27,7 +27,7 @@ export const createArtifactTool = {
   function: {
     name: "create_artifact",
     description:
-      "Create an interactive HTML/CSS/JavaScript artifact that will be displayed in a live preview panel. Use this when the user asks to create, build, or generate interactive content like games, visualizations, calculators, forms, or any web-based UI. The artifact should be complete and self-contained.",
+      "Create an interactive web artifact that will be displayed in a live preview panel. Supports vanilla HTML/CSS/JS or modern frameworks (React, Vue, Tailwind CSS) via CDN. Use this when the user asks to create, build, make, or generate interactive content like websites, apps, games, visualizations, calculators, forms, dashboards, or any web-based UI. The artifact should be complete, self-contained, and visually polished.",
     parameters: {
       type: "object",
       properties: {
@@ -38,7 +38,7 @@ export const createArtifactTool = {
         code: {
           type: "string",
           description:
-            "Complete HTML code including CSS in <style> tags and JavaScript in <script> tags. Must be self-contained and work in a sandboxed iframe (max 50KB)",
+            "Complete HTML code. Can use modern frameworks via CDN: React (unpkg.com/react, unpkg.com/react-dom, unpkg.com/@babel/standalone for JSX), Tailwind CSS (cdn.tailwindcss.com), Vue, etc. Include CSS in <style> tags and JavaScript in <script> tags. Must be self-contained and work in a sandboxed iframe (max 50KB)",
         },
         description: {
           type: "string",

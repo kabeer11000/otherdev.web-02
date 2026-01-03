@@ -31,7 +31,7 @@ function cleanSuggestionMarkers(content: string): string {
     .trim();
 }
 
-function SuggestionButton({ prompt }: { prompt: string }) {
+function SuggestionButton({ display, prompt }: { display: string; prompt: string }) {
   const api = useAssistantApi();
 
   const handleClick = () => {
@@ -45,7 +45,7 @@ function SuggestionButton({ prompt }: { prompt: string }) {
       onClick={handleClick}
       className="h-auto justify-start rounded-xl bg-card p-3 text-left font-serif text-xs font-normal text-foreground shadow-sm transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-md active:scale-[0.98] sm:p-4 sm:text-sm whitespace-normal break-words"
     >
-      {prompt}
+      {display}
     </Button>
   );
 }
@@ -275,8 +275,8 @@ export function OtherDevLoomThread() {
               </div>
 
               <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-                {SUGGESTED_PROMPTS.map((prompt) => (
-                  <SuggestionButton key={prompt} prompt={prompt} />
+                {SUGGESTED_PROMPTS.map((suggestion) => (
+                  <SuggestionButton key={suggestion.display} display={suggestion.display} prompt={suggestion.prompt} />
                 ))}
               </div>
             </div>

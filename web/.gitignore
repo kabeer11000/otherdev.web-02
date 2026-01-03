@@ -71,3 +71,9 @@ pids
 # Claude Code instructions
 CLAUDE.md
 otherdev-complete-claude-instructions.md
+
+# Qwen Code instructions
+QWEN.md
+
+# Migration plans
+MASTRA_MIGRATION_PLAN.md

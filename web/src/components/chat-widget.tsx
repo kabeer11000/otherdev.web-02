@@ -66,6 +66,7 @@ export function ChatWidget() {
   const [input, setInput] = React.useState("");
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [suggestion, setSuggestion] = React.useState("");
+  const [threadId, setThreadId] = React.useState<string | undefined>();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
 
@@ -173,8 +174,13 @@ export function ChatWidget() {
       const response = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, threadId }),
       });
+
+      const newThreadId = response.headers.get("X-Thread-Id");
+      if (newThreadId && !threadId) {
+        setThreadId(newThreadId);
+      }
 
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);
@@ -326,8 +332,13 @@ export function ChatWidget() {
         const response = await fetch("/api/chat/stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: apiMessages }),
+          body: JSON.stringify({ messages: apiMessages, threadId }),
         });
+
+        const newThreadId = response.headers.get("X-Thread-Id");
+        if (newThreadId && !threadId) {
+          setThreadId(newThreadId);
+        }
 
         if (!response.ok) {
           throw new Error(`Server error: ${response.status}`);
