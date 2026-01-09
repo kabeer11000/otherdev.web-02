@@ -50,7 +50,10 @@ export function useLocalStorageMessages<T>({
 
       return storedData.messages;
     } catch (error) {
-      console.error(`Error loading messages from localStorage (${key}):`, error);
+      console.error(
+        `Error loading messages from localStorage (${key}):`,
+        error,
+      );
       return initialValue;
     }
   });
@@ -72,7 +75,9 @@ export function useLocalStorageMessages<T>({
         timestamp: Date.now(),
       };
 
-      const serializedMessages = serialize ? serialize(messages) : JSON.stringify(messages);
+      const serializedMessages = serialize
+        ? serialize(messages)
+        : JSON.stringify(messages);
       const parsedMessages = JSON.parse(serializedMessages);
 
       const dataToStore: StoredData<unknown> = {
@@ -92,7 +97,10 @@ export function useLocalStorageMessages<T>({
       try {
         window.localStorage.removeItem(key);
       } catch (error) {
-        console.error(`Error clearing messages from localStorage (${key}):`, error);
+        console.error(
+          `Error clearing messages from localStorage (${key}):`,
+          error,
+        );
       }
     }
   }, [key, initialValue]);

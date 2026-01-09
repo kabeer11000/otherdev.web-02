@@ -33,16 +33,17 @@ const RuntimeContext = createContext<RuntimeContextType | null>(null);
 export function useRuntimeContext() {
   const context = useContext(RuntimeContext);
   if (!context) {
-    throw new Error("useRuntimeContext must be used within RuntimeContextProvider");
+    throw new Error(
+      "useRuntimeContext must be used within RuntimeContextProvider",
+    );
   }
   return context;
 }
 
 export default function AIPage() {
   const runtime = useOtherDevRuntime();
-  const [activeArtifact, setActiveArtifact] = useState<ToolCallMessagePart | null>(
-    null,
-  );
+  const [activeArtifact, setActiveArtifact] =
+    useState<ToolCallMessagePart | null>(null);
 
   return (
     <>
@@ -50,9 +51,14 @@ export default function AIPage() {
       <main className="h-screen">
         <AssistantRuntimeProvider runtime={runtime}>
           <RuntimeContext.Provider
-            value={{ suggestion: runtime.suggestion, setSuggestion: runtime.setSuggestion }}
+            value={{
+              suggestion: runtime.suggestion,
+              setSuggestion: runtime.setSuggestion,
+            }}
           >
-            <ArtifactContext.Provider value={{ activeArtifact, setActiveArtifact }}>
+            <ArtifactContext.Provider
+              value={{ activeArtifact, setActiveArtifact }}
+            >
               <div className="flex h-full overflow-hidden">
                 <div
                   className={`h-full ${activeArtifact ? "hidden md:block md:w-1/2" : "w-full"}`}

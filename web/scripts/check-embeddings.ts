@@ -65,9 +65,7 @@ async function checkEmbeddings() {
   console.log("\nFounder-related Documents:\n");
   for (const doc of founderDocs || []) {
     console.log(`Title: ${doc.metadata?.title || "N/A"}`);
-    console.log(
-      `Content preview: ${doc.content.substring(0, 150)}...`,
-    );
+    console.log(`Content preview: ${doc.content.substring(0, 150)}...`);
     console.log("---\n");
   }
 
@@ -86,9 +84,7 @@ async function checkEmbeddings() {
   console.log("\nOssaid-related Documents:\n");
   for (const doc of ossaidDocs || []) {
     console.log(`Title: ${doc.metadata?.title || "N/A"}`);
-    console.log(
-      `Content preview: ${doc.content.substring(0, 150)}...`,
-    );
+    console.log(`Content preview: ${doc.content.substring(0, 150)}...`);
     console.log("---\n");
   }
 

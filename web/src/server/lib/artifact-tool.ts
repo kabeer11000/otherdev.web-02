@@ -17,7 +17,9 @@ export const createArtifactSchema = z.object({
     .string()
     .min(1, "Description is required")
     .max(500, "Description must be 500 characters or less")
-    .describe("A brief explanation of what this artifact does and how to use it"),
+    .describe(
+      "A brief explanation of what this artifact does and how to use it",
+    ),
 });
 
 export type CreateArtifactArgs = z.infer<typeof createArtifactSchema>;
@@ -33,7 +35,8 @@ export const createArtifactTool = {
       properties: {
         title: {
           type: "string",
-          description: "A short, descriptive title for the artifact (max 100 chars)",
+          description:
+            "A short, descriptive title for the artifact (max 100 chars)",
         },
         code: {
           type: "string",

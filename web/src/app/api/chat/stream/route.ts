@@ -23,6 +23,45 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+const RAG_MAX_MESSAGE_LENGTH = Number.parseInt(
+  process.env.RAG_MAX_MESSAGE_LENGTH || "500",
+);
+const RAG_SIMILARITY_THRESHOLD = Number.parseFloat(
+  process.env.RAG_SIMILARITY_THRESHOLD || "0.1",
+);
+const RAG_MATCH_COUNT = Number.parseInt(process.env.RAG_MATCH_COUNT || "10");
+
+const DANGEROUS_PATTERNS = [
+  /\[INST\]/gi,
+  /<\|im_start\|>/gi,
+  /<\|im_end\|>/gi,
+  /\[\/INST\]/gi,
+  /<\|system\|>/gi,
+  /<\|user\|>/gi,
+  /<\|assistant\|>/gi,
+];
+
+const CONVERSATIONAL_PHRASES = new Set([
+  "ok",
+  "okay",
+  "sure",
+  "thanks",
+  "thank you",
+  "yes",
+  "no",
+  "yeah",
+  "yep",
+  "nope",
+  "cool",
+  "nice",
+  "great",
+  "good",
+  "alright",
+  "hi",
+  "hello",
+  "hey",
+]);
+
 const SYSTEM_PROMPT_TEMPLATE = `You are a helpful assistant representing Other Dev, a web development and design studio based in Karachi, Pakistan.
 
 Answer questions about Other Dev's projects, services, technologies, and capabilities in a professional, conversational tone.
@@ -64,64 +103,33 @@ CONTACT INFORMATION
 Be professional, friendly, and focused on helping potential clients learn about Other Dev. Always be helpful and engaging, never claim to lack information.`;
 
 function sanitizeInput(text: string): string {
-  const dangerousPatterns = [
-    /\[INST\]/gi,
-    /<\|im_start\|>/gi,
-    /<\|im_end\|>/gi,
-    /\[\/INST\]/gi,
-    /<\|system\|>/gi,
-    /<\|user\|>/gi,
-    /<\|assistant\|>/gi,
-  ];
-
   let sanitized = text;
-  for (const pattern of dangerousPatterns) {
+  for (const pattern of DANGEROUS_PATTERNS) {
     sanitized = sanitized.replace(pattern, "");
   }
-
-  const maxLength = Number.parseInt(
-    process.env.RAG_MAX_MESSAGE_LENGTH || "500",
-  );
-  return sanitized.slice(0, maxLength);
+  return sanitized.slice(0, RAG_MAX_MESSAGE_LENGTH);
 }
 
-function detectQueryQuality(query: string): {
+type QueryQuality = {
   isLowQuality: boolean;
   isConversational: boolean;
   tokenCount: number;
   hasRepeatedWords: boolean;
-} {
+};
+
+function detectQueryQuality(query: string): QueryQuality {
   const normalized = query.toLowerCase().trim();
   const tokens = normalized.split(/\s+/).filter((t) => t.length > 0);
   const uniqueTokens = new Set(tokens);
 
-  const conversationalPhrases = [
-    "ok",
-    "okay",
-    "sure",
-    "thanks",
-    "thank you",
-    "yes",
-    "no",
-    "yeah",
-    "yep",
-    "nope",
-    "cool",
-    "nice",
-    "great",
-    "good",
-    "alright",
-    "hi",
-    "hello",
-    "hey",
-  ];
+  const isConversational =
+    CONVERSATIONAL_PHRASES.has(normalized) ||
+    tokens.every((t) => CONVERSATIONAL_PHRASES.has(t));
 
-  const isConversational = conversationalPhrases.includes(normalized) ||
-    tokens.every((t) => conversationalPhrases.includes(t));
-
-  const hasRepeatedWords = tokens.length > 0 && uniqueTokens.size < tokens.length * 0.6;
-
-  const isLowQuality = tokens.length < 3 || hasRepeatedWords || isConversational;
+  const hasRepeatedWords =
+    tokens.length > 0 && uniqueTokens.size < tokens.length * 0.6;
+  const isLowQuality =
+    tokens.length < 3 || hasRepeatedWords || isConversational;
 
   return {
     isLowQuality,
@@ -131,80 +139,104 @@ function detectQueryQuality(query: string): {
   };
 }
 
-function getAdaptiveThreshold(queryQuality: ReturnType<typeof detectQueryQuality>): number {
-  const baseThreshold = Number.parseFloat(
-    process.env.RAG_SIMILARITY_THRESHOLD || "0.1",
+function getAdaptiveThreshold(queryQuality: QueryQuality): number {
+  if (queryQuality.isConversational) {
+    return RAG_SIMILARITY_THRESHOLD * 0.5;
+  }
+  if (queryQuality.isLowQuality || queryQuality.hasRepeatedWords) {
+    return RAG_SIMILARITY_THRESHOLD * 0.7;
+  }
+  if (queryQuality.tokenCount < 5) {
+    return RAG_SIMILARITY_THRESHOLD * 0.8;
+  }
+  return RAG_SIMILARITY_THRESHOLD;
+}
+
+type ReasoningStep = { phase: string; content: string };
+
+const REASONING_PHASES = [
+  {
+    phase: "Analyzing the request",
+    pattern:
+      /(?:analyzing|understand|analyze|examine)[:\s-]*(.*?)(?=considering|options|explore|$)/is,
+  },
+  {
+    phase: "Considering options",
+    pattern:
+      /(?:considering|options|explore)[:\s-]*(.*?)(?=selecting|approach|conclude|$)/is,
+  },
+  {
+    phase: "Selecting the approach",
+    pattern: /(?:selecting|approach|conclude|answer)[:\s-]*(.*?)$/is,
+  },
+] as const;
+
+function parseReasoningSteps(reasoning: string): ReasoningStep[] {
+  const sentences = reasoning
+    .split(/(?<=[.!?])\s+/)
+    .filter((s) => s.trim().length > 0);
+  const thirdLength = Math.ceil(sentences.length / 3);
+
+  const steps: ReasoningStep[] = REASONING_PHASES.map(
+    ({ phase, pattern }, index) => {
+      const match = reasoning.match(pattern);
+      if (match && match[1]?.trim()) {
+        return { phase, content: match[1].trim().slice(0, 2000) };
+      }
+      if (sentences.length > 0) {
+        const start = thirdLength * index;
+        const end = index === 2 ? sentences.length : thirdLength * (index + 1);
+        return {
+          phase,
+          content: sentences.slice(start, end).join(" ").slice(0, 2000),
+        };
+      }
+      return { phase, content: "" };
+    },
   );
 
+  return steps.filter((s) => s.content.trim().length > 0);
+}
+
+type SimilarDocument = {
+  similarity: number;
+  metadata: { title: string };
+  content: string;
+};
+
+function buildContext(
+  similarDocs: SimilarDocument[],
+  queryQuality: QueryQuality,
+): string {
+  if (similarDocs.length > 0) {
+    return similarDocs
+      .map(
+        (doc, idx) =>
+          `Document ${idx + 1} (Relevance: ${(doc.similarity * 100).toFixed(1)}%):\nTitle: ${doc.metadata.title}\n${doc.content}\n`,
+      )
+      .join("\n---\n\n");
+  }
+
   if (queryQuality.isConversational) {
-    return baseThreshold * 0.5;
+    return "User sent a conversational message. Respond naturally and helpfully, offering to answer questions about Other Dev.";
   }
 
   if (queryQuality.isLowQuality || queryQuality.hasRepeatedWords) {
-    return baseThreshold * 0.7;
+    return "User query is unclear. Respond naturally, acknowledge their message, and offer to help with information about Other Dev's work, services, or projects.";
   }
 
-  if (queryQuality.tokenCount < 5) {
-    return baseThreshold * 0.8;
-  }
-
-  return baseThreshold;
+  return "Provide helpful general information about Other Dev based on common topics: projects (fashion, e-commerce, real estate, legal tech, SaaS), web development services, design capabilities, and technologies used.";
 }
 
-function parseReasoningSteps(reasoning: string): Array<{ phase: string; content: string }> {
-  const steps: Array<{ phase: string; content: string }> = [];
-
-  // Split reasoning into sentences and group them by phase
-  const sentences = reasoning.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
-
-  // Check for explicit phase markers in the reasoning
-  const analyzingMatch = reasoning.match(/(?:analyzing|understand|analyze|examine)[:\s-]*(.*?)(?=considering|options|explore|$)/is);
-  const consideringMatch = reasoning.match(/(?:considering|options|explore)[:\s-]*(.*?)(?=selecting|approach|conclude|$)/is);
-  const selectingMatch = reasoning.match(/(?:selecting|approach|conclude|answer)[:\s-]*(.*?)$/is);
-
-  // If we found explicit markers, use them
-  if (analyzingMatch && analyzingMatch[1]?.trim()) {
-    steps.push({
-      phase: "Analyzing the request",
-      content: analyzingMatch[1].trim().slice(0, 2000)
-    });
-  } else if (sentences.length > 0) {
-    // Otherwise, divide reasoning into thirds
-    const thirdLength = Math.ceil(sentences.length / 3);
-    steps.push({
-      phase: "Analyzing the request",
-      content: sentences.slice(0, thirdLength).join(" ").slice(0, 2000)
-    });
-  }
-
-  if (consideringMatch && consideringMatch[1]?.trim()) {
-    steps.push({
-      phase: "Considering options",
-      content: consideringMatch[1].trim().slice(0, 2000)
-    });
-  } else if (sentences.length > 0) {
-    const thirdLength = Math.ceil(sentences.length / 3);
-    steps.push({
-      phase: "Considering options",
-      content: sentences.slice(thirdLength, thirdLength * 2).join(" ").slice(0, 2000)
-    });
-  }
-
-  if (selectingMatch && selectingMatch[1]?.trim()) {
-    steps.push({
-      phase: "Selecting the approach",
-      content: selectingMatch[1].trim().slice(0, 2000)
-    });
-  } else if (sentences.length > 0) {
-    const thirdLength = Math.ceil(sentences.length / 3);
-    steps.push({
-      phase: "Selecting the approach",
-      content: sentences.slice(thirdLength * 2).join(" ").slice(0, 2000)
-    });
-  }
-
-  // Filter out empty steps
-  return steps.filter(s => s.content.trim().length > 0);
+function createJsonResponse(
+  data: object,
+  status: number,
+  headers?: Record<string, string>,
+): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json", ...headers },
+  });
 }
 
 export async function POST(request: Request) {
@@ -216,19 +248,14 @@ export async function POST(request: Request) {
       const retryAfter = Math.ceil(
         (rateLimitResult.resetTime - Date.now()) / 1000,
       );
-      return new Response(
-        JSON.stringify({
-          error: "Too many requests. Please try again later.",
-        }),
+      return createJsonResponse(
+        { error: "Too many requests. Please try again later." },
+        429,
         {
-          status: 429,
-          headers: {
-            "Content-Type": "application/json",
-            "Retry-After": retryAfter.toString(),
-            "X-RateLimit-Limit": REQUESTS_PER_WINDOW.toString(),
-            "X-RateLimit-Remaining": "0",
-            "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
-          },
+          "Retry-After": retryAfter.toString(),
+          "X-RateLimit-Limit": REQUESTS_PER_WINDOW.toString(),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
         },
       );
     }
@@ -237,15 +264,9 @@ export async function POST(request: Request) {
     const validation = RequestSchema.safeParse(body);
 
     if (!validation.success) {
-      return new Response(
-        JSON.stringify({
-          error: "Invalid request format",
-          details: validation.error.issues,
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
+      return createJsonResponse(
+        { error: "Invalid request format", details: validation.error.issues },
+        400,
       );
     }
 
@@ -253,47 +274,24 @@ export async function POST(request: Request) {
     const lastUserMessage = messages.filter((m) => m.role === "user").pop();
 
     if (!lastUserMessage) {
-      return new Response(JSON.stringify({ error: "No user message found" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return createJsonResponse({ error: "No user message found" }, 400);
     }
 
     const sanitizedQuery = sanitizeInput(lastUserMessage.content);
-
-    // Normalize query variations (OtherDev -> Other Dev)
-    const normalizedQuery = sanitizedQuery
-      .replace(/OtherDev/gi, "Other Dev")
-      .replace(/otherdev/gi, "Other Dev");
+    const normalizedQuery = sanitizedQuery.replace(/otherdev/gi, "Other Dev");
 
     const queryQuality = detectQueryQuality(normalizedQuery);
 
     const queryEmbedding = await generateEmbedding(normalizedQuery);
 
     const adaptiveThreshold = getAdaptiveThreshold(queryQuality);
-    const matchCount = Number.parseInt(process.env.RAG_MATCH_COUNT || "10");
-
     const similarDocs = await searchSimilarDocuments(
       queryEmbedding,
       adaptiveThreshold,
-      matchCount,
+      RAG_MATCH_COUNT,
     );
 
-    let context: string;
-    if (similarDocs.length > 0) {
-      context = similarDocs
-        .map(
-          (doc, idx) =>
-            `Document ${idx + 1} (Relevance: ${(doc.similarity * 100).toFixed(1)}%):\nTitle: ${doc.metadata.title}\n${doc.content}\n`,
-        )
-        .join("\n---\n\n");
-    } else if (queryQuality.isConversational) {
-      context = "User sent a conversational message. Respond naturally and helpfully, offering to answer questions about Other Dev.";
-    } else if (queryQuality.isLowQuality || queryQuality.hasRepeatedWords) {
-      context = "User query is unclear. Respond naturally, acknowledge their message, and offer to help with information about Other Dev's work, services, or projects.";
-    } else {
-      context = "Provide helpful general information about Other Dev based on common topics: projects (fashion, e-commerce, real estate, legal tech, SaaS), web development services, design capabilities, and technologies used.";
-    }
+    const context = buildContext(similarDocs, queryQuality);
 
     const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{context}", context);
 
@@ -328,7 +326,6 @@ export async function POST(request: Request) {
             }
           >();
           let fullContent = "";
-          let contentBeforeSuggestion = "";
           let suggestionDetected = false;
           let accumulatedReasoning = "";
 
@@ -344,10 +341,11 @@ export async function POST(request: Request) {
 
               if (!suggestionDetected && fullContent.includes("SUGGESTION:")) {
                 suggestionDetected = true;
-                const parts = fullContent.split("SUGGESTION:");
-                contentBeforeSuggestion = parts[0].trim();
               } else if (!suggestionDetected) {
-                const data = JSON.stringify({ type: "content", content: delta.content });
+                const data = JSON.stringify({
+                  type: "content",
+                  content: delta.content,
+                });
                 controller.enqueue(encoder.encode(`data: ${data}\n\n`));
               }
             }
@@ -404,7 +402,10 @@ export async function POST(request: Request) {
           const suggestionMatch = fullContent.match(/SUGGESTION:\s*(.+?)$/m);
           if (suggestionMatch) {
             const suggestion = suggestionMatch[1].trim();
-            const data = JSON.stringify({ type: "suggestion", content: suggestion });
+            const data = JSON.stringify({
+              type: "suggestion",
+              content: suggestion,
+            });
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
           }
 
@@ -429,14 +430,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Chat API error:", error);
-    return new Response(
-      JSON.stringify({
-        error: "Internal server error. Please try again.",
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      },
+    return createJsonResponse(
+      { error: "Internal server error. Please try again." },
+      500,
     );
   }
 }

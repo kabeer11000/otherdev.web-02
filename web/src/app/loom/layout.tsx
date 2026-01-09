@@ -30,7 +30,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "OtherDev Loom",
-    description: "Chat with Loom, OtherDev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
+    description:
+      "Chat with Loom, OtherDev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
     images: ["/og-image.png"],
   },
   robots: {
@@ -39,10 +40,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AILayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AILayout({ children }: { children: React.ReactNode }) {
   return children;
 }

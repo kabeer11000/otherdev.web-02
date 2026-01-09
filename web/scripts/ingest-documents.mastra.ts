@@ -49,7 +49,7 @@ async function main() {
 
       if (!embedding || embedding.length !== 1024) {
         throw new Error(
-          `Invalid embedding dimension: ${embedding?.length || 0} (expected 1024)`
+          `Invalid embedding dimension: ${embedding?.length || 0} (expected 1024)`,
         );
       }
 

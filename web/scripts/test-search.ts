@@ -48,20 +48,28 @@ async function testSearch() {
           0.01,
           matchCount,
         );
-        console.log(`Trying with lower threshold (0.01): Found ${lowerSimilarDocs.length} documents\n`);
+        console.log(
+          `Trying with lower threshold (0.01): Found ${lowerSimilarDocs.length} documents\n`,
+        );
 
         for (const doc of lowerSimilarDocs.slice(0, 3)) {
           console.log(`  - ${doc.metadata.title}`);
           console.log(`    Similarity: ${(doc.similarity * 100).toFixed(2)}%`);
-          console.log(`    Type: ${doc.metadata.type}, Category: ${doc.metadata.category || "N/A"}`);
+          console.log(
+            `    Type: ${doc.metadata.type}, Category: ${doc.metadata.category || "N/A"}`,
+          );
           console.log();
         }
       } else {
         for (const doc of similarDocs) {
           console.log(`  ✓ ${doc.metadata.title}`);
           console.log(`    Similarity: ${(doc.similarity * 100).toFixed(2)}%`);
-          console.log(`    Type: ${doc.metadata.type}, Category: ${doc.metadata.category || "N/A"}`);
-          console.log(`    Content preview: ${doc.content.substring(0, 100)}...`);
+          console.log(
+            `    Type: ${doc.metadata.type}, Category: ${doc.metadata.category || "N/A"}`,
+          );
+          console.log(
+            `    Content preview: ${doc.content.substring(0, 100)}...`,
+          );
           console.log();
         }
       }

@@ -2,10 +2,7 @@ import { createTool } from "@mastra/core";
 import { z } from "zod";
 import { vectorStore } from "../rag/vector-store";
 import { generateEmbedding } from "../rag/embeddings";
-import {
-  detectQueryQuality,
-  getAdaptiveThreshold,
-} from "../lib/query-quality";
+import { detectQueryQuality, getAdaptiveThreshold } from "../lib/query-quality";
 
 export const vectorQueryTool = createTool({
   id: "query_knowledge_base",
@@ -20,7 +17,7 @@ export const vectorQueryTool = createTool({
         content: z.string(),
         metadata: z.record(z.any()),
         similarity: z.number(),
-      })
+      }),
     ),
     context: z.string(),
   }),
@@ -29,9 +26,7 @@ export const vectorQueryTool = createTool({
 
     const queryQuality = detectQueryQuality(query);
     const threshold = getAdaptiveThreshold(queryQuality);
-    const matchCount = Number.parseInt(
-      process.env.RAG_MATCH_COUNT || "10"
-    );
+    const matchCount = Number.parseInt(process.env.RAG_MATCH_COUNT || "10");
 
     const embedding = await generateEmbedding(query);
 
@@ -47,7 +42,7 @@ export const vectorQueryTool = createTool({
       context = results
         .map(
           (doc, idx) =>
-            `Document ${idx + 1} (Relevance: ${(doc.score * 100).toFixed(1)}%):\nTitle: ${doc.metadata.title}\n${doc.metadata.content}\n`
+            `Document ${idx + 1} (Relevance: ${(doc.score * 100).toFixed(1)}%):\nTitle: ${doc.metadata.title}\n${doc.metadata.content}\n`,
         )
         .join("\n---\n\n");
     } else if (queryQuality.isConversational) {

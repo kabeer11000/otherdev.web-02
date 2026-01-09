@@ -8,7 +8,14 @@ import {
   useMessage,
 } from "@assistant-ui/react";
 import type { ToolCallMessagePart } from "@assistant-ui/react";
-import { ArrowUp, FileCode2, Paperclip, Search, Zap, CheckCircle } from "lucide-react";
+import {
+  ArrowUp,
+  FileCode2,
+  Paperclip,
+  Search,
+  Zap,
+  CheckCircle,
+} from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -38,12 +45,12 @@ import {
 } from "@/components/ui/prompt-input";
 import { useArtifact, useRuntimeContext } from "@/app/loom/page";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+
+type ReasoningStep = { phase: string; content: string };
 
 function cleanSuggestionMarkers(content: string): string {
-  return content
-    .replace(/\s*SUGGESTION:[\s\S]*$/i, "")
-    .replace(/\n+SUGGESTION:[\s\S]*$/i, "")
-    .trim();
+  return content.replace(/\s*SUGGESTION:[\s\S]*$/i, "").trim();
 }
 
 function getIconForPhase(phase: string): React.ReactNode {
@@ -54,10 +61,30 @@ function getIconForPhase(phase: string): React.ReactNode {
   if (lowerPhase.includes("considering")) {
     return <Zap className="h-4 w-4" />;
   }
-  if (lowerPhase.includes("selecting")) {
-    return <CheckCircle className="h-4 w-4" />;
-  }
   return <CheckCircle className="h-4 w-4" />;
+}
+
+function ReasoningStepsDisplay({ steps }: { steps: ReasoningStep[] }) {
+  if (!steps || steps.length === 0) {
+    return null;
+  }
+
+  return (
+    <ChainOfThought>
+      {steps.map((step, index) => (
+        <ChainOfThoughtStep key={index} defaultOpen={false}>
+          <ChainOfThoughtTrigger leftIcon={getIconForPhase(step.phase)}>
+            {step.phase}
+          </ChainOfThoughtTrigger>
+          <ChainOfThoughtContent className="mt-2">
+            <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
+              <MarkdownRenderer>{step.content}</MarkdownRenderer>
+            </div>
+          </ChainOfThoughtContent>
+        </ChainOfThoughtStep>
+      ))}
+    </ChainOfThought>
+  );
 }
 
 function SuggestionButton({
@@ -108,15 +135,21 @@ function UserMessage() {
 function AssistantMessage() {
   const message = useMessage();
   const { setActiveArtifact } = useArtifact();
-  const hasToolCall = message.content.some((part) => part.type === "tool-call");
+
   const textPart = message.content.find((part) => part.type === "text");
   const toolCallPart = message.content.find(
     (part) => part.type === "tool-call",
   ) as ToolCallMessagePart | undefined;
-  const reasoningSteps = message.metadata?.custom?.reasoningSteps as Array<{ phase: string; content: string }> | undefined;
+  const reasoningSteps = message.metadata?.custom?.reasoningSteps as
+    | ReasoningStep[]
+    | undefined;
+  const hasToolCall = Boolean(toolCallPart);
 
-  if (hasToolCall) {
-    const artifactArgs = toolCallPart?.args as
+  const cleanedText =
+    textPart?.type === "text" ? cleanSuggestionMarkers(textPart.text) : "";
+
+  if (hasToolCall && toolCallPart) {
+    const artifactArgs = toolCallPart.args as
       | { title: string; description: string }
       | undefined;
 
@@ -129,31 +162,16 @@ function AssistantMessage() {
             className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
           />
           <div className="flex-1 space-y-3 min-w-0">
-            {reasoningSteps && reasoningSteps.length > 0 && (
-              <ChainOfThought>
-                {reasoningSteps.map((step, index) => (
-                  <ChainOfThoughtStep key={index} defaultOpen={false}>
-                    <ChainOfThoughtTrigger leftIcon={getIconForPhase(step.phase)}>
-                      {step.phase}
-                    </ChainOfThoughtTrigger>
-                    <ChainOfThoughtContent className="mt-2">
-                      <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
-                        <MarkdownRenderer>{step.content}</MarkdownRenderer>
-                      </div>
-                    </ChainOfThoughtContent>
-                  </ChainOfThoughtStep>
-                ))}
-              </ChainOfThought>
-            )}
-            {textPart && textPart.type === "text" && (
+            <ReasoningStepsDisplay steps={reasoningSteps || []} />
+            {cleanedText && (
               <MessageContent
                 markdown
                 className="rounded-lg bg-transparent p-0"
               >
-                {cleanSuggestionMarkers(textPart.text)}
+                {cleanedText}
               </MessageContent>
             )}
-            {toolCallPart && toolCallPart.toolName === "create_artifact" && (
+            {toolCallPart.toolName === "create_artifact" && (
               <Button
                 variant="outline"
                 onClick={() => setActiveArtifact(toolCallPart)}
@@ -196,31 +214,16 @@ function AssistantMessage() {
           <div className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8" />
         </AssistantIf>
         <div className="flex-1 space-y-2 min-w-0">
-          {reasoningSteps && reasoningSteps.length > 0 && (
-            <ChainOfThought>
-              {reasoningSteps.map((step, index) => (
-                <ChainOfThoughtStep key={index} defaultOpen={false}>
-                  <ChainOfThoughtTrigger leftIcon={getIconForPhase(step.phase)}>
-                    {step.phase}
-                  </ChainOfThoughtTrigger>
-                  <ChainOfThoughtContent className="mt-2">
-                    <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
-                      <MarkdownRenderer>{step.content}</MarkdownRenderer>
-                    </div>
-                  </ChainOfThoughtContent>
-                </ChainOfThoughtStep>
-              ))}
-            </ChainOfThought>
-          )}
-          {textPart && textPart.type === "text" && (
+          <ReasoningStepsDisplay steps={reasoningSteps || []} />
+          {cleanedText && (
             <MessageContent markdown className="rounded-lg bg-transparent p-0">
-              {cleanSuggestionMarkers(textPart.text)}
+              {cleanedText}
             </MessageContent>
           )}
           <AssistantIf condition={({ thread }) => !thread.isRunning}>
-            {textPart && textPart.type === "text" && (
+            {cleanedText && (
               <CopyButton
-                content={cleanSuggestionMarkers(textPart.text)}
+                content={cleanedText}
                 copyMessage="Copied response to clipboard"
               />
             )}
@@ -231,6 +234,18 @@ function AssistantMessage() {
   );
 }
 
+function setNativeInputValue(input: HTMLTextAreaElement, value: string): void {
+  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+    HTMLTextAreaElement.prototype,
+    "value",
+  )?.set;
+
+  if (nativeInputValueSetter) {
+    nativeInputValueSetter.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+}
+
 export function OtherDevLoomThread() {
   const { suggestion, setSuggestion } = useRuntimeContext();
   const api = useAssistantApi();
@@ -239,66 +254,69 @@ export function OtherDevLoomThread() {
 
   const handleSubmit = () => {
     const value = inputRef.current?.value?.trim();
-    if (value) {
-      api.thread().append({ role: "user", content: [{ type: "text", text: value }] });
-      if (inputRef.current) {
-        inputRef.current.value = "";
-        setInputValue("");
-        inputRef.current.dispatchEvent(new Event("input", { bubbles: true }));
-      }
+    if (!value) return;
+
+    api
+      .thread()
+      .append({ role: "user", content: [{ type: "text", text: value }] });
+
+    if (inputRef.current) {
+      inputRef.current.value = "";
+      setInputValue("");
+      inputRef.current.dispatchEvent(new Event("input", { bubbles: true }));
     }
   };
 
+  const applySuggestion = () => {
+    if (!inputRef.current || !suggestion) return;
+
+    setNativeInputValue(inputRef.current, suggestion);
+    setSuggestion("");
+    inputRef.current.focus();
+  };
+
   useEffect(() => {
+    const inputElement = inputRef.current;
+    if (!inputElement) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
+      const shouldApplySuggestion =
         (e.key === "Tab" || e.key === "ArrowRight") &&
         suggestion &&
-        inputRef.current &&
-        !inputRef.current.value
-      ) {
+        !inputElement.value;
+
+      if (shouldApplySuggestion) {
         e.preventDefault();
-
-        const input = inputRef.current;
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-          HTMLTextAreaElement.prototype,
-          "value",
-        )?.set;
-
-        if (nativeInputValueSetter) {
-          nativeInputValueSetter.call(input, suggestion);
-          const inputEvent = new Event("input", { bubbles: true });
-          input.dispatchEvent(inputEvent);
-        }
-
+        setNativeInputValue(inputElement, suggestion);
         setSuggestion("");
       }
     };
 
     const handleInput = () => {
-      const value = inputRef.current?.value || "";
+      const value = inputElement.value || "";
       setInputValue(value);
       if (value && suggestion) {
         setSuggestion("");
       }
     };
 
-    const inputElement = inputRef.current;
-    if (inputElement) {
-      inputElement.addEventListener("keydown", handleKeyDown);
-      inputElement.addEventListener("input", handleInput);
-      return () => {
-        inputElement.removeEventListener("keydown", handleKeyDown);
-        inputElement.removeEventListener("input", handleInput);
-      };
-    }
+    inputElement.addEventListener("keydown", handleKeyDown);
+    inputElement.addEventListener("input", handleInput);
+
+    return () => {
+      inputElement.removeEventListener("keydown", handleKeyDown);
+      inputElement.removeEventListener("input", handleInput);
+    };
   }, [suggestion, setSuggestion]);
 
   const placeholder = suggestion || "Type your message...";
 
   return (
     <ChatContainerRoot className="h-full flex-col bg-background">
-      <ChatContainerContent className="flex-1 scroll-smooth" suppressHydrationWarning>
+      <ChatContainerContent
+        className="flex-1 scroll-smooth"
+        suppressHydrationWarning
+      >
         <ThreadPrimitive.Empty>
           <div className="flex h-full items-center justify-center p-4 sm:p-6 md:p-8">
             <div className="w-full max-w-2xl space-y-6 sm:space-y-8">
@@ -389,25 +407,7 @@ export function OtherDevLoomThread() {
           {suggestion && !inputValue && (
             <button
               type="button"
-              onClick={() => {
-                if (inputRef.current) {
-                  const input = inputRef.current;
-                  const nativeInputValueSetter =
-                    Object.getOwnPropertyDescriptor(
-                      HTMLTextAreaElement.prototype,
-                      "value",
-                    )?.set;
-
-                  if (nativeInputValueSetter) {
-                    nativeInputValueSetter.call(input, suggestion);
-                    const inputEvent = new Event("input", { bubbles: true });
-                    input.dispatchEvent(inputEvent);
-                  }
-
-                  setSuggestion("");
-                  input.focus();
-                }
-              }}
+              onClick={applySuggestion}
               className="absolute left-3 top-2.5 font-serif text-sm text-muted-foreground hover:opacity-80 transition-opacity sm:left-4 sm:top-3 sm:text-base md:hidden"
             >
               {suggestion}
@@ -428,11 +428,13 @@ export function OtherDevLoomThread() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={!inputValue.trim()}
-                className={`flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] sm:h-8 sm:w-8 ${
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] sm:h-8 sm:w-8",
                   inputValue.trim()
                     ? "bg-foreground text-background hover:opacity-90"
-                    : "bg-muted text-muted-foreground hover:opacity-70 disabled:opacity-50"
-                }`}>
+                    : "bg-muted text-muted-foreground hover:opacity-70 disabled:opacity-50",
+                )}
+              >
                 <ArrowUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
             </PromptInputAction>

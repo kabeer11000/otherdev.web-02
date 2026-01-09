@@ -62,15 +62,17 @@ export function Navigation({ variant = "default" }: NavigationProps) {
   return (
     <nav className="fixed top-[15px] left-0 right-0 z-[60] px-3 pointer-events-none">
       {/* Mobile Navigation (or AI variant) */}
-      <div className={cn("flex items-center gap-[6px] w-full pointer-events-auto relative z-50", isAIVariant ? "" : "sm:hidden")}>
+      <div
+        className={cn(
+          "flex items-center gap-[6px] w-full pointer-events-auto relative z-50",
+          isAIVariant ? "" : "sm:hidden",
+        )}
+      >
         {/* Hamburger/X Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
           data-slot="nav-item"
-          className={cn(
-            navItemVariants({ size: "icon" }),
-            "text-foreground",
-          )}
+          className={cn(navItemVariants({ size: "icon" }), "text-foreground")}
           aria-label="Toggle menu"
         >
           <AnimatePresence mode="wait">
@@ -241,29 +243,29 @@ export function Navigation({ variant = "default" }: NavigationProps) {
 
       {/* Tablet/Desktop Navigation */}
       {!isAIVariant && (
-      <div className="hidden sm:flex items-center gap-1.5 pointer-events-auto">
-        <Link
-          href="/"
-          data-slot="nav-item"
-          className={cn(
-            navItemVariants({ size: "brand", active: pathname === "/" }),
-          )}
-        >
-          Other dev
-        </Link>
-        <Link
-          href="/work"
-          data-slot="nav-item"
-          className={cn(
-            navItemVariants({
-              size: "default",
-              active: pathname?.startsWith("/work"),
-            }),
-          )}
-        >
-          Work
-        </Link>
-        {/* <Link
+        <div className="hidden sm:flex items-center gap-1.5 pointer-events-auto">
+          <Link
+            href="/"
+            data-slot="nav-item"
+            className={cn(
+              navItemVariants({ size: "brand", active: pathname === "/" }),
+            )}
+          >
+            Other dev
+          </Link>
+          <Link
+            href="/work"
+            data-slot="nav-item"
+            className={cn(
+              navItemVariants({
+                size: "default",
+                active: pathname?.startsWith("/work"),
+              }),
+            )}
+          >
+            Work
+          </Link>
+          {/* <Link
           href="/audio"
           data-slot="nav-item"
           className={cn(
@@ -275,52 +277,57 @@ export function Navigation({ variant = "default" }: NavigationProps) {
         >
           audio
         </Link> */}
-        <Link
-          href="/about"
-          data-slot="nav-item"
-          className={cn(
-            navItemVariants({
-              size: "default",
-              active: pathname?.startsWith("/about"),
-            }),
-          )}
-        >
-          About
-        </Link>
-        <Link
-          href="/loom"
-          data-slot="nav-item"
-          className={cn(
-            navItemVariants({
-              size: "default",
-              active: pathname?.startsWith("/loom"),
-            }),
-          )}
-        >
-          Ai
-        </Link>
-        <button
-          onClick={handleContactClick}
-          data-slot="nav-item"
-          className={cn(navItemVariants({ size: "default", active: false }))}
-        >
-          Contact
-        </button>
-        <Link
-          href="https://wa.me/923156893331?text=Hi!%20I%20found%20you%20through%20otherdev.com%20and%20would%20love%20to%20discuss%20a%20project."
-          target="_blank"
-          rel="noopener noreferrer"
-          data-slot="nav-item"
-          className={cn(navItemVariants({ size: "default", active: false }))}
-        >
-          Whatsapp
-        </Link>
-      </div>
+          <Link
+            href="/about"
+            data-slot="nav-item"
+            className={cn(
+              navItemVariants({
+                size: "default",
+                active: pathname?.startsWith("/about"),
+              }),
+            )}
+          >
+            About
+          </Link>
+          <Link
+            href="/loom"
+            data-slot="nav-item"
+            className={cn(
+              navItemVariants({
+                size: "default",
+                active: pathname?.startsWith("/loom"),
+              }),
+            )}
+          >
+            Ai
+          </Link>
+          <button
+            onClick={handleContactClick}
+            data-slot="nav-item"
+            className={cn(navItemVariants({ size: "default", active: false }))}
+          >
+            Contact
+          </button>
+          <Link
+            href="https://wa.me/923156893331?text=Hi!%20I%20found%20you%20through%20otherdev.com%20and%20would%20love%20to%20discuss%20a%20project."
+            target="_blank"
+            rel="noopener noreferrer"
+            data-slot="nav-item"
+            className={cn(navItemVariants({ size: "default", active: false }))}
+          >
+            Whatsapp
+          </Link>
+        </div>
       )}
 
       {/* Backdrop */}
       {isOpen && (
-        <div className={cn("fixed inset-0 z-30 -backdrop-blur-lg pointer-events-none", isAIVariant ? "" : "sm:hidden")} />
+        <div
+          className={cn(
+            "fixed inset-0 z-30 -backdrop-blur-lg pointer-events-none",
+            isAIVariant ? "" : "sm:hidden",
+          )}
+        />
       )}
 
       {/* Contact Dialog */}

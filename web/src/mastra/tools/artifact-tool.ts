@@ -12,14 +12,14 @@ export const createArtifactSchema = z.object({
     .min(1, "Code is required")
     .max(50000, "Code must be 50KB or less")
     .describe(
-      "Complete HTML code including CSS in <style> tags and JavaScript in <script> tags. Must be self-contained and work in a sandboxed iframe."
+      "Complete HTML code including CSS in <style> tags and JavaScript in <script> tags. Must be self-contained and work in a sandboxed iframe.",
     ),
   description: z
     .string()
     .min(1, "Description is required")
     .max(500, "Description must be 500 characters or less")
     .describe(
-      "A brief explanation of what this artifact does and how to use it"
+      "A brief explanation of what this artifact does and how to use it",
     ),
 });
 

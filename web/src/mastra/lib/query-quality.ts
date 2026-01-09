@@ -51,7 +51,7 @@ export function detectQueryQuality(query: string): QueryQuality {
 
 export function getAdaptiveThreshold(queryQuality: QueryQuality): number {
   const baseThreshold = Number.parseFloat(
-    process.env.RAG_SIMILARITY_THRESHOLD || "0.1"
+    process.env.RAG_SIMILARITY_THRESHOLD || "0.1",
   );
 
   if (queryQuality.isConversational) return baseThreshold * 0.5;

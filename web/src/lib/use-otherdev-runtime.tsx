@@ -13,6 +13,10 @@ import { useLocalStorageMessages } from "@/hooks/use-local-storage-messages";
 
 const LOOM_STORAGE_KEY = "otherdev-loom-messages";
 
+type ReasoningStep = { phase: string; content: string };
+type ContentPart = TextMessagePart | ToolCallMessagePart;
+type MessageStatus = ThreadAssistantMessage["status"];
+
 function serializeLoomMessages(messages: ThreadMessage[]): string {
   return JSON.stringify(
     messages.map((msg) => ({
@@ -28,6 +32,40 @@ function deserializeLoomMessages(data: string): ThreadMessage[] {
     ...msg,
     createdAt: new Date(msg.createdAt),
   }));
+}
+
+function buildContentParts(
+  text: string,
+  toolCalls: ToolCallMessagePart[],
+): ContentPart[] {
+  const parts: ContentPart[] = [];
+  if (text) {
+    parts.push({ type: "text" as const, text });
+  }
+  parts.push(...toolCalls);
+  return parts;
+}
+
+function createAssistantMessage(
+  id: string,
+  content: ContentPart[],
+  status: MessageStatus,
+  customMetadata: Record<string, unknown> = {},
+): ThreadAssistantMessage {
+  return {
+    id,
+    role: "assistant",
+    content,
+    createdAt: new Date(),
+    status,
+    metadata: {
+      unstable_state: null,
+      unstable_annotations: [],
+      unstable_data: [],
+      steps: [],
+      custom: customMetadata,
+    },
+  };
 }
 
 export function useOtherDevRuntime() {
@@ -89,111 +127,87 @@ export function useOtherDevRuntime() {
 
         let accumulatedContent = "";
         let accumulatedReasoning = "";
-        let currentSuggestion = "";
         const toolCalls: ToolCallMessagePart[] = [];
-        const reasoningSteps: Array<{ phase: string; content: string }> = [];
+        const reasoningSteps: ReasoningStep[] = [];
+
+        const updateOrAddMessage = (
+          updates: Partial<
+            Pick<ThreadAssistantMessage, "content" | "metadata">
+          >,
+        ) => {
+          const contentParts = buildContentParts(accumulatedContent, toolCalls);
+
+          if (!messageAdded) {
+            const customMetadata = {
+              reasoning: accumulatedReasoning,
+              ...updates.metadata?.custom,
+            };
+            const assistantMessage = createAssistantMessage(
+              assistantMessageId,
+              updates.content || contentParts,
+              { type: "running" },
+              customMetadata,
+            );
+            setMessages((prev) => [...prev, assistantMessage]);
+            messageAdded = true;
+          } else {
+            setMessages((prev) =>
+              prev.map((msg) => {
+                if (msg.id !== assistantMessageId || msg.role !== "assistant")
+                  return msg;
+                const assistantMsg = msg as ThreadAssistantMessage;
+                return {
+                  ...assistantMsg,
+                  content: updates.content || contentParts,
+                  metadata: updates.metadata
+                    ? {
+                        ...assistantMsg.metadata,
+                        custom: {
+                          ...assistantMsg.metadata?.custom,
+                          ...updates.metadata.custom,
+                        },
+                      }
+                    : assistantMsg.metadata,
+                };
+              }),
+            );
+          }
+        };
 
         while (true) {
           const { done, value } = await reader.read();
-
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
           const lines = chunk.split("\n");
 
           for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6);
+            if (!line.startsWith("data: ")) continue;
 
-              if (data === "[DONE]") {
-                break;
-              }
+            const data = line.slice(6);
+            if (data === "[DONE]") break;
 
-              try {
-                const parsed = JSON.parse(data);
+            try {
+              const parsed = JSON.parse(data);
 
-                if (parsed.type === "reasoning" && parsed.content) {
-                  accumulatedReasoning += parsed.content;
-
-                  const contentParts: (TextMessagePart | ToolCallMessagePart)[] = [];
-                  if (accumulatedContent) {
-                    contentParts.push({ type: "text" as const, text: accumulatedContent });
+              switch (parsed.type) {
+                case "reasoning":
+                  if (parsed.content) {
+                    accumulatedReasoning += parsed.content;
+                    updateOrAddMessage({
+                      metadata: { custom: { reasoning: accumulatedReasoning } },
+                    });
                   }
-                  contentParts.push(...toolCalls);
+                  break;
 
-                  if (!messageAdded) {
-                    const assistantMessage: ThreadAssistantMessage = {
-                      id: assistantMessageId,
-                      role: "assistant",
-                      content: contentParts,
-                      createdAt: new Date(),
-                      status: { type: "running" },
-                      metadata: {
-                        unstable_state: null,
-                        unstable_annotations: [],
-                        unstable_data: [],
-                        steps: [],
-                        custom: { reasoning: accumulatedReasoning },
-                      },
-                    };
-                    setMessages((prev) => [...prev, assistantMessage]);
-                    messageAdded = true;
-                  } else {
-                    setMessages((prev) =>
-                      prev.map((msg) =>
-                        msg.id === assistantMessageId && msg.role === "assistant"
-                          ? {
-                              ...(msg as ThreadAssistantMessage),
-                              metadata: {
-                                ...(msg as ThreadAssistantMessage).metadata,
-                                custom: { reasoning: accumulatedReasoning },
-                              },
-                            }
-                          : msg,
-                      ),
-                    );
+                case "content":
+                  if (parsed.content) {
+                    accumulatedContent += parsed.content;
+                    updateOrAddMessage({});
                   }
-                }
+                  break;
 
-                if (parsed.type === "content" && parsed.content) {
-                  accumulatedContent += parsed.content;
-
-                  const contentParts: (TextMessagePart | ToolCallMessagePart)[] = [];
-                  if (accumulatedContent) {
-                    contentParts.push({ type: "text" as const, text: accumulatedContent });
-                  }
-                  contentParts.push(...toolCalls);
-
-                  if (!messageAdded) {
-                    const assistantMessage: ThreadAssistantMessage = {
-                      id: assistantMessageId,
-                      role: "assistant",
-                      content: contentParts,
-                      createdAt: new Date(),
-                      status: { type: "running" },
-                      metadata: {
-                        unstable_state: null,
-                        unstable_annotations: [],
-                        unstable_data: [],
-                        steps: [],
-                        custom: { reasoning: accumulatedReasoning },
-                      },
-                    };
-                    setMessages((prev) => [...prev, assistantMessage]);
-                    messageAdded = true;
-                  } else {
-                    setMessages((prev) =>
-                      prev.map((msg) =>
-                        msg.id === assistantMessageId && msg.role === "assistant"
-                          ? {
-                              ...(msg as ThreadAssistantMessage),
-                              content: contentParts,
-                            }
-                          : msg,
-                      ),
-                    );
-                  }
-                } else if (parsed.type === "tool-call") {
+                case "tool-call": {
                   const toolCall: ToolCallMessagePart = {
                     type: "tool-call",
                     toolCallId: parsed.toolCallId,
@@ -202,92 +216,45 @@ export function useOtherDevRuntime() {
                     argsText: parsed.args,
                   };
                   toolCalls.push(toolCall);
-
-                  const contentParts: (TextMessagePart | ToolCallMessagePart)[] = [];
-                  if (accumulatedContent) {
-                    contentParts.push({ type: "text" as const, text: accumulatedContent });
-                  }
-                  contentParts.push(...toolCalls);
-
-                  if (!messageAdded) {
-                    const assistantMessage: ThreadAssistantMessage = {
-                      id: assistantMessageId,
-                      role: "assistant",
-                      content: contentParts,
-                      createdAt: new Date(),
-                      status: { type: "running" },
-                      metadata: {
-                        unstable_state: null,
-                        unstable_annotations: [],
-                        unstable_data: [],
-                        steps: [],
-                        custom: { reasoning: accumulatedReasoning },
-                      },
-                    };
-                    setMessages((prev) => [...prev, assistantMessage]);
-                    messageAdded = true;
-                  } else {
-                    setMessages((prev) =>
-                      prev.map((msg) =>
-                        msg.id === assistantMessageId && msg.role === "assistant"
-                          ? {
-                              ...(msg as ThreadAssistantMessage),
-                              content: contentParts,
-                            }
-                          : msg,
-                      ),
-                    );
-                  }
-                } else if (parsed.type === "reasoning-step" && parsed.args) {
-                  try {
-                    const stepArgs = JSON.parse(parsed.args);
-                    reasoningSteps.push({
-                      phase: stepArgs.phase,
-                      content: stepArgs.content,
-                    });
-
-                    setMessages((prev) =>
-                      prev.map((msg) =>
-                        msg.id === assistantMessageId && msg.role === "assistant"
-                          ? {
-                              ...(msg as ThreadAssistantMessage),
-                              metadata: {
-                                ...(msg as ThreadAssistantMessage).metadata,
-                                custom: {
-                                  ...(msg as ThreadAssistantMessage).metadata?.custom,
-                                  reasoningSteps,
-                                },
-                              },
-                            }
-                          : msg,
-                      ),
-                    );
-                  } catch (e) {
-                    console.error("Error parsing reasoning step:", e);
-                  }
-                } else if (parsed.type === "suggestion" && parsed.content) {
-                  currentSuggestion = parsed.content;
-                  setSuggestion(currentSuggestion);
-                } else if (parsed.type === "content-final" && parsed.content) {
-                  const contentParts: (TextMessagePart | ToolCallMessagePart)[] = [
-                    { type: "text" as const, text: parsed.content }
-                  ];
-                  contentParts.push(...toolCalls);
-
-                  setMessages((prev) =>
-                    prev.map((msg) =>
-                      msg.id === assistantMessageId && msg.role === "assistant"
-                        ? {
-                            ...(msg as ThreadAssistantMessage),
-                            content: contentParts,
-                          }
-                        : msg,
-                    ),
-                  );
+                  updateOrAddMessage({});
+                  break;
                 }
-              } catch (parseError) {
-                console.error("Error parsing SSE data:", parseError);
+
+                case "reasoning-step":
+                  if (parsed.args) {
+                    try {
+                      const stepArgs = JSON.parse(parsed.args);
+                      reasoningSteps.push({
+                        phase: stepArgs.phase,
+                        content: stepArgs.content,
+                      });
+                      updateOrAddMessage({
+                        metadata: { custom: { reasoningSteps } },
+                      });
+                    } catch (e) {
+                      console.error("Error parsing reasoning step:", e);
+                    }
+                  }
+                  break;
+
+                case "suggestion":
+                  if (parsed.content) {
+                    setSuggestion(parsed.content);
+                  }
+                  break;
+
+                case "content-final":
+                  if (parsed.content) {
+                    const contentParts = buildContentParts(
+                      parsed.content,
+                      toolCalls,
+                    );
+                    updateOrAddMessage({ content: contentParts });
+                  }
+                  break;
               }
+            } catch (parseError) {
+              console.error("Error parsing SSE data:", parseError);
             }
           }
         }
@@ -303,7 +270,9 @@ export function useOtherDevRuntime() {
           ),
         );
       } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") {
+        const isAborted = error instanceof Error && error.name === "AbortError";
+
+        if (isAborted) {
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMessageId
@@ -318,16 +287,25 @@ export function useOtherDevRuntime() {
         }
 
         console.error("Chat error:", error);
+        const errorContent = [
+          {
+            type: "text" as const,
+            text: "Failed to get response. Please try again.",
+          },
+        ];
+        const errorStatus = {
+          type: "incomplete" as const,
+          reason: "error" as const,
+          error: String(error),
+        };
 
         if (!messageAdded) {
           const errorMessage: ThreadMessage = {
             id: assistantMessageId,
             role: "assistant",
-            content: [
-              { type: "text", text: "Failed to get response. Please try again." },
-            ],
+            content: errorContent,
             createdAt: new Date(),
-            status: { type: "incomplete", reason: "error", error: String(error) },
+            status: errorStatus,
             metadata: {
               unstable_state: null,
               unstable_annotations: [],
@@ -341,13 +319,7 @@ export function useOtherDevRuntime() {
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMessageId
-                ? {
-                    ...msg,
-                    content: [
-                      { type: "text", text: "Failed to get response. Please try again." },
-                    ],
-                    status: { type: "incomplete", reason: "error", error: String(error) },
-                  }
+                ? { ...msg, content: errorContent, status: errorStatus }
                 : msg,
             ),
           );

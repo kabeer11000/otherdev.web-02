@@ -2,8 +2,14 @@ import { z } from "zod";
 
 export const reasoningStepSchema = z.object({
   phase: z
-    .enum(["Analyzing the request", "Considering options", "Selecting the approach"])
-    .describe("The phase of reasoning: Analyzing the request (understanding), Considering options (exploring), or Selecting the approach (deciding)"),
+    .enum([
+      "Analyzing the request",
+      "Considering options",
+      "Selecting the approach",
+    ])
+    .describe(
+      "The phase of reasoning: Analyzing the request (understanding), Considering options (exploring), or Selecting the approach (deciding)",
+    ),
   content: z
     .string()
     .min(1, "Content is required")
@@ -24,12 +30,17 @@ export const reasoningStepTool = {
       properties: {
         phase: {
           type: "string",
-          enum: ["Analyzing the request", "Considering options", "Selecting the approach"],
+          enum: [
+            "Analyzing the request",
+            "Considering options",
+            "Selecting the approach",
+          ],
           description: "The phase of reasoning",
         },
         content: {
           type: "string",
-          description: "Detailed content for this reasoning phase (max 2000 chars)",
+          description:
+            "Detailed content for this reasoning phase (max 2000 chars)",
         },
       },
       required: ["phase", "content"],

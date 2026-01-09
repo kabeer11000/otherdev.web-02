@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Collapsible,
   CollapsibleTrigger,
-  CollapsibleContent
+  CollapsibleContent,
 } from "@/components/ui/collapsible";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
 import { useAutosizeTextArea } from "@/hooks/use-autosize-textarea";
@@ -115,7 +115,7 @@ export function ChatWidget() {
         const textarea = textareaRef.current;
         const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
           HTMLTextAreaElement.prototype,
-          "value"
+          "value",
         )?.set;
 
         if (nativeInputValueSetter) {
@@ -618,7 +618,9 @@ export function ChatWidget() {
                                 {!isGenerating && (
                                   <div className="flex justify-start mt-2">
                                     <CopyButton
-                                      content={cleanSuggestionMarkers(message.content)}
+                                      content={cleanSuggestionMarkers(
+                                        message.content,
+                                      )}
                                       copyMessage="Copied response to clipboard"
                                     />
                                   </div>
@@ -699,14 +701,17 @@ export function ChatWidget() {
                         onClick={() => {
                           if (textareaRef.current) {
                             const textarea = textareaRef.current;
-                            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                              HTMLTextAreaElement.prototype,
-                              "value"
-                            )?.set;
+                            const nativeInputValueSetter =
+                              Object.getOwnPropertyDescriptor(
+                                HTMLTextAreaElement.prototype,
+                                "value",
+                              )?.set;
 
                             if (nativeInputValueSetter) {
                               nativeInputValueSetter.call(textarea, suggestion);
-                              const inputEvent = new Event("input", { bubbles: true });
+                              const inputEvent = new Event("input", {
+                                bubbles: true,
+                              });
                               textarea.dispatchEvent(inputEvent);
                             }
 

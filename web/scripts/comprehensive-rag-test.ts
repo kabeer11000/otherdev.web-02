@@ -55,7 +55,9 @@ async function runComprehensiveTest() {
     const expectedDimensions = 768;
     if (testEmbedding.length !== expectedDimensions) {
       console.error("\nERROR: Model dimension mismatch!");
-      console.error(`Expected ${expectedDimensions}D but got ${testEmbedding.length}D`);
+      console.error(
+        `Expected ${expectedDimensions}D but got ${testEmbedding.length}D`,
+      );
       console.error("Check embeddings.ts MODEL configuration\n");
       return false;
     }
@@ -63,8 +65,12 @@ async function runComprehensiveTest() {
     if (storedDimensions !== testEmbedding.length) {
       console.error("\nERROR: DIMENSION MISMATCH DETECTED!");
       console.error(`Database has ${storedDimensions}D embeddings`);
-      console.error(`Current model generates ${testEmbedding.length}D embeddings`);
-      console.error("\nREQUIRED ACTION: Run 'bun ingest' to regenerate all embeddings\n");
+      console.error(
+        `Current model generates ${testEmbedding.length}D embeddings`,
+      );
+      console.error(
+        "\nREQUIRED ACTION: Run 'bun ingest' to regenerate all embeddings\n",
+      );
       return false;
     } else {
       console.log(`Dimension check passed! (${testEmbedding.length}D)\n`);
@@ -77,7 +83,10 @@ async function runComprehensiveTest() {
   const criticalQueries = [
     {
       query: "Who founded OtherDev?",
-      expectedDocs: ["FAQ - Who Founded Other Dev", "Other Dev - Company Facts"],
+      expectedDocs: [
+        "FAQ - Who Founded Other Dev",
+        "Other Dev - Company Facts",
+      ],
       minSimilarity: 0.3,
     },
     {
@@ -87,7 +96,10 @@ async function runComprehensiveTest() {
     },
     {
       query: "What is Ossaid Qadri role?",
-      expectedDocs: ["Ossaid Qadri - Founder Profile", "FAQ - About Ossaid Qadri"],
+      expectedDocs: [
+        "Ossaid Qadri - Founder Profile",
+        "FAQ - About Ossaid Qadri",
+      ],
       minSimilarity: 0.25,
     },
     {
@@ -102,7 +114,10 @@ async function runComprehensiveTest() {
     },
     {
       query: "What tech stack does Other Dev use?",
-      expectedDocs: ["Web Development Service - Tech Stack", "Other Dev - Technical Capabilities"],
+      expectedDocs: [
+        "Web Development Service - Tech Stack",
+        "Other Dev - Technical Capabilities",
+      ],
       minSimilarity: 0.2,
     },
   ];
@@ -115,19 +130,33 @@ async function runComprehensiveTest() {
 
     try {
       const queryEmbedding = await generateEmbedding(test.query);
-      const threshold = Number.parseFloat(process.env.RAG_SIMILARITY_THRESHOLD || "0.05");
+      const threshold = Number.parseFloat(
+        process.env.RAG_SIMILARITY_THRESHOLD || "0.05",
+      );
       const matchCount = Number.parseInt(process.env.RAG_MATCH_COUNT || "10");
 
-      const results = await searchSimilarDocuments(queryEmbedding, threshold, matchCount);
+      const results = await searchSimilarDocuments(
+        queryEmbedding,
+        threshold,
+        matchCount,
+      );
 
       if (results.length === 0) {
         console.log("  FAILED: No documents found");
         console.log(`  Threshold used: ${threshold}`);
 
-        const lowerResults = await searchSimilarDocuments(queryEmbedding, 0.01, matchCount);
+        const lowerResults = await searchSimilarDocuments(
+          queryEmbedding,
+          0.01,
+          matchCount,
+        );
         if (lowerResults.length > 0) {
-          console.log(`  With lower threshold (0.01): Found ${lowerResults.length} docs`);
-          console.log(`  Top match: ${lowerResults[0].metadata.title} (${(lowerResults[0].similarity * 100).toFixed(1)}%)`);
+          console.log(
+            `  With lower threshold (0.01): Found ${lowerResults.length} docs`,
+          );
+          console.log(
+            `  Top match: ${lowerResults[0].metadata.title} (${(lowerResults[0].similarity * 100).toFixed(1)}%)`,
+          );
         }
         console.log("");
         failedTests++;
@@ -135,22 +164,28 @@ async function runComprehensiveTest() {
       }
 
       const topResult = results[0];
-      const foundExpected = results.some(r =>
-        test.expectedDocs.some(expected =>
-          r.metadata.title.toLowerCase().includes(expected.toLowerCase())
-        )
+      const foundExpected = results.some((r) =>
+        test.expectedDocs.some((expected) =>
+          r.metadata.title.toLowerCase().includes(expected.toLowerCase()),
+        ),
       );
 
       if (topResult.similarity >= test.minSimilarity && foundExpected) {
         console.log(`  PASSED: Found ${results.length} relevant documents`);
-        console.log(`  Top match: ${topResult.metadata.title} (${(topResult.similarity * 100).toFixed(1)}%)`);
+        console.log(
+          `  Top match: ${topResult.metadata.title} (${(topResult.similarity * 100).toFixed(1)}%)`,
+        );
         passedTests++;
       } else {
         console.log(`  WARNING: Results may not be optimal`);
-        console.log(`  Top match: ${topResult.metadata.title} (${(topResult.similarity * 100).toFixed(1)}%)`);
+        console.log(
+          `  Top match: ${topResult.metadata.title} (${(topResult.similarity * 100).toFixed(1)}%)`,
+        );
         console.log(`  Expected one of: ${test.expectedDocs.join(", ")}`);
         if (topResult.similarity < test.minSimilarity) {
-          console.log(`  Similarity too low: ${(topResult.similarity * 100).toFixed(1)}% < ${(test.minSimilarity * 100).toFixed(1)}%`);
+          console.log(
+            `  Similarity too low: ${(topResult.similarity * 100).toFixed(1)}% < ${(test.minSimilarity * 100).toFixed(1)}%`,
+          );
         }
         failedTests++;
       }
@@ -168,15 +203,25 @@ async function runComprehensiveTest() {
   console.log(`Total Tests: ${criticalQueries.length}`);
   console.log(`Passed: ${passedTests}`);
   console.log(`Failed: ${failedTests}`);
-  console.log(`Success Rate: ${((passedTests / criticalQueries.length) * 100).toFixed(1)}%`);
+  console.log(
+    `Success Rate: ${((passedTests / criticalQueries.length) * 100).toFixed(1)}%`,
+  );
   console.log("========================================\n");
 
   if (failedTests > 0) {
     console.log("RECOMMENDED ACTIONS:");
-    console.log("1. If dimension mismatch: Run 'bun ingest' to regenerate embeddings");
-    console.log("2. If low similarity: Consider lowering RAG_SIMILARITY_THRESHOLD");
-    console.log("3. If wrong documents: Review knowledge base content relevance");
-    console.log("4. Test the live chat endpoint with: curl -X POST http://localhost:3000/api/chat/stream");
+    console.log(
+      "1. If dimension mismatch: Run 'bun ingest' to regenerate embeddings",
+    );
+    console.log(
+      "2. If low similarity: Consider lowering RAG_SIMILARITY_THRESHOLD",
+    );
+    console.log(
+      "3. If wrong documents: Review knowledge base content relevance",
+    );
+    console.log(
+      "4. Test the live chat endpoint with: curl -X POST http://localhost:3000/api/chat/stream",
+    );
     return false;
   }
 
@@ -185,10 +230,10 @@ async function runComprehensiveTest() {
 }
 
 runComprehensiveTest()
-  .then(success => {
+  .then((success) => {
     process.exit(success ? 0 : 1);
   })
-  .catch(error => {
+  .catch((error) => {
     console.error("Fatal error:", error);
     process.exit(1);
   });

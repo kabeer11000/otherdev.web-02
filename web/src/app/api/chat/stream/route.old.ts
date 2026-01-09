@@ -107,12 +107,15 @@ function detectQueryQuality(query: string): {
     "hey",
   ];
 
-  const isConversational = conversationalPhrases.includes(normalized) ||
+  const isConversational =
+    conversationalPhrases.includes(normalized) ||
     tokens.every((t) => conversationalPhrases.includes(t));
 
-  const hasRepeatedWords = tokens.length > 0 && uniqueTokens.size < tokens.length * 0.6;
+  const hasRepeatedWords =
+    tokens.length > 0 && uniqueTokens.size < tokens.length * 0.6;
 
-  const isLowQuality = tokens.length < 3 || hasRepeatedWords || isConversational;
+  const isLowQuality =
+    tokens.length < 3 || hasRepeatedWords || isConversational;
 
   return {
     isLowQuality,
@@ -122,7 +125,9 @@ function detectQueryQuality(query: string): {
   };
 }
 
-function getAdaptiveThreshold(queryQuality: ReturnType<typeof detectQueryQuality>): number {
+function getAdaptiveThreshold(
+  queryQuality: ReturnType<typeof detectQueryQuality>,
+): number {
   const baseThreshold = Number.parseFloat(
     process.env.RAG_SIMILARITY_THRESHOLD || "0.1",
   );
@@ -223,11 +228,14 @@ export async function POST(request: Request) {
         )
         .join("\n---\n\n");
     } else if (queryQuality.isConversational) {
-      context = "User sent a conversational message. Respond naturally and helpfully, offering to answer questions about Other Dev.";
+      context =
+        "User sent a conversational message. Respond naturally and helpfully, offering to answer questions about Other Dev.";
     } else if (queryQuality.isLowQuality || queryQuality.hasRepeatedWords) {
-      context = "User query is unclear. Respond naturally, acknowledge their message, and offer to help with information about Other Dev's work, services, or projects.";
+      context =
+        "User query is unclear. Respond naturally, acknowledge their message, and offer to help with information about Other Dev's work, services, or projects.";
     } else {
-      context = "Provide helpful general information about Other Dev based on common topics: projects (fashion, e-commerce, real estate, legal tech, SaaS), web development services, design capabilities, and technologies used.";
+      context =
+        "Provide helpful general information about Other Dev based on common topics: projects (fashion, e-commerce, real estate, legal tech, SaaS), web development services, design capabilities, and technologies used.";
     }
 
     const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{context}", context);
@@ -271,7 +279,10 @@ export async function POST(request: Request) {
             const delta = chunk.choices[0]?.delta;
 
             if (delta?.reasoning) {
-              const data = JSON.stringify({ type: "reasoning", content: delta.reasoning });
+              const data = JSON.stringify({
+                type: "reasoning",
+                content: delta.reasoning,
+              });
               controller.enqueue(encoder.encode(`data: ${data}\n\n`));
             }
 
@@ -283,7 +294,10 @@ export async function POST(request: Request) {
                 const parts = fullContent.split("SUGGESTION:");
                 contentBeforeSuggestion = parts[0].trim();
               } else if (!suggestionDetected) {
-                const data = JSON.stringify({ type: "content", content: delta.content });
+                const data = JSON.stringify({
+                  type: "content",
+                  content: delta.content,
+                });
                 controller.enqueue(encoder.encode(`data: ${data}\n\n`));
               }
             }
@@ -319,7 +333,10 @@ export async function POST(request: Request) {
           const suggestionMatch = fullContent.match(/SUGGESTION:\s*(.+?)$/m);
           if (suggestionMatch) {
             const suggestion = suggestionMatch[1].trim();
-            const data = JSON.stringify({ type: "suggestion", content: suggestion });
+            const data = JSON.stringify({
+              type: "suggestion",
+              content: suggestion,
+            });
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
           }
 

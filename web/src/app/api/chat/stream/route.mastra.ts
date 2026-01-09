@@ -33,7 +33,7 @@ function sanitizeInput(text: string): string {
   }
 
   const maxLength = Number.parseInt(
-    process.env.RAG_MAX_MESSAGE_LENGTH || "500"
+    process.env.RAG_MAX_MESSAGE_LENGTH || "500",
   );
   return sanitized.slice(0, maxLength);
 }
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 
     if (!rateLimitResult.allowed) {
       const retryAfter = Math.ceil(
-        (rateLimitResult.resetTime - Date.now()) / 1000
+        (rateLimitResult.resetTime - Date.now()) / 1000,
       );
       return new Response(
         JSON.stringify({
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
             "X-RateLimit-Remaining": "0",
             "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
           },
-        }
+        },
       );
     }
 
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -102,13 +102,10 @@ export async function POST(request: Request) {
     const lastUserMessage = messages.filter((m) => m.role === "user").pop();
 
     if (!lastUserMessage) {
-      return new Response(
-        JSON.stringify({ error: "No user message found" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "No user message found" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const sanitizedQuery = sanitizeInput(lastUserMessage.content);
@@ -197,7 +194,7 @@ export async function POST(request: Request) {
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }
 }
