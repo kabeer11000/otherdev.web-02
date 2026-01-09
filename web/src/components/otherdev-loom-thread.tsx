@@ -3,24 +3,39 @@
 import {
   ThreadPrimitive,
   MessagePrimitive,
-  ComposerPrimitive,
   useAssistantApi,
   AssistantIf,
   useMessage,
 } from "@assistant-ui/react";
 import type { ToolCallMessagePart } from "@assistant-ui/react";
-import { Send, FileCode2, ChevronRight } from "lucide-react";
+import { ArrowUp, FileCode2, Paperclip, Search, Zap, CheckCircle } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { CopyButton } from "@/components/ui/copy-button";
 import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent
-} from "@/components/ui/collapsible";
+  ChainOfThought,
+  ChainOfThoughtStep,
+  ChainOfThoughtTrigger,
+  ChainOfThoughtContent,
+} from "@/components/ui/chain-of-thought";
+import {
+  ChatContainerRoot,
+  ChatContainerContent,
+  ChatContainerScrollAnchor,
+} from "@/components/ui/chat-container";
+import {
+  Message,
+  MessageAvatar,
+  MessageContent,
+} from "@/components/ui/message";
+import {
+  PromptInput,
+  PromptInputAction,
+  PromptInputActions,
+  PromptInputTextarea,
+} from "@/components/ui/prompt-input";
 import { useArtifact, useRuntimeContext } from "@/app/loom/page";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
 
@@ -31,11 +46,33 @@ function cleanSuggestionMarkers(content: string): string {
     .trim();
 }
 
-function SuggestionButton({ display, prompt }: { display: string; prompt: string }) {
+function getIconForPhase(phase: string): React.ReactNode {
+  const lowerPhase = phase.toLowerCase();
+  if (lowerPhase.includes("analyzing")) {
+    return <Search className="h-4 w-4" />;
+  }
+  if (lowerPhase.includes("considering")) {
+    return <Zap className="h-4 w-4" />;
+  }
+  if (lowerPhase.includes("selecting")) {
+    return <CheckCircle className="h-4 w-4" />;
+  }
+  return <CheckCircle className="h-4 w-4" />;
+}
+
+function SuggestionButton({
+  display,
+  prompt,
+}: {
+  display: string;
+  prompt: string;
+}) {
   const api = useAssistantApi();
 
   const handleClick = () => {
-    api.thread().append({ role: "user", content: [{ type: "text", text: prompt }] });
+    api
+      .thread()
+      .append({ role: "user", content: [{ type: "text", text: prompt }] });
   };
 
   return (
@@ -52,21 +89,19 @@ function SuggestionButton({ display, prompt }: { display: string; prompt: string
 
 function UserMessage() {
   return (
-    <MessagePrimitive.Root>
-      <div className="flex justify-end">
-        <div className="flex max-w-[95%] items-start gap-2 sm:max-w-[85%] sm:gap-3 md:max-w-[80%]">
-          <div className="break-words rounded-2xl bg-accent px-3 py-2 font-serif text-sm text-accent-foreground sm:px-4 sm:py-3 sm:text-base">
-            <MessagePrimitive.Content />
-          </div>
-          <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
-            <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-            <AvatarFallback className="bg-muted font-serif text-xs text-muted-foreground sm:text-sm">
-              U
-            </AvatarFallback>
-          </Avatar>
-        </div>
-      </div>
-    </MessagePrimitive.Root>
+    <div className="flex justify-end">
+      <Message className="max-w-[95%] gap-2 sm:max-w-[85%] sm:gap-3 md:max-w-[80%]">
+        <MessageContent className="rounded-2xl bg-accent px-3 py-2 text-sm text-accent-foreground sm:px-4 sm:py-3 sm:text-base">
+          <MessagePrimitive.Content />
+        </MessageContent>
+        <MessageAvatar
+          src="https://github.com/shadcn.png"
+          alt="User"
+          fallback="U"
+          className="h-7 w-7 sm:h-8 sm:w-8"
+        />
+      </Message>
+    </div>
   );
 }
 
@@ -75,10 +110,10 @@ function AssistantMessage() {
   const { setActiveArtifact } = useArtifact();
   const hasToolCall = message.content.some((part) => part.type === "tool-call");
   const textPart = message.content.find((part) => part.type === "text");
-  const toolCallPart = message.content.find((part) => part.type === "tool-call") as
-    | ToolCallMessagePart
-    | undefined;
-  const reasoning = message.metadata?.custom?.reasoning as string | undefined;
+  const toolCallPart = message.content.find(
+    (part) => part.type === "tool-call",
+  ) as ToolCallMessagePart | undefined;
+  const reasoningSteps = message.metadata?.custom?.reasoningSteps as Array<{ phase: string; content: string }> | undefined;
 
   if (hasToolCall) {
     const artifactArgs = toolCallPart?.args as
@@ -86,124 +121,133 @@ function AssistantMessage() {
       | undefined;
 
     return (
-      <MessagePrimitive.Root>
-        <div className="flex justify-start">
-          <div className="w-full max-w-[95%] space-y-3 sm:max-w-[90%] md:max-w-[85%] min-w-0">
-            <div className="flex items-start gap-2 sm:gap-3 min-w-0">
-              <Image
-                src="/otherdev-chat-logo.svg"
-                alt="OtherDev Loom"
-                width={32}
-                height={32}
-                className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
-              />
-              <div className="flex-1 space-y-3 min-w-0">
-                {reasoning && (
-                  <Collapsible defaultOpen={false}>
-                    <CollapsibleTrigger className="flex items-center gap-1 font-serif text-xs text-muted-foreground transition-colors hover:text-foreground group">
-                      <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
-                      <span>View thinking process</span>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-2">
+      <div className="flex justify-start">
+        <Message className="w-full max-w-[95%] gap-2 sm:max-w-[90%] sm:gap-3 md:max-w-[85%]">
+          <MessageAvatar
+            src="/otherdev-chat-logo.svg"
+            alt="OtherDev Loom"
+            className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
+          />
+          <div className="flex-1 space-y-3 min-w-0">
+            {reasoningSteps && reasoningSteps.length > 0 && (
+              <ChainOfThought>
+                {reasoningSteps.map((step, index) => (
+                  <ChainOfThoughtStep key={index} defaultOpen={false}>
+                    <ChainOfThoughtTrigger leftIcon={getIconForPhase(step.phase)}>
+                      {step.phase}
+                    </ChainOfThoughtTrigger>
+                    <ChainOfThoughtContent className="mt-2">
                       <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
-                        <MarkdownRenderer>{reasoning}</MarkdownRenderer>
+                        <MarkdownRenderer>{step.content}</MarkdownRenderer>
                       </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                )}
-                {textPart && textPart.type === "text" && (
-                  <div className="prose prose-sm max-w-full break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
-                    <MarkdownRenderer>{cleanSuggestionMarkers(textPart.text)}</MarkdownRenderer>
+                    </ChainOfThoughtContent>
+                  </ChainOfThoughtStep>
+                ))}
+              </ChainOfThought>
+            )}
+            {textPart && textPart.type === "text" && (
+              <MessageContent
+                markdown
+                className="rounded-lg bg-transparent p-0"
+              >
+                {cleanSuggestionMarkers(textPart.text)}
+              </MessageContent>
+            )}
+            {toolCallPart && toolCallPart.toolName === "create_artifact" && (
+              <Button
+                variant="outline"
+                onClick={() => setActiveArtifact(toolCallPart)}
+                className="flex w-fit max-w-sm items-center gap-2 rounded-xl font-serif"
+              >
+                <FileCode2 className="h-4 w-4 flex-shrink-0" />
+                <div className="min-w-0 text-left">
+                  <div className="break-words text-sm font-medium">
+                    {artifactArgs?.title || "View Artifact"}
                   </div>
-                )}
-                {toolCallPart && toolCallPart.toolName === "create_artifact" && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setActiveArtifact(toolCallPart)}
-                    className="flex w-fit max-w-sm items-center gap-2 rounded-xl font-serif"
-                  >
-                    <FileCode2 className="h-4 w-4 flex-shrink-0" />
-                    <div className="min-w-0 text-left">
-                      <div className="break-words text-sm font-medium">
-                        {artifactArgs?.title || "View Artifact"}
-                      </div>
-                      {artifactArgs?.description && (
-                        <div className="break-words text-xs text-muted-foreground line-clamp-2">
-                          {artifactArgs.description}
-                        </div>
-                      )}
+                  {artifactArgs?.description && (
+                    <div className="break-words text-xs text-muted-foreground line-clamp-2">
+                      {artifactArgs.description}
                     </div>
-                  </Button>
-                )}
-              </div>
-            </div>
+                  )}
+                </div>
+              </Button>
+            )}
           </div>
-        </div>
-      </MessagePrimitive.Root>
+        </Message>
+      </div>
     );
   }
 
   return (
-    <MessagePrimitive.Root>
-      <div className="flex justify-start">
-        <div className="flex w-full max-w-[95%] items-start gap-2 sm:max-w-[90%] sm:gap-3 md:max-w-[85%] min-w-0">
-          <AssistantIf condition={({ message }) => message.status?.type !== "running"}>
-            <Image
-              src="/otherdev-chat-logo.svg"
-              alt="OtherDev Loom"
-              width={32}
-              height={32}
-              className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
-            />
-          </AssistantIf>
-          <AssistantIf condition={({ message }) => message.status?.type === "running"}>
-            <div className="flex h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8" />
-          </AssistantIf>
-          <div className="flex-1 space-y-2 min-w-0">
-            {reasoning && (
-              <Collapsible defaultOpen={false}>
-                <CollapsibleTrigger className="flex items-center gap-1 font-serif text-xs text-muted-foreground transition-colors hover:text-foreground group">
-                  <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
-                  <span>View thinking process</span>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-2">
-                  <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
-                    <MarkdownRenderer>{reasoning}</MarkdownRenderer>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-            <div className="prose prose-sm max-w-full break-words font-serif text-sm leading-relaxed text-card-foreground dark:prose-invert sm:text-base">
-              <MessagePrimitive.Content
-                components={{
-                  Text: (props) => <MarkdownRenderer>{cleanSuggestionMarkers(props.text)}</MarkdownRenderer>,
-                }}
+    <div className="flex justify-start">
+      <Message className="w-full max-w-[95%] gap-2 sm:max-w-[90%] sm:gap-3 md:max-w-[85%]">
+        <AssistantIf
+          condition={({ message }) => message.status?.type !== "running"}
+        >
+          <MessageAvatar
+            src="/otherdev-chat-logo.svg"
+            alt="OtherDev Loom"
+            className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
+          />
+        </AssistantIf>
+        <AssistantIf
+          condition={({ message }) => message.status?.type === "running"}
+        >
+          <div className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8" />
+        </AssistantIf>
+        <div className="flex-1 space-y-2 min-w-0">
+          {reasoningSteps && reasoningSteps.length > 0 && (
+            <ChainOfThought>
+              {reasoningSteps.map((step, index) => (
+                <ChainOfThoughtStep key={index} defaultOpen={false}>
+                  <ChainOfThoughtTrigger leftIcon={getIconForPhase(step.phase)}>
+                    {step.phase}
+                  </ChainOfThoughtTrigger>
+                  <ChainOfThoughtContent className="mt-2">
+                    <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
+                      <MarkdownRenderer>{step.content}</MarkdownRenderer>
+                    </div>
+                  </ChainOfThoughtContent>
+                </ChainOfThoughtStep>
+              ))}
+            </ChainOfThought>
+          )}
+          {textPart && textPart.type === "text" && (
+            <MessageContent markdown className="rounded-lg bg-transparent p-0">
+              {cleanSuggestionMarkers(textPart.text)}
+            </MessageContent>
+          )}
+          <AssistantIf condition={({ thread }) => !thread.isRunning}>
+            {textPart && textPart.type === "text" && (
+              <CopyButton
+                content={cleanSuggestionMarkers(textPart.text)}
+                copyMessage="Copied response to clipboard"
               />
-            </div>
-            <AssistantIf condition={({ thread }) => !thread.isRunning}>
-              <div className="flex justify-start">
-                <MessagePrimitive.Content
-                  components={{
-                    Text: (props) => (
-                      <CopyButton
-                        content={cleanSuggestionMarkers(props.text)}
-                        copyMessage="Copied response to clipboard"
-                      />
-                    ),
-                  }}
-                />
-              </div>
-            </AssistantIf>
-          </div>
+            )}
+          </AssistantIf>
         </div>
-      </div>
-    </MessagePrimitive.Root>
+      </Message>
+    </div>
   );
 }
 
 export function OtherDevLoomThread() {
   const { suggestion, setSuggestion } = useRuntimeContext();
+  const api = useAssistantApi();
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [inputValue, setInputValue] = useState("");
+
+  const handleSubmit = () => {
+    const value = inputRef.current?.value?.trim();
+    if (value) {
+      api.thread().append({ role: "user", content: [{ type: "text", text: value }] });
+      if (inputRef.current) {
+        inputRef.current.value = "";
+        setInputValue("");
+        inputRef.current.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -218,7 +262,7 @@ export function OtherDevLoomThread() {
         const input = inputRef.current;
         const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
           HTMLTextAreaElement.prototype,
-          "value"
+          "value",
         )?.set;
 
         if (nativeInputValueSetter) {
@@ -232,7 +276,9 @@ export function OtherDevLoomThread() {
     };
 
     const handleInput = () => {
-      if (inputRef.current && inputRef.current.value && suggestion) {
+      const value = inputRef.current?.value || "";
+      setInputValue(value);
+      if (value && suggestion) {
         setSuggestion("");
       }
     };
@@ -251,8 +297,8 @@ export function OtherDevLoomThread() {
   const placeholder = suggestion || "Type your message...";
 
   return (
-    <ThreadPrimitive.Root className="flex h-full flex-col bg-background">
-      <ThreadPrimitive.Viewport className="flex-1 overflow-x-hidden overflow-y-auto scroll-smooth">
+    <ChatContainerRoot className="h-full flex-col bg-background">
+      <ChatContainerContent className="flex-1 scroll-smooth" suppressHydrationWarning>
         <ThreadPrimitive.Empty>
           <div className="flex h-full items-center justify-center p-4 sm:p-6 md:p-8">
             <div className="w-full max-w-2xl space-y-6 sm:space-y-8">
@@ -276,7 +322,11 @@ export function OtherDevLoomThread() {
 
               <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
                 {SUGGESTED_PROMPTS.map((suggestion) => (
-                  <SuggestionButton key={suggestion.display} display={suggestion.display} prompt={suggestion.prompt} />
+                  <SuggestionButton
+                    key={suggestion.display}
+                    display={suggestion.display}
+                    prompt={suggestion.prompt}
+                  />
                 ))}
               </div>
             </div>
@@ -320,26 +370,33 @@ export function OtherDevLoomThread() {
             </div>
           </ThreadPrimitive.If>
         </div>
-      </ThreadPrimitive.Viewport>
+        <ChatContainerScrollAnchor />
+      </ChatContainerContent>
 
       <div className="border-t border-border bg-card p-3 sm:p-4">
-        <ComposerPrimitive.Root className="relative">
-          <ComposerPrimitive.Input
+        <PromptInput
+          className="rounded-2xl border-border"
+          disabled={false}
+          maxHeight={96}
+          onSubmit={handleSubmit}
+        >
+          <PromptInputTextarea
             ref={inputRef}
             placeholder={placeholder}
-            className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 pr-10 font-serif text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 sm:px-4 sm:py-3 sm:pr-12 sm:text-base"
-            rows={1}
+            className="font-serif text-sm sm:text-base"
             autoFocus
           />
-          {suggestion && !inputRef.current?.value && (
-            <div
+          {suggestion && !inputValue && (
+            <button
+              type="button"
               onClick={() => {
                 if (inputRef.current) {
                   const input = inputRef.current;
-                  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                    HTMLTextAreaElement.prototype,
-                    "value"
-                  )?.set;
+                  const nativeInputValueSetter =
+                    Object.getOwnPropertyDescriptor(
+                      HTMLTextAreaElement.prototype,
+                      "value",
+                    )?.set;
 
                   if (nativeInputValueSetter) {
                     nativeInputValueSetter.call(input, suggestion);
@@ -351,16 +408,37 @@ export function OtherDevLoomThread() {
                   input.focus();
                 }
               }}
-              className="absolute left-3 top-2.5 cursor-pointer font-serif text-sm text-muted-foreground sm:left-4 sm:top-3 sm:text-base md:hidden"
+              className="absolute left-3 top-2.5 font-serif text-sm text-muted-foreground hover:opacity-80 transition-opacity sm:left-4 sm:top-3 sm:text-base md:hidden"
             >
               {suggestion}
-            </div>
+            </button>
           )}
-          <ComposerPrimitive.Send className="absolute bottom-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:opacity-90 active:scale-[0.98] disabled:opacity-50 sm:bottom-3 sm:right-3 sm:h-8 sm:w-8">
-            <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          </ComposerPrimitive.Send>
-        </ComposerPrimitive.Root>
+          <PromptInputActions className="w-full justify-between">
+            <PromptInputAction tooltip="Attach file">
+              <button
+                type="button"
+                className="flex h-6 w-6 items-center justify-center text-muted-foreground hover:opacity-70 transition-opacity sm:h-7 sm:w-7"
+                aria-label="Attach file"
+              >
+                <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
+              </button>
+            </PromptInputAction>
+            <PromptInputAction tooltip="Send message (Enter)">
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!inputValue.trim()}
+                className={`flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] sm:h-8 sm:w-8 ${
+                  inputValue.trim()
+                    ? "bg-foreground text-background hover:opacity-90"
+                    : "bg-muted text-muted-foreground hover:opacity-70 disabled:opacity-50"
+                }`}>
+                <ArrowUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </button>
+            </PromptInputAction>
+          </PromptInputActions>
+        </PromptInput>
       </div>
-    </ThreadPrimitive.Root>
+    </ChatContainerRoot>
   );
 }

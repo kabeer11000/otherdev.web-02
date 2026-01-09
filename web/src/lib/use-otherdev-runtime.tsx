@@ -91,6 +91,7 @@ export function useOtherDevRuntime() {
         let accumulatedReasoning = "";
         let currentSuggestion = "";
         const toolCalls: ToolCallMessagePart[] = [];
+        const reasoningSteps: Array<{ phase: string; content: string }> = [];
 
         while (true) {
           const { done, value } = await reader.read();
@@ -236,6 +237,33 @@ export function useOtherDevRuntime() {
                           : msg,
                       ),
                     );
+                  }
+                } else if (parsed.type === "reasoning-step" && parsed.args) {
+                  try {
+                    const stepArgs = JSON.parse(parsed.args);
+                    reasoningSteps.push({
+                      phase: stepArgs.phase,
+                      content: stepArgs.content,
+                    });
+
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMessageId && msg.role === "assistant"
+                          ? {
+                              ...(msg as ThreadAssistantMessage),
+                              metadata: {
+                                ...(msg as ThreadAssistantMessage).metadata,
+                                custom: {
+                                  ...(msg as ThreadAssistantMessage).metadata?.custom,
+                                  reasoningSteps,
+                                },
+                              },
+                            }
+                          : msg,
+                      ),
+                    );
+                  } catch (e) {
+                    console.error("Error parsing reasoning step:", e);
                   }
                 } else if (parsed.type === "suggestion" && parsed.content) {
                   currentSuggestion = parsed.content;

@@ -8,6 +8,7 @@ import {
   REQUESTS_PER_WINDOW,
 } from "@/server/lib/rate-limit";
 import { createArtifactTool } from "@/server/lib/artifact-tool";
+import { reasoningStepTool } from "@/server/lib/reasoning-tool";
 
 const MessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -25,6 +26,14 @@ const groq = new Groq({
 const SYSTEM_PROMPT_TEMPLATE = `You are a helpful assistant representing Other Dev, a web development and design studio based in Karachi, Pakistan.
 
 Answer questions about Other Dev's projects, services, technologies, and capabilities in a professional, conversational tone.
+
+THINKING AND REASONING
+For complex questions, use the add_reasoning_step tool to break down your thinking:
+1. First call: phase="Analyzing the request", content=[What the user is asking and key requirements]
+2. Second call: phase="Considering options", content=[Different approaches and factors to consider]
+3. Third call: phase="Selecting the approach", content=[Why you chose this answer and how it addresses the request]
+
+This structures your reasoning into clear, expandable phases in the interface. Use this tool when answering technical questions or complex inquiries about Other Dev.
 
 CRITICAL RULES
 1. NEVER say "I don't have information", "I don't have data", "I cannot find", or similar phrases claiming lack of knowledge.
@@ -142,6 +151,62 @@ function getAdaptiveThreshold(queryQuality: ReturnType<typeof detectQueryQuality
   return baseThreshold;
 }
 
+function parseReasoningSteps(reasoning: string): Array<{ phase: string; content: string }> {
+  const steps: Array<{ phase: string; content: string }> = [];
+
+  // Split reasoning into sentences and group them by phase
+  const sentences = reasoning.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+
+  // Check for explicit phase markers in the reasoning
+  const analyzingMatch = reasoning.match(/(?:analyzing|understand|analyze|examine)[:\s-]*(.*?)(?=considering|options|explore|$)/is);
+  const consideringMatch = reasoning.match(/(?:considering|options|explore)[:\s-]*(.*?)(?=selecting|approach|conclude|$)/is);
+  const selectingMatch = reasoning.match(/(?:selecting|approach|conclude|answer)[:\s-]*(.*?)$/is);
+
+  // If we found explicit markers, use them
+  if (analyzingMatch && analyzingMatch[1]?.trim()) {
+    steps.push({
+      phase: "Analyzing the request",
+      content: analyzingMatch[1].trim().slice(0, 2000)
+    });
+  } else if (sentences.length > 0) {
+    // Otherwise, divide reasoning into thirds
+    const thirdLength = Math.ceil(sentences.length / 3);
+    steps.push({
+      phase: "Analyzing the request",
+      content: sentences.slice(0, thirdLength).join(" ").slice(0, 2000)
+    });
+  }
+
+  if (consideringMatch && consideringMatch[1]?.trim()) {
+    steps.push({
+      phase: "Considering options",
+      content: consideringMatch[1].trim().slice(0, 2000)
+    });
+  } else if (sentences.length > 0) {
+    const thirdLength = Math.ceil(sentences.length / 3);
+    steps.push({
+      phase: "Considering options",
+      content: sentences.slice(thirdLength, thirdLength * 2).join(" ").slice(0, 2000)
+    });
+  }
+
+  if (selectingMatch && selectingMatch[1]?.trim()) {
+    steps.push({
+      phase: "Selecting the approach",
+      content: selectingMatch[1].trim().slice(0, 2000)
+    });
+  } else if (sentences.length > 0) {
+    const thirdLength = Math.ceil(sentences.length / 3);
+    steps.push({
+      phase: "Selecting the approach",
+      content: sentences.slice(thirdLength * 2).join(" ").slice(0, 2000)
+    });
+  }
+
+  // Filter out empty steps
+  return steps.filter(s => s.content.trim().length > 0);
+}
+
 export async function POST(request: Request) {
   try {
     const clientId = getClientIdentifier(request);
@@ -246,9 +311,8 @@ export async function POST(request: Request) {
       temperature: 0.7,
       max_tokens: 8000,
       stream: true,
-      tools: [createArtifactTool],
+      tools: [createArtifactTool, reasoningStepTool],
       tool_choice: "auto",
-      reasoning_format: "parsed",
     });
 
     const encoder = new TextEncoder();
@@ -266,13 +330,13 @@ export async function POST(request: Request) {
           let fullContent = "";
           let contentBeforeSuggestion = "";
           let suggestionDetected = false;
+          let accumulatedReasoning = "";
 
           for await (const chunk of completion) {
             const delta = chunk.choices[0]?.delta;
 
             if (delta?.reasoning) {
-              const data = JSON.stringify({ type: "reasoning", content: delta.reasoning });
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+              accumulatedReasoning += delta.reasoning;
             }
 
             if (delta?.content) {
@@ -306,14 +370,35 @@ export async function POST(request: Request) {
             }
           }
 
+          // Parse accumulated reasoning into structured steps
+          if (accumulatedReasoning.trim()) {
+            const reasoningSteps = parseReasoningSteps(accumulatedReasoning);
+            for (const step of reasoningSteps) {
+              const data = JSON.stringify({
+                type: "reasoning-step",
+                args: JSON.stringify(step),
+              });
+              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            }
+          }
+
           for (const toolCall of toolCallsMap.values()) {
-            const data = JSON.stringify({
-              type: "tool-call",
-              toolCallId: toolCall.id,
-              toolName: toolCall.name,
-              args: toolCall.arguments,
-            });
-            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            // Send reasoning steps immediately, other tool calls at the end
+            if (toolCall.name === "add_reasoning_step") {
+              const data = JSON.stringify({
+                type: "reasoning-step",
+                args: toolCall.arguments,
+              });
+              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            } else {
+              const data = JSON.stringify({
+                type: "tool-call",
+                toolCallId: toolCall.id,
+                toolName: toolCall.name,
+                args: toolCall.arguments,
+              });
+              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            }
           }
 
           const suggestionMatch = fullContent.match(/SUGGESTION:\s*(.+?)$/m);
