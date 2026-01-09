@@ -53,12 +53,12 @@
 :root {
   /* --color-neutral-200: var(--color-stone-600); */
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  --background: oklch(0.9878 0.0013 106.42);
   /*--background: var(--color-stone-100); */
   --foreground: oklch(0.147 0.004 49.25);
-  --card: oklch(1 0 0);
+  --card: oklch(0.9878 0.0013 106.42);
   --card-foreground: oklch(0.147 0.004 49.25);
-  --popover: oklch(1 0 0);
+  --popover: oklch(0.7161 0.0091 56.26);
   --popover-foreground: oklch(0.147 0.004 49.25);
   --primary: oklch(0.216 0.006 56.043);
   --primary-foreground: oklch(0.985 0.001 106.423);

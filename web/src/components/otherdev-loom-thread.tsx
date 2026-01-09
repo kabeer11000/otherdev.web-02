@@ -312,88 +312,90 @@ export function OtherDevLoomThread() {
   const placeholder = suggestion || "Type your message...";
 
   return (
-    <ChatContainerRoot className="h-full flex-col bg-background">
-      <ChatContainerContent
-        className="flex-1 scroll-smooth"
-        suppressHydrationWarning
-      >
-        <ThreadPrimitive.Empty>
-          <div className="flex h-full items-center justify-center p-4 sm:p-6 md:p-8">
-            <div className="w-full max-w-2xl space-y-6 sm:space-y-8">
-              <div className="space-y-3 text-center sm:space-y-4">
-                <div className="flex justify-center">
-                  <Image
-                    src="/otherdev-chat-logo.svg"
-                    alt="OtherDev Loom"
-                    width={32}
-                    height={32}
-                    className="h-7 w-7 sm:h-8 sm:w-8"
-                  />
+    <div className="relative h-full flex flex-col bg-background">
+      <ChatContainerRoot className="flex-1 w-full">
+        <ChatContainerContent
+          className="flex-1 scroll-smooth pb-32 sm:pb-40"
+          suppressHydrationWarning
+        >
+          <ThreadPrimitive.Empty>
+            <div className="flex h-full items-center justify-center p-4 sm:p-6 md:p-8">
+              <div className="w-full max-w-2xl space-y-6 sm:space-y-8">
+                <div className="space-y-3 text-center sm:space-y-4">
+                  <div className="flex justify-center">
+                    <Image
+                      src="/otherdev-chat-logo.svg"
+                      alt="OtherDev Loom"
+                      width={32}
+                      height={32}
+                      className="h-7 w-7 sm:h-8 sm:w-8"
+                    />
+                  </div>
+                  <h2 className="font-serif text-2xl font-normal text-foreground sm:text-3xl md:text-4xl">
+                    How can I help you today?
+                  </h2>
+                  <p className="font-serif text-sm text-muted-foreground sm:text-base">
+                    Ask me anything about OtherDev
+                  </p>
                 </div>
-                <h2 className="font-serif text-2xl font-normal text-foreground sm:text-3xl md:text-4xl">
-                  How can I help you today?
-                </h2>
-                <p className="font-serif text-sm text-muted-foreground sm:text-base">
-                  Ask me anything about OtherDev
-                </p>
-              </div>
 
-              <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-                {SUGGESTED_PROMPTS.map((suggestion) => (
-                  <SuggestionButton
-                    key={suggestion.display}
-                    display={suggestion.display}
-                    prompt={suggestion.prompt}
-                  />
-                ))}
+                <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+                  {SUGGESTED_PROMPTS.map((suggestion) => (
+                    <SuggestionButton
+                      key={suggestion.display}
+                      display={suggestion.display}
+                      prompt={suggestion.prompt}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
+          </ThreadPrimitive.Empty>
+
+          <div className="space-y-4 px-3 py-6 sm:space-y-6 sm:px-4 sm:py-8 md:px-8">
+            <ThreadPrimitive.Messages
+              components={{
+                UserMessage,
+                AssistantMessage,
+              }}
+            />
+
+            <ThreadPrimitive.If running>
+              <div className="flex items-start gap-2 sm:gap-3">
+                <Image
+                  src="/otherdev-chat-logo.svg"
+                  alt="OtherDev Loom"
+                  width={32}
+                  height={32}
+                  className="h-7 w-7 flex-shrink-0 animate-spin sm:h-8 sm:w-8"
+                />
+                <div className="flex items-center gap-2 font-serif text-xs text-muted-foreground sm:text-sm">
+                  <div className="flex gap-1">
+                    <div
+                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
+                      style={{ animationDelay: "0ms" }}
+                    />
+                    <div
+                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
+                      style={{ animationDelay: "150ms" }}
+                    />
+                    <div
+                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
+                      style={{ animationDelay: "300ms" }}
+                    />
+                  </div>
+                  <span>Thinking...</span>
+                </div>
+              </div>
+            </ThreadPrimitive.If>
           </div>
-        </ThreadPrimitive.Empty>
+          <ChatContainerScrollAnchor />
+        </ChatContainerContent>
+      </ChatContainerRoot>
 
-        <div className="space-y-4 px-3 py-6 sm:space-y-6 sm:px-4 sm:py-8 md:px-8">
-          <ThreadPrimitive.Messages
-            components={{
-              UserMessage,
-              AssistantMessage,
-            }}
-          />
-
-          <ThreadPrimitive.If running>
-            <div className="flex items-start gap-2 sm:gap-3">
-              <Image
-                src="/otherdev-chat-logo.svg"
-                alt="OtherDev Loom"
-                width={32}
-                height={32}
-                className="h-7 w-7 flex-shrink-0 animate-spin sm:h-8 sm:w-8"
-              />
-              <div className="flex items-center gap-2 font-serif text-xs text-muted-foreground sm:text-sm">
-                <div className="flex gap-1">
-                  <div
-                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
-                    style={{ animationDelay: "0ms" }}
-                  />
-                  <div
-                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
-                    style={{ animationDelay: "150ms" }}
-                  />
-                  <div
-                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
-                    style={{ animationDelay: "300ms" }}
-                  />
-                </div>
-                <span>Thinking...</span>
-              </div>
-            </div>
-          </ThreadPrimitive.If>
-        </div>
-        <ChatContainerScrollAnchor />
-      </ChatContainerContent>
-
-      <div className="border-t border-border bg-card p-3 sm:p-4">
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-3 sm:p-4 w-full max-w-3xl mx-auto pointer-events-none">
         <PromptInput
-          className="rounded-2xl border-border"
+          className="rounded-2xl border-border shadow-sm pointer-events-auto"
           disabled={false}
           maxHeight={96}
           onSubmit={handleSubmit}
@@ -441,6 +443,6 @@ export function OtherDevLoomThread() {
           </PromptInputActions>
         </PromptInput>
       </div>
-    </ChatContainerRoot>
+    </div>
   );
 }
