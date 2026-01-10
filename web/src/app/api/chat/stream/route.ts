@@ -8,6 +8,7 @@ import {
   REQUESTS_PER_WINDOW,
 } from "@/server/lib/rate-limit";
 import { createArtifactTool } from "@/server/lib/artifact-tool";
+import { stripMarkdown } from "@/lib/utils";
 
 const MessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -101,23 +102,12 @@ function sanitizeInput(text: string): string {
   return sanitized.slice(0, RAG_MAX_MESSAGE_LENGTH);
 }
 
-function stripMarkdown(text: string): string {
-  return text
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/\*(.+?)\*/g, "$1")
-    .replace(/_(.+?)_/g, "$1")
-    .replace(/`(.+?)`/g, "$1")
-    .replace(/~~(.+?)~~/g, "$1")
-    .replace(/\[(.+?)\]\(.+?\)/g, "$1")
-    .trim();
-}
-
-type QueryQuality = {
+interface QueryQuality {
   isLowQuality: boolean;
   isConversational: boolean;
   tokenCount: number;
   hasRepeatedWords: boolean;
-};
+}
 
 function detectQueryQuality(query: string): QueryQuality {
   const normalized = query.toLowerCase().trim();
@@ -154,11 +144,11 @@ function getAdaptiveThreshold(queryQuality: QueryQuality): number {
   return RAG_SIMILARITY_THRESHOLD;
 }
 
-type SimilarDocument = {
+interface SimilarDocument {
   similarity: number;
   metadata: { title: string };
   content: string;
-};
+}
 
 function buildContext(
   similarDocs: SimilarDocument[],
@@ -195,7 +185,7 @@ function createJsonResponse(
   });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: Request): Promise<Response> {
   try {
     const clientId = getClientIdentifier(request);
     const rateLimitResult = checkRateLimit(clientId);
