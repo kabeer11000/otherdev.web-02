@@ -2,13 +2,51 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
+@font-face {
+  font-family: "QueensCompressed";
+  src: url("/fonts/QueensCompressed/QueensCompressed_W-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "QueensCompressed";
+  src: url("/fonts/QueensCompressed/QueensCompressed_W-Thin.woff2") format("woff2");
+  font-weight: 100;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "TWKLausanne";
+  src: url("/fonts/TWKLausanne/TWKLausanne-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "TWKLausanne";
+  src: url("/fonts/TWKLausanne/TWKLausanne-300-1.woff2") format("woff2");
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "TWKLausanne";
+  src: url("/fonts/TWKLausanne/TWKLausanne-200 (1).woff2") format("woff2");
+  font-weight: 200;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: "TWKLausanne", sans-serif;
+  --font-serif: "QueensCompressed", serif;
   --font-mono: var(--font-geist-mono);
+  --font-twk: "TWKLausanne", sans-serif;
+  --font-queens: "QueensCompressed", serif;
   --font-ai:
     ui-sans-serif, -apple-system, "system-ui", "Segoe UI", Helvetica,
     "Apple Color Emoji", Arial, "sans-serif", "Segoe UI Emoji",
@@ -53,6 +91,31 @@
 :root {
   /* --color-neutral-200: var(--color-stone-600); */
   --radius: 0.625rem;
+
+  /* Spacing System */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Typography */
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --text-4xl: 36px;
+  --text-5xl: 48px;
+
+  /* Visual Effects */
+  --noise-opacity: 0.2;
+  --cursor-arrow-size: 30px;
+  --animation-duration: 0.5s;
+
   --background: oklch(0.9878 0.0013 106.42);
   /*--background: var(--color-stone-100); */
   --foreground: oklch(0.147 0.004 49.25);
@@ -131,7 +194,78 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: "TWKLausanne", sans-serif;
+    font-size: var(--text-lg);
   }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "QueensCompressed", serif;
+    font-weight: 300;
+  }
+}
+
+.twk-lausanne {
+  font-family: "TWKLausanne", sans-serif;
+}
+
+.queens-compressed {
+  font-family: "QueensCompressed", serif;
+}
+
+.dynamic-underline-left,
+.dynamic-underline-right {
+  position: relative;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.dynamic-underline-left:hover::before {
+  transform: scaleX(1);
+}
+
+.dynamic-underline-left::before {
+  content: "";
+  position: absolute;
+  display: block;
+  width: 100%;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: currentColor;
+  transform: scaleX(0);
+  transform-origin: top left;
+  transition: transform var(--animation-duration) ease;
+}
+
+.dynamic-underline-right:hover::before {
+  transform: scaleX(1);
+}
+
+.dynamic-underline-right::before {
+  content: "";
+  position: absolute;
+  display: block;
+  width: 100%;
+  height: 2px;
+  bottom: 0;
+  z-index: 999;
+  left: 0;
+  background-color: currentColor;
+  transform: scaleX(0);
+  transform-origin: top right;
+  transition: transform var(--animation-duration) ease;
+}
+
+.cursor-arrow-left {
+  cursor: url("/icons/arrow-left.svg") 30 30, auto;
+}
+
+.cursor-arrow-right {
+  cursor: url("/icons/arrow-right.svg") 30 30, auto;
 }
 
 @keyframes typing-dot-bounce {

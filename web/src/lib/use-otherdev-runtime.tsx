@@ -13,7 +13,6 @@ import { useLocalStorageMessages } from "@/hooks/use-local-storage-messages";
 
 const LOOM_STORAGE_KEY = "otherdev-loom-messages";
 
-type ReasoningStep = { phase: string; content: string };
 type ContentPart = TextMessagePart | ToolCallMessagePart;
 type MessageStatus = ThreadAssistantMessage["status"];
 
@@ -128,7 +127,6 @@ export function useOtherDevRuntime() {
         let accumulatedContent = "";
         let accumulatedReasoning = "";
         const toolCalls: ToolCallMessagePart[] = [];
-        const reasoningSteps: ReasoningStep[] = [];
 
         const updateOrAddMessage = (
           updates: Partial<
@@ -219,23 +217,6 @@ export function useOtherDevRuntime() {
                   updateOrAddMessage({});
                   break;
                 }
-
-                case "reasoning-step":
-                  if (parsed.args) {
-                    try {
-                      const stepArgs = JSON.parse(parsed.args);
-                      reasoningSteps.push({
-                        phase: stepArgs.phase,
-                        content: stepArgs.content,
-                      });
-                      updateOrAddMessage({
-                        metadata: { custom: { reasoningSteps } },
-                      });
-                    } catch (e) {
-                      console.error("Error parsing reasoning step:", e);
-                    }
-                  }
-                  break;
 
                 case "suggestion":
                   if (parsed.content) {

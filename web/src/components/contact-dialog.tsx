@@ -88,7 +88,7 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="mt-[57px] ml-[12px] bg-white p-[10px] sm:p-[12px] w-[calc(100vw-24px)] sm:w-[450px] rounded-[5px] overflow-hidden border-0 shadow-none translate-x-0 translate-y-0 top-0 left-0 gap-0"
+        className="mt-[57px] ml-[12px] bg-card p-[10px] sm:p-[12px] w-[calc(100vw-24px)] sm:w-[450px] rounded-[5px] overflow-hidden border-0 shadow-none translate-x-0 translate-y-0 top-0 left-0 gap-0"
         showCloseButton={false}
       >
         {step === "intro" ? (
@@ -96,7 +96,7 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
             <DialogHeader className="sr-only">
               <DialogTitle>Contact Us</DialogTitle>
             </DialogHeader>
-            <p className="whitespace-pre-line text-[12px] sm:text-[13px] text-black font-normal leading-[1.4] sm:leading-[1.5]">
+            <p className="whitespace-pre-line text-[12px] sm:text-[13px] text-foreground font-twk font-normal leading-[1.4] sm:leading-[1.5]">
               {`Thank you for expressing interest in collaborating with us.
 
 We specialize in working with brands and agencies to deliver unique web experiences. Please provide your information below to begin discussions of potential projects.
@@ -107,7 +107,7 @@ We will reach out to you with the next steps as soon as possible.`}
             </p>
             <button
               onClick={() => setStep("form")}
-              className="w-full mt-[12px] sm:mt-[15px] h-8 sm:h-9 flex items-center justify-center rounded-md backdrop-blur-sm bg-stone-200/95 text-[11px] font-normal text-muted-foreground transition-colors hover:text-foreground"
+              className="w-full mt-[12px] sm:mt-[15px] h-8 sm:h-9 flex items-center justify-center rounded-md backdrop-blur-sm bg-stone-200/95 text-[11px] font-twk font-normal text-muted-foreground transition-colors hover:text-foreground"
             >
               <p>Next</p>
             </button>
@@ -193,7 +193,7 @@ We will reach out to you with the next steps as soon as possible.`}
 
                 <button
                   type="submit"
-                  className="w-full mt-[12px] sm:mt-[15px] h-8 sm:h-9 flex items-center justify-center rounded-md backdrop-blur-sm bg-stone-200/95 text-[11px] font-normal text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full mt-[12px] sm:mt-[15px] h-8 sm:h-9 flex items-center justify-center rounded-md backdrop-blur-sm bg-stone-200/95 text-[11px] font-twk font-normal text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={submitMutation.isPending}
                 >
                   <p>{submitMutation.isPending ? "Submitting..." : "Submit"}</p>

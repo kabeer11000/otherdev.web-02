@@ -59,7 +59,7 @@ export default function RootLayout({
         {/* View Transitions API Support */}
         <meta name="view-transition" content="same-origin" />
       </head>
-      <body className="font-[Arial,sans-serif] antialiased bg-background">
+      <body className="antialiased bg-background">
         <TenantProvider>
           <TRPCProvider>
             <Suspense fallback={null}>{children}</Suspense>

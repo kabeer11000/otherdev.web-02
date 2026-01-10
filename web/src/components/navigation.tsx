@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { ContactDialog } from "@/components/contact-dialog";
 
 const navItemVariants = cva(
-  "flex items-center justify-center rounded-md backdrop-blur-sm bg-stone-200/70 text-[11px] font-normal leading-tight transition-colors hover:text-foreground",
+  "flex items-center justify-center rounded-md backdrop-blur-sm bg-stone-200/70 text-[11px] font-twk font-normal leading-tight transition-colors hover:text-foreground",
   {
     variants: {
       size: {

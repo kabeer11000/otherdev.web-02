@@ -12,9 +12,7 @@ import {
   ArrowUp,
   FileCode2,
   Paperclip,
-  Search,
-  Zap,
-  CheckCircle,
+  ChevronRight,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -22,11 +20,10 @@ import { Button } from "@/components/ui/button";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { CopyButton } from "@/components/ui/copy-button";
 import {
-  ChainOfThought,
-  ChainOfThoughtStep,
-  ChainOfThoughtTrigger,
-  ChainOfThoughtContent,
-} from "@/components/ui/chain-of-thought";
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   ChatContainerRoot,
   ChatContainerContent,
@@ -47,44 +44,8 @@ import { useArtifact, useRuntimeContext } from "@/app/loom/page";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-type ReasoningStep = { phase: string; content: string };
-
 function cleanSuggestionMarkers(content: string): string {
   return content.replace(/\s*SUGGESTION:[\s\S]*$/i, "").trim();
-}
-
-function getIconForPhase(phase: string): React.ReactNode {
-  const lowerPhase = phase.toLowerCase();
-  if (lowerPhase.includes("analyzing")) {
-    return <Search className="h-4 w-4" />;
-  }
-  if (lowerPhase.includes("considering")) {
-    return <Zap className="h-4 w-4" />;
-  }
-  return <CheckCircle className="h-4 w-4" />;
-}
-
-function ReasoningStepsDisplay({ steps }: { steps: ReasoningStep[] }) {
-  if (!steps || steps.length === 0) {
-    return null;
-  }
-
-  return (
-    <ChainOfThought>
-      {steps.map((step, index) => (
-        <ChainOfThoughtStep key={index} defaultOpen={false}>
-          <ChainOfThoughtTrigger leftIcon={getIconForPhase(step.phase)}>
-            {step.phase}
-          </ChainOfThoughtTrigger>
-          <ChainOfThoughtContent className="mt-2">
-            <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
-              <MarkdownRenderer>{step.content}</MarkdownRenderer>
-            </div>
-          </ChainOfThoughtContent>
-        </ChainOfThoughtStep>
-      ))}
-    </ChainOfThought>
-  );
 }
 
 function SuggestionButton({
@@ -140,9 +101,7 @@ function AssistantMessage() {
   const toolCallPart = message.content.find(
     (part) => part.type === "tool-call",
   ) as ToolCallMessagePart | undefined;
-  const reasoningSteps = message.metadata?.custom?.reasoningSteps as
-    | ReasoningStep[]
-    | undefined;
+  const reasoning = message.metadata?.custom?.reasoning as string | undefined;
   const hasToolCall = Boolean(toolCallPart);
 
   const cleanedText =
@@ -162,7 +121,19 @@ function AssistantMessage() {
             className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
           />
           <div className="flex-1 space-y-3 min-w-0">
-            <ReasoningStepsDisplay steps={reasoningSteps || []} />
+            {reasoning && (
+              <Collapsible defaultOpen={false}>
+                <CollapsibleTrigger className="flex items-center gap-1 font-serif text-xs text-muted-foreground transition-colors hover:text-foreground group">
+                  <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
+                  <span>View thinking process</span>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
+                    <MarkdownRenderer>{reasoning}</MarkdownRenderer>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
             {cleanedText && (
               <MessageContent
                 markdown
@@ -214,7 +185,19 @@ function AssistantMessage() {
           <div className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8" />
         </AssistantIf>
         <div className="flex-1 space-y-2 min-w-0">
-          <ReasoningStepsDisplay steps={reasoningSteps || []} />
+          {reasoning && (
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger className="flex items-center gap-1 font-serif text-xs text-muted-foreground transition-colors hover:text-foreground group">
+                <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
+                <span>View thinking process</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
+                  <MarkdownRenderer>{reasoning}</MarkdownRenderer>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
           {cleanedText && (
             <MessageContent markdown className="rounded-lg bg-transparent p-0">
               {cleanedText}
