@@ -3,6 +3,7 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { BundledLanguage, codeToHtml } from "shiki";
 import { CopyButton } from "./copy-button";
 
@@ -71,11 +72,14 @@ function autoLinkPhoneNumbers(text: string): string {
 }
 
 export function MarkdownRenderer({ children }: MarkdownRendererProps) {
-  const processedContent = autoLinkPhoneNumbers(children);
+  // Replace <br> and <br/> tags with double spaces + newline for proper markdown line breaks
+  let processedContent = children.replace(/<br\s*\/?>/gi, '  \n');
+  processedContent = autoLinkPhoneNumbers(processedContent);
 
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
+      rehypePlugins={[rehypeRaw as any]}
       components={{
         code({ className, children, ...props }: any) {
           const content = String(children).replace(/\n$/, "");
@@ -153,6 +157,9 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
         },
         hr() {
           return <hr className="my-4 border-border" />;
+        },
+        br() {
+          return <br />;
         },
         table({ children }) {
           return (
