@@ -336,7 +336,9 @@ export async function POST(request: Request): Promise<Response> {
           if (suggestionDetected) {
             const suggestionMatch = fullContent.match(/SUGGESTION:\s*(.+?)$/i);
             if (suggestionMatch) {
-              const suggestion = stripMarkdown(suggestionMatch[1].trim());
+              const suggestion = stripMarkdown(suggestionMatch[1].trim())
+                .replace(/^[*_-]+|[*_-]+$/g, "")
+                .trim();
 
               const finalData = JSON.stringify({
                 type: "content-final",
