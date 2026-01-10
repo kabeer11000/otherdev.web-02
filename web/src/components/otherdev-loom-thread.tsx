@@ -114,7 +114,7 @@ function AssistantMessage() {
 
     return (
       <div className="flex justify-start">
-        <Message className="w-full max-w-[95%] gap-2 sm:max-w-[90%] sm:gap-3 md:max-w-[85%]">
+        <Message className="w-full max-w-full gap-2 sm:gap-3 lg:max-w-5xl">
           <MessageAvatar
             src="/otherdev-chat-logo.svg"
             alt="OtherDev Loom"
@@ -137,7 +137,7 @@ function AssistantMessage() {
             {cleanedText && (
               <MessageContent
                 markdown
-                className="rounded-lg bg-transparent p-0"
+                className="max-w-none rounded-lg bg-transparent p-0"
               >
                 {cleanedText}
               </MessageContent>
@@ -169,7 +169,7 @@ function AssistantMessage() {
 
   return (
     <div className="flex justify-start">
-      <Message className="w-full max-w-[95%] gap-2 sm:max-w-[90%] sm:gap-3 md:max-w-[85%]">
+      <Message className="w-full max-w-full gap-2 sm:gap-3 lg:max-w-5xl">
         <AssistantIf
           condition={({ message }) => message.status?.type !== "running"}
         >
@@ -199,7 +199,7 @@ function AssistantMessage() {
             </Collapsible>
           )}
           {cleanedText && (
-            <MessageContent markdown className="rounded-lg bg-transparent p-0">
+            <MessageContent markdown className="max-w-none rounded-lg bg-transparent p-0">
               {cleanedText}
             </MessageContent>
           )}
