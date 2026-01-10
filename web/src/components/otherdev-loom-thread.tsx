@@ -68,7 +68,7 @@ function SuggestionButton({
       type="button"
       variant="outline"
       onClick={handleClick}
-      className="h-auto justify-start rounded-xl bg-card p-3 text-left font-serif text-xs font-normal text-foreground shadow-sm transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-md active:scale-[0.98] sm:p-4 sm:text-sm whitespace-normal break-words"
+      className="h-auto justify-start rounded-xl bg-card p-3 text-left font-sans text-xs font-normal text-foreground shadow-sm transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-md active:scale-[0.98] sm:p-4 sm:text-sm whitespace-normal break-words"
     >
       {display}
     </Button>
@@ -123,12 +123,12 @@ function AssistantMessage() {
           <div className="flex-1 space-y-3 min-w-0">
             {reasoning && (
               <Collapsible defaultOpen={false}>
-                <CollapsibleTrigger className="flex items-center gap-1 font-serif text-xs text-muted-foreground transition-colors hover:text-foreground group">
+                <CollapsibleTrigger className="flex items-center gap-1 font-sans text-xs text-muted-foreground transition-colors hover:text-foreground group">
                   <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
                   <span>View thinking process</span>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2">
-                  <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
+                  <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-sans text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
                     <MarkdownRenderer>{reasoning}</MarkdownRenderer>
                   </div>
                 </CollapsibleContent>
@@ -146,7 +146,7 @@ function AssistantMessage() {
               <Button
                 variant="outline"
                 onClick={() => setActiveArtifact(toolCallPart)}
-                className="flex w-fit max-w-sm items-center gap-2 rounded-xl font-serif"
+                className="flex w-fit max-w-sm items-center gap-2 rounded-xl font-sans"
               >
                 <FileCode2 className="h-4 w-4 flex-shrink-0" />
                 <div className="min-w-0 text-left">
@@ -187,12 +187,12 @@ function AssistantMessage() {
         <div className="flex-1 space-y-2 min-w-0">
           {reasoning && (
             <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="flex items-center gap-1 font-serif text-xs text-muted-foreground transition-colors hover:text-foreground group">
+              <CollapsibleTrigger className="flex items-center gap-1 font-sans text-xs text-muted-foreground transition-colors hover:text-foreground group">
                 <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
                 <span>View thinking process</span>
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2">
-                <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-serif text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
+                <div className="prose prose-sm max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-sans text-xs leading-relaxed text-muted-foreground dark:prose-invert sm:p-4 sm:text-sm">
                   <MarkdownRenderer>{reasoning}</MarkdownRenderer>
                 </div>
               </CollapsibleContent>
@@ -315,10 +315,10 @@ export function OtherDevLoomThread() {
                       className="h-7 w-7 sm:h-8 sm:w-8"
                     />
                   </div>
-                  <h2 className="font-serif text-2xl font-normal text-foreground sm:text-3xl md:text-4xl">
+                  <h2 className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl">
                     How can I help you today?
                   </h2>
-                  <p className="font-serif text-sm text-muted-foreground sm:text-base">
+                  <p className="font-sans text-sm text-muted-foreground sm:text-base">
                     Ask me anything about OtherDev
                   </p>
                 </div>
@@ -353,7 +353,7 @@ export function OtherDevLoomThread() {
                   height={32}
                   className="h-7 w-7 flex-shrink-0 animate-spin sm:h-8 sm:w-8"
                 />
-                <div className="flex items-center gap-2 font-serif text-xs text-muted-foreground sm:text-sm">
+                <div className="flex items-center gap-2 font-sans text-xs text-muted-foreground sm:text-sm">
                   <div className="flex gap-1">
                     <div
                       className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
@@ -387,14 +387,14 @@ export function OtherDevLoomThread() {
           <PromptInputTextarea
             ref={inputRef}
             placeholder={placeholder}
-            className="font-serif text-sm sm:text-base"
+            className="font-sans text-sm sm:text-base"
             autoFocus
           />
           {suggestion && !inputValue && (
             <button
               type="button"
               onClick={applySuggestion}
-              className="absolute left-3 top-2.5 font-serif text-sm text-muted-foreground hover:opacity-80 transition-opacity sm:left-4 sm:top-3 sm:text-base md:hidden"
+              className="absolute left-3 top-2.5 font-sans text-sm text-muted-foreground hover:opacity-80 transition-opacity sm:left-4 sm:top-3 sm:text-base md:hidden"
             >
               {suggestion}
             </button>
