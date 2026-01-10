@@ -1,38 +1,13 @@
 "use client";
 
-import { cva, type VariantProps } from "class-variance-authority";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ContactDialog } from "@/components/contact-dialog";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-const navItemVariants = cva(
-  "flex items-center justify-center rounded-md backdrop-blur-sm bg-stone-200/70 text-[11px] font-twk font-normal leading-tight transition-colors hover:text-foreground",
-  {
-    variants: {
-      size: {
-        brand: "h-7 w-[75px]",
-        default: "h-7 w-[75px]",
-        mobile: "h-7 w-[52px]",
-        mobileWide: "h-7 w-[62px]",
-        icon: "h-7 w-7",
-      },
-      active: {
-        true: "text-foreground",
-        false: "text-muted-foreground",
-      },
-    },
-    defaultVariants: {
-      size: "default",
-      active: false,
-    },
-  },
-);
-
-type NavItemVariantProps = VariantProps<typeof navItemVariants>;
 
 interface NavigationProps {
   variant?: "default" | "ai";
@@ -75,11 +50,12 @@ export function Navigation({
         )}
       >
         {/* Hamburger/X Button */}
-        <button
-          type="button"
+        <Button
+          variant="nav"
+          size="nav-icon"
           onClick={() => setIsOpen(!isOpen)}
           data-slot="nav-item"
-          className={cn(navItemVariants({ size: "icon" }), "text-foreground")}
+          className="text-foreground"
           aria-label="Toggle menu"
         >
           <AnimatePresence mode="wait">
@@ -105,7 +81,7 @@ export function Navigation({
               </motion.div>
             )}
           </AnimatePresence>
-        </button>
+        </Button>
 
         <AnimatePresence mode="wait">
           {!isOpen && (
@@ -116,15 +92,16 @@ export function Navigation({
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.2 }}
             >
-              <Link
-                href="/"
-                data-slot="nav-item"
-                className={cn(
-                  navItemVariants({ size: "brand", active: pathname === "/" }),
-                )}
+              <Button
+                asChild
+                variant="nav"
+                size="nav-default"
+                className={pathname === "/" ? "text-foreground" : ""}
               >
-                Other dev
-              </Link>
+                <Link href="/" data-slot="nav-item">
+                  Other dev
+                </Link>
+              </Button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -144,105 +121,85 @@ export function Navigation({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1, duration: 0.3 }}
               >
-                <Link
-                  href="/work"
-                  data-slot="nav-item"
-                  className={cn(
-                    navItemVariants({
-                      size: "mobile",
-                      active: pathname?.startsWith("/work"),
-                    }),
-                  )}
+                <Button
+                  asChild
+                  variant="nav"
+                  size="nav-mobile"
+                  className={
+                    pathname?.startsWith("/work") ? "text-foreground" : ""
+                  }
                 >
-                  Work
-                </Link>
+                  <Link href="/work" data-slot="nav-item">
+                    Work
+                  </Link>
+                </Button>
               </motion.div>
-              {/* <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.15, duration: 0.3 }}
-              >
-                <Link
-                  href="/audio"
-                  data-slot="nav-item"
-                  className={cn(
-                    navItemVariants({
-                      size: "mobile",
-                      active: pathname?.startsWith("/audio"),
-                    }),
-                  )}
-                >
-                  audio
-                </Link>
-              </motion.div> */}
+
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2, duration: 0.3 }}
               >
-                <Link
-                  href="/about"
-                  data-slot="nav-item"
-                  className={cn(
-                    navItemVariants({
-                      size: "mobile",
-                      active: pathname?.startsWith("/about"),
-                    }),
-                  )}
+                <Button
+                  asChild
+                  variant="nav"
+                  size="nav-mobile"
+                  className={
+                    pathname?.startsWith("/about") ? "text-foreground" : ""
+                  }
                 >
-                  About
-                </Link>
+                  <Link href="/about" data-slot="nav-item">
+                    About
+                  </Link>
+                </Button>
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.25, duration: 0.3 }}
               >
-                <Link
-                  href="/loom"
-                  data-slot="nav-item"
-                  className={cn(
-                    navItemVariants({
-                      size: "mobile",
-                      active: pathname?.startsWith("/loom"),
-                    }),
-                  )}
+                <Button
+                  asChild
+                  variant="nav"
+                  size="nav-mobile"
+                  className={
+                    pathname?.startsWith("/loom") ? "text-foreground" : ""
+                  }
                 >
-                  Ai
-                </Link>
+                  <Link href="/loom" data-slot="nav-item">
+                    Ai
+                  </Link>
+                </Button>
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.27, duration: 0.3 }}
               >
-                <button
-                  type="button"
+                <Button
+                  variant="nav"
+                  size="nav-mobile-wide"
                   onClick={handleContactClick}
                   data-slot="nav-item"
-                  className={cn(
-                    navItemVariants({ size: "mobileWide", active: false }),
-                  )}
                 >
                   Contact
-                </button>
+                </Button>
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.32, duration: 0.3 }}
               >
-                <Link
-                  href="https://wa.me/923156893331?text=Hi!%20I%20found%20you%20through%20otherdev.com%20and%20would%20love%20to%20discuss%20a%20project."
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-slot="nav-item"
-                  className={cn(
-                    navItemVariants({ size: "mobileWide", active: false }),
-                  )}
-                >
-                  Whatsapp
-                </Link>
+                <Button asChild variant="nav" size="nav-mobile-wide">
+                  <Link
+                    href="https://wa.me/923156893331?text=Hi!%20I%20found%20you%20through%20otherdev.com%20and%20would%20love%20to%20discuss%20a%20project."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-slot="nav-item"
+                  >
+                    Whatsapp
+                  </Link>
+                </Button>
               </motion.div>
             </motion.div>
           )}
@@ -252,96 +209,83 @@ export function Navigation({
       {/* Tablet/Desktop Navigation */}
       {!isAIVariant && (
         <div className="hidden sm:flex items-center gap-1.5 pointer-events-auto">
-          <Link
-            href="/"
-            data-slot="nav-item"
-            className={cn(
-              navItemVariants({ size: "brand", active: pathname === "/" }),
-            )}
+          <Button
+            asChild
+            variant="nav"
+            size="nav-default"
+            className={pathname === "/" ? "text-foreground" : ""}
           >
-            Other dev
-          </Link>
-          <Link
-            href="/work"
-            data-slot="nav-item"
-            className={cn(
-              navItemVariants({
-                size: "default",
-                active: pathname?.startsWith("/work"),
-              }),
-            )}
+            <Link href="/" data-slot="nav-item">
+              Other dev
+            </Link>
+          </Button>
+
+          <Button
+            asChild
+            variant="nav"
+            size="nav-default"
+            className={pathname?.startsWith("/work") ? "text-foreground" : ""}
           >
-            Work
-          </Link>
-          {/* <Link
-          href="/audio"
-          data-slot="nav-item"
-          className={cn(
-            navItemVariants({
-              size: "default",
-              active: pathname?.startsWith("/audio"),
-            }),
-          )}
-        >
-          audio
-        </Link> */}
-          <Link
-            href="/about"
-            data-slot="nav-item"
-            className={cn(
-              navItemVariants({
-                size: "default",
-                active: pathname?.startsWith("/about"),
-              }),
-            )}
+            <Link href="/work" data-slot="nav-item">
+              Work
+            </Link>
+          </Button>
+
+          <Button
+            asChild
+            variant="nav"
+            size="nav-default"
+            className={pathname?.startsWith("/about") ? "text-foreground" : ""}
           >
-            About
-          </Link>
-          <Link
-            href="/loom"
-            data-slot="nav-item"
-            className={cn(
-              navItemVariants({
-                size: "default",
-                active: pathname?.startsWith("/loom"),
-              }),
-            )}
+            <Link href="/about" data-slot="nav-item">
+              About
+            </Link>
+          </Button>
+
+          <Button
+            asChild
+            variant="nav"
+            size="nav-default"
+            className={pathname?.startsWith("/loom") ? "text-foreground" : ""}
           >
-            Ai
-          </Link>
-          <button
-            type="button"
+            <Link href="/loom" data-slot="nav-item">
+              Ai
+            </Link>
+          </Button>
+
+          <Button
+            variant="nav"
+            size="nav-default"
             onClick={handleContactClick}
             data-slot="nav-item"
-            className={cn(navItemVariants({ size: "default", active: false }))}
           >
             Contact
-          </button>
-          <Link
-            href="https://wa.me/923156893331?text=Hi!%20I%20found%20you%20through%20otherdev.com%20and%20would%20love%20to%20discuss%20a%20project."
-            target="_blank"
-            rel="noopener noreferrer"
-            data-slot="nav-item"
-            className={cn(navItemVariants({ size: "default", active: false }))}
-          >
-            Whatsapp
-          </Link>
+          </Button>
+
+          <Button asChild variant="nav" size="nav-default">
+            <Link
+              href="https://wa.me/923156893331?text=Hi!%20I%20found%20you%20through%20otherdev.com%20and%20would%20love%20to%20discuss%20a%20project."
+              target="_blank"
+              rel="noopener noreferrer"
+              data-slot="nav-item"
+            >
+              Whatsapp
+            </Link>
+          </Button>
         </div>
       )}
 
       {/* Clear Chat Button */}
       {isLoomPage && onClear && (
-        <button
-          type="button"
+        <Button
+          variant="nav"
+          size="nav-default"
           onClick={onClear}
-          className={cn(
-            navItemVariants({ size: "default" }),
-            "absolute right-3 top-0 pointer-events-auto",
-            "bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70",
-          )}
+          className="absolute right-3 top-0 pointer-events-auto bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70 flex items-center gap-1.5"
         >
+          <Trash2 size={12} strokeWidth={2} />
           Clear
-        </button>
+        </Button>
       )}
 
       {/* Backdrop */}
@@ -362,5 +306,3 @@ export function Navigation({
     </nav>
   );
 }
-
-export { navItemVariants };
