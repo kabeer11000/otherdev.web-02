@@ -96,6 +96,7 @@ function UserMessage() {
 function AssistantMessage() {
   const message = useMessage();
   const { setActiveArtifact } = useArtifact();
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const textPart = message.content.find((part) => part.type === "text");
   const toolCallPart = message.content.find(
@@ -106,6 +107,13 @@ function AssistantMessage() {
 
   const cleanedText =
     textPart?.type === "text" ? cleanSuggestionMarkers(textPart.text) : "";
+
+  const getHtmlContent = () => {
+    if (contentRef.current) {
+      return contentRef.current.innerHTML;
+    }
+    return undefined;
+  };
 
   if (hasToolCall && toolCallPart) {
     const artifactArgs = toolCallPart.args as
@@ -135,12 +143,14 @@ function AssistantMessage() {
               </Collapsible>
             )}
             {cleanedText && (
-              <MessageContent
-                markdown
-                className="max-w-none rounded-lg bg-transparent p-0"
-              >
-                {cleanedText}
-              </MessageContent>
+              <div ref={contentRef}>
+                <MessageContent
+                  markdown
+                  className="max-w-none rounded-lg bg-transparent p-0"
+                >
+                  {cleanedText}
+                </MessageContent>
+              </div>
             )}
             {toolCallPart.toolName === "create_artifact" && (
               <Button
@@ -199,14 +209,17 @@ function AssistantMessage() {
             </Collapsible>
           )}
           {cleanedText && (
-            <MessageContent markdown className="max-w-none rounded-lg bg-transparent p-0">
-              {cleanedText}
-            </MessageContent>
+            <div ref={contentRef}>
+              <MessageContent markdown className="max-w-none rounded-lg bg-transparent p-0">
+                {cleanedText}
+              </MessageContent>
+            </div>
           )}
           <AssistantIf condition={({ thread }) => !thread.isRunning}>
             {cleanedText && (
               <CopyButton
                 content={cleanedText}
+                htmlContent={getHtmlContent()}
                 copyMessage="Copied response to clipboard"
               />
             )}

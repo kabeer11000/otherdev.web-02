@@ -7,16 +7,50 @@ import { Button } from "@/components/ui/button";
 interface CopyButtonProps {
   content: string;
   copyMessage?: string;
+  htmlContent?: string;
+}
+
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/_(.+?)_/g, "$1")
+    .replace(/`(.+?)`/g, "$1")
+    .replace(/~~(.+?)~~/g, "$1")
+    .replace(/\[(.+?)\]\(.+?\)/g, "$1")
+    .replace(/^#+\s+/gm, "")
+    .replace(/^[*-]\s+/gm, "")
+    .replace(/^\d+\.\s+/gm, "")
+    .trim();
 }
 
 export function CopyButton({
   content,
   copyMessage = "Copied!",
+  htmlContent,
 }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(content);
+    const plainText = stripMarkdown(content);
+
+    if (htmlContent && navigator.clipboard.write) {
+      try {
+        const blob = new Blob([htmlContent], { type: "text/html" });
+        const textBlob = new Blob([plainText], { type: "text/plain" });
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": blob,
+            "text/plain": textBlob,
+          }),
+        ]);
+      } catch {
+        await navigator.clipboard.writeText(plainText);
+      }
+    } else {
+      await navigator.clipboard.writeText(plainText);
+    }
+
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
