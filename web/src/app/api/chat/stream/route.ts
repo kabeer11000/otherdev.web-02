@@ -101,6 +101,17 @@ function sanitizeInput(text: string): string {
   return sanitized.slice(0, RAG_MAX_MESSAGE_LENGTH);
 }
 
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/_(.+?)_/g, "$1")
+    .replace(/`(.+?)`/g, "$1")
+    .replace(/~~(.+?)~~/g, "$1")
+    .replace(/\[(.+?)\]\(.+?\)/g, "$1")
+    .trim();
+}
+
 type QueryQuality = {
   isLowQuality: boolean;
   isConversational: boolean;
@@ -249,7 +260,7 @@ export async function POST(request: Request) {
     ];
 
     const completion = await groq.chat.completions.create({
-      model: "openai/gpt-oss-120b",
+      model: "openai/gpt-oss-20b",
       messages: chatMessages,
       temperature: 0.7,
       max_tokens: 8000,
@@ -335,7 +346,7 @@ export async function POST(request: Request) {
           if (suggestionDetected) {
             const suggestionMatch = fullContent.match(/SUGGESTION:\s*(.+?)$/i);
             if (suggestionMatch) {
-              const suggestion = suggestionMatch[1].trim();
+              const suggestion = stripMarkdown(suggestionMatch[1].trim());
 
               const finalData = JSON.stringify({
                 type: "content-final",
