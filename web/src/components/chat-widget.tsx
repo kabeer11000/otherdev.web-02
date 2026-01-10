@@ -160,6 +160,12 @@ export function ChatWidget() {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    setSuggestion("");
+
+    if (textareaRef.current) {
+      textareaRef.current.value = "";
+    }
+
     setIsGenerating(true);
 
     const assistantMessageId = `assistant-${Date.now()}`;
@@ -317,6 +323,7 @@ export function ChatWidget() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    setSuggestion("");
     setIsGenerating(true);
 
     const assistantMessageId = `assistant-${Date.now()}`;

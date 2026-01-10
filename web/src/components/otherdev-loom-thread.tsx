@@ -260,10 +260,11 @@ export function OtherDevLoomThread() {
       .thread()
       .append({ role: "user", content: [{ type: "text", text: value }] });
 
+    setSuggestion("");
+
     if (inputRef.current) {
-      inputRef.current.value = "";
+      setNativeInputValue(inputRef.current, "");
       setInputValue("");
-      inputRef.current.dispatchEvent(new Event("input", { bubbles: true }));
     }
   };
 
