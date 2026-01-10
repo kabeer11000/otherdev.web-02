@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, createContext, useContext } from "react";
 import type { ToolCallMessagePart } from "@assistant-ui/react";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
-import { useOtherDevRuntime } from "@/lib/use-otherdev-runtime";
-import { OtherDevLoomThread } from "@/components/otherdev-loom-thread";
+import { createContext, useContext, useState } from "react";
 import { ArtifactRenderer } from "@/components/artifact-renderer";
 import { Navigation } from "@/components/navigation";
+import { OtherDevLoomThread } from "@/components/otherdev-loom-thread";
+import { useOtherDevRuntime } from "@/lib/use-otherdev-runtime";
 
 interface ArtifactContextType {
   activeArtifact: ToolCallMessagePart | null;
@@ -47,7 +47,7 @@ export default function AIPage() {
 
   return (
     <>
-      <Navigation />
+      <Navigation isLoomPage={true} onClear={runtime.clear} />
       <main className="h-screen">
         <AssistantRuntimeProvider runtime={runtime}>
           <RuntimeContext.Provider

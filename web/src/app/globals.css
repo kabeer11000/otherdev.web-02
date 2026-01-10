@@ -4,14 +4,16 @@
 
 @font-face {
   font-family: "QueensCompressed";
-  src: url("/fonts/QueensCompressed/QueensCompressed_W-Light.woff2") format("woff2");
+  src: url("/fonts/QueensCompressed/QueensCompressed_W-Light.woff2")
+    format("woff2");
   font-weight: 300;
   font-display: swap;
 }
 
 @font-face {
   font-family: "QueensCompressed";
-  src: url("/fonts/QueensCompressed/QueensCompressed_W-Thin.woff2") format("woff2");
+  src: url("/fonts/QueensCompressed/QueensCompressed_W-Thin.woff2")
+    format("woff2");
   font-weight: 100;
   font-display: swap;
 }
@@ -261,11 +263,15 @@
 }
 
 .cursor-arrow-left {
-  cursor: url("/icons/arrow-left.svg") 30 30, auto;
+  cursor:
+    url("/icons/arrow-left.svg") 30 30,
+    auto;
 }
 
 .cursor-arrow-right {
-  cursor: url("/icons/arrow-right.svg") 30 30, auto;
+  cursor:
+    url("/icons/arrow-right.svg") 30 30,
+    auto;
 }
 
 @keyframes typing-dot-bounce {

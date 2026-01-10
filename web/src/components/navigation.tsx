@@ -1,13 +1,13 @@
 "use client";
 
-import Link from "next/link";
-import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
+import { Menu, X } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { ContactDialog } from "@/components/contact-dialog";
+import { cn } from "@/lib/utils";
 
 const navItemVariants = cva(
   "flex items-center justify-center rounded-md backdrop-blur-sm bg-stone-200/70 text-[11px] font-twk font-normal leading-tight transition-colors hover:text-foreground",
@@ -36,9 +36,15 @@ type NavItemVariantProps = VariantProps<typeof navItemVariants>;
 
 interface NavigationProps {
   variant?: "default" | "ai";
+  isLoomPage?: boolean;
+  onClear?: () => void;
 }
 
-export function Navigation({ variant = "default" }: NavigationProps) {
+export function Navigation({
+  variant = "default",
+  isLoomPage = false,
+  onClear,
+}: NavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const pathname = usePathname();
@@ -70,6 +76,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
       >
         {/* Hamburger/X Button */}
         <button
+          type="button"
           onClick={() => setIsOpen(!isOpen)}
           data-slot="nav-item"
           className={cn(navItemVariants({ size: "icon" }), "text-foreground")}
@@ -210,6 +217,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
                 transition={{ delay: 0.27, duration: 0.3 }}
               >
                 <button
+                  type="button"
                   onClick={handleContactClick}
                   data-slot="nav-item"
                   className={cn(
@@ -302,6 +310,7 @@ export function Navigation({ variant = "default" }: NavigationProps) {
             Ai
           </Link>
           <button
+            type="button"
             onClick={handleContactClick}
             data-slot="nav-item"
             className={cn(navItemVariants({ size: "default", active: false }))}
@@ -318,6 +327,21 @@ export function Navigation({ variant = "default" }: NavigationProps) {
             Whatsapp
           </Link>
         </div>
+      )}
+
+      {/* Clear Chat Button */}
+      {isLoomPage && onClear && (
+        <button
+          type="button"
+          onClick={onClear}
+          className={cn(
+            navItemVariants({ size: "default" }),
+            "absolute right-3 top-0 pointer-events-auto",
+            "bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70",
+          )}
+        >
+          Clear
+        </button>
       )}
 
       {/* Backdrop */}

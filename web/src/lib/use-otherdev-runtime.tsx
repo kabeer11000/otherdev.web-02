@@ -1,14 +1,14 @@
 "use client";
 
-import { useExternalStoreRuntime } from "@assistant-ui/react";
 import type {
   AppendMessage,
-  ThreadMessage,
-  ToolCallMessagePart,
   TextMessagePart,
   ThreadAssistantMessage,
+  ThreadMessage,
+  ToolCallMessagePart,
 } from "@assistant-ui/react";
-import { useState, useCallback, useRef } from "react";
+import { useExternalStoreRuntime } from "@assistant-ui/react";
+import { useCallback, useRef, useState } from "react";
 import { useLocalStorageMessages } from "@/hooks/use-local-storage-messages";
 
 const LOOM_STORAGE_KEY = "otherdev-loom-messages";
@@ -310,7 +310,7 @@ export function useOtherDevRuntime() {
         abortControllerRef.current = null;
       }
     },
-    [messages],
+    [messages, setMessages],
   );
 
   const onCancel = useCallback(async () => {
@@ -318,6 +318,15 @@ export function useOtherDevRuntime() {
       abortControllerRef.current.abort();
     }
   }, []);
+
+  const clear = useCallback(() => {
+    setMessages([]);
+    setSuggestion("");
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setIsRunning(false);
+  }, [setMessages]);
 
   const runtime = useExternalStoreRuntime({
     messages,
@@ -330,5 +339,6 @@ export function useOtherDevRuntime() {
     ...runtime,
     suggestion,
     setSuggestion,
+    clear,
   };
 }

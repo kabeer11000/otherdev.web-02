@@ -8,12 +8,7 @@ import {
   useMessage,
 } from "@assistant-ui/react";
 import type { ToolCallMessagePart } from "@assistant-ui/react";
-import {
-  ArrowUp,
-  FileCode2,
-  Paperclip,
-  ChevronRight,
-} from "lucide-react";
+import { ArrowUp, FileCode2, Paperclip, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -210,7 +205,10 @@ function AssistantMessage() {
           )}
           {cleanedText && (
             <div ref={contentRef}>
-              <MessageContent markdown className="max-w-none rounded-lg bg-transparent p-0">
+              <MessageContent
+                markdown
+                className="max-w-none rounded-lg bg-transparent p-0"
+              >
                 {cleanedText}
               </MessageContent>
             </div>

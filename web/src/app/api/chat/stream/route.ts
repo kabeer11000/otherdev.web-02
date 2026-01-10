@@ -293,7 +293,9 @@ export async function POST(request: Request): Promise<Response> {
 
               if (fullContent.includes("SUGGESTION:")) {
                 if (!suggestionDetected) {
-                  contentBeforeSuggestion = fullContent.split(/SUGGESTION:/i)[0].trim();
+                  contentBeforeSuggestion = fullContent
+                    .split(/SUGGESTION:/i)[0]
+                    .trim();
                   suggestionDetected = true;
                 }
               } else {

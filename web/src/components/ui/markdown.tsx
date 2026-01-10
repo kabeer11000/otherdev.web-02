@@ -1,9 +1,9 @@
-import { cn } from "@/lib/utils";
 import { marked } from "marked";
 import { memo, useId, useMemo } from "react";
-import ReactMarkdown, { Components } from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
+import { cn } from "@/lib/utils";
 import { CodeBlock, CodeBlockCode } from "./code-block";
 
 export type MarkdownProps = {
@@ -33,7 +33,7 @@ const INITIAL_COMPONENTS: Partial<Components> = {
       return (
         <span
           className={cn(
-            "bg-primary-foreground rounded-sm px-1 font-mono text-sm",
+            "bg-muted px-1.5 py-0.5 rounded text-[0.875em] font-mono border border-border/50",
             className,
           )}
           {...props}
@@ -53,6 +53,48 @@ const INITIAL_COMPONENTS: Partial<Components> = {
   },
   pre: function PreComponent({ children }) {
     return <>{children}</>;
+  },
+  table: function TableComponent({ children }) {
+    return (
+      <div className="my-4 w-full overflow-hidden rounded-lg border border-border">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm text-foreground">
+            {children}
+          </table>
+        </div>
+      </div>
+    );
+  },
+  thead: function THeadComponent({ children }) {
+    return (
+      <thead className="bg-muted/50 text-left font-medium text-muted-foreground [&_tr]:border-b">
+        {children}
+      </thead>
+    );
+  },
+  tbody: function TBodyComponent({ children }) {
+    return <tbody className="[&_tr:last-child]:border-0">{children}</tbody>;
+  },
+  tr: function TRComponent({ children }) {
+    return (
+      <tr className="border-b border-border transition-colors hover:bg-muted/50">
+        {children}
+      </tr>
+    );
+  },
+  th: function THComponent({ children }) {
+    return (
+      <th className="h-10 px-4 align-middle font-medium text-muted-foreground text-left border-r border-border last:border-r-0">
+        {children}
+      </th>
+    );
+  },
+  td: function TDComponent({ children }) {
+    return (
+      <td className="p-4 align-middle text-foreground border-r border-border last:border-r-0">
+        {children}
+      </td>
+    );
   },
 };
 
@@ -88,10 +130,17 @@ function MarkdownComponent({
 }: MarkdownProps) {
   const generatedId = useId();
   const blockId = id ?? generatedId;
-  const blocks = useMemo(() => parseMarkdownIntoBlocks(children), [children]);
+
+  // If content contains a table, render it as a single block to prevent splitting issues
+  const blocks = useMemo(() => {
+    if (children.includes("|") && children.includes("---")) {
+      return [children];
+    }
+    return parseMarkdownIntoBlocks(children);
+  }, [children]);
 
   return (
-    <div className={className}>
+    <div className={cn("space-y-2", className)}>
       {blocks.map((block, index) => (
         <MemoizedMarkdownBlock
           key={`${blockId}-block-${index}`}

@@ -2,9 +2,9 @@
 
 import React from "react";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-import { BundledLanguage, codeToHtml } from "shiki";
+import remarkGfm from "remark-gfm";
+import { type BundledLanguage, codeToHtml } from "shiki";
 import { CopyButton } from "./copy-button";
 
 interface CodeBlockProps {
@@ -73,7 +73,7 @@ function autoLinkPhoneNumbers(text: string): string {
 
 export function MarkdownRenderer({ children }: MarkdownRendererProps) {
   // Replace <br> and <br/> tags with double spaces + newline for proper markdown line breaks
-  let processedContent = children.replace(/<br\s*\/?>/gi, '  \n');
+  let processedContent = children.replace(/<br\s*\/?>/gi, "  \n");
   processedContent = autoLinkPhoneNumbers(processedContent);
 
   return (
@@ -163,31 +163,47 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
         },
         table({ children }) {
           return (
-            <div className="my-4 w-full overflow-x-auto">
-              <table className="w-full border-collapse border border-border">
-                {children}
-              </table>
+            <div className="my-4 w-full overflow-hidden rounded-lg border border-border">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm text-foreground">
+                  {children}
+                </table>
+              </div>
             </div>
           );
         },
         thead({ children }) {
-          return <thead className="bg-muted">{children}</thead>;
+          return (
+            <thead className="bg-muted/50 text-left font-medium text-muted-foreground [&_tr]:border-b">
+              {children}
+            </thead>
+          );
         },
         tbody({ children }) {
-          return <tbody>{children}</tbody>;
+          return (
+            <tbody className="[&_tr:last-child]:border-0">{children}</tbody>
+          );
         },
         tr({ children }) {
-          return <tr className="border-b border-border">{children}</tr>;
+          return (
+            <tr className="border-b border-border transition-colors hover:bg-muted/50">
+              {children}
+            </tr>
+          );
         },
         th({ children }) {
           return (
-            <th className="px-4 py-2 text-left font-semibold border border-border">
+            <th className="h-10 px-4 align-middle font-medium text-muted-foreground text-left border-r border-border last:border-r-0">
               {children}
             </th>
           );
         },
         td({ children }) {
-          return <td className="px-4 py-2 border border-border">{children}</td>;
+          return (
+            <td className="p-4 align-middle text-foreground border-r border-border last:border-r-0">
+              {children}
+            </td>
+          );
         },
       }}
     >
