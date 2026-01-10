@@ -271,6 +271,7 @@ export async function POST(request: Request) {
             }
           >();
           let fullContent = "";
+          let contentBeforeSuggestion = "";
           let suggestionDetected = false;
           let accumulatedReasoning = "";
 
@@ -289,9 +290,12 @@ export async function POST(request: Request) {
             if (delta?.content) {
               fullContent += delta.content;
 
-              if (!suggestionDetected && fullContent.includes("SUGGESTION:")) {
-                suggestionDetected = true;
-              } else if (!suggestionDetected) {
+              if (fullContent.includes("SUGGESTION:")) {
+                if (!suggestionDetected) {
+                  contentBeforeSuggestion = fullContent.split(/SUGGESTION:/i)[0].trim();
+                  suggestionDetected = true;
+                }
+              } else {
                 const data = JSON.stringify({
                   type: "content",
                   content: delta.content,
@@ -328,14 +332,23 @@ export async function POST(request: Request) {
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
           }
 
-          const suggestionMatch = fullContent.match(/SUGGESTION:\s*(.+?)$/m);
-          if (suggestionMatch) {
-            const suggestion = suggestionMatch[1].trim();
-            const data = JSON.stringify({
-              type: "suggestion",
-              content: suggestion,
-            });
-            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          if (suggestionDetected) {
+            const suggestionMatch = fullContent.match(/SUGGESTION:\s*(.+?)$/i);
+            if (suggestionMatch) {
+              const suggestion = suggestionMatch[1].trim();
+
+              const finalData = JSON.stringify({
+                type: "content-final",
+                content: contentBeforeSuggestion,
+              });
+              controller.enqueue(encoder.encode(`data: ${finalData}\n\n`));
+
+              const suggestionData = JSON.stringify({
+                type: "suggestion",
+                content: suggestion,
+              });
+              controller.enqueue(encoder.encode(`data: ${suggestionData}\n\n`));
+            }
           }
 
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
