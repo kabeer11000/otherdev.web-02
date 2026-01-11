@@ -13,12 +13,14 @@ interface NavigationProps {
   variant?: "default" | "ai";
   isLoomPage?: boolean;
   onClear?: () => void;
+  hasActiveArtifact?: boolean;
 }
 
 export function Navigation({
   variant = "default",
   isLoomPage = false,
   onClear,
+  hasActiveArtifact = false,
 }: NavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
@@ -276,7 +278,7 @@ export function Navigation({
       )}
 
       {/* Clear Chat Button */}
-      {isLoomPage && onClear && (
+      {isLoomPage && onClear && !hasActiveArtifact && (
         <Button
           variant="nav"
           size="nav-default"

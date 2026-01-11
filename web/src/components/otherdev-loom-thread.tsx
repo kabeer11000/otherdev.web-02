@@ -20,6 +20,12 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
   ChatContainerRoot,
   ChatContainerContent,
   ChatContainerScrollAnchor,
@@ -148,23 +154,27 @@ function AssistantMessage() {
               </div>
             )}
             {toolCallPart.toolName === "create_artifact" && (
-              <Button
-                variant="outline"
+              <Card
                 onClick={() => setActiveArtifact(toolCallPart)}
-                className="flex w-fit max-w-sm items-center gap-2 rounded-xl font-sans"
+                className="w-full max-w-md cursor-pointer border-border/60 bg-card/50 transition-all duration-200 hover:border-foreground/20 hover:bg-card/80 hover:shadow-sm active:scale-[0.99]"
               >
-                <FileCode2 className="h-4 w-4 flex-shrink-0" />
-                <div className="min-w-0 text-left">
-                  <div className="break-words text-sm font-medium">
-                    {artifactArgs?.title || "View Artifact"}
-                  </div>
-                  {artifactArgs?.description && (
-                    <div className="break-words text-xs text-muted-foreground line-clamp-2">
-                      {artifactArgs.description}
+                <CardHeader className="flex-row items-center justify-between gap-4 p-3.5">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-muted/50">
+                      <FileCode2 className="h-4 w-4 text-muted-foreground" />
                     </div>
-                  )}
-                </div>
-              </Button>
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="truncate text-sm font-medium leading-tight">
+                        {artifactArgs?.title || "View Artifact"}
+                      </CardTitle>
+                      <CardDescription className="mt-1 text-xs">
+                        Artifact · HTML
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground/60" />
+                </CardHeader>
+              </Card>
             )}
           </div>
         </Message>

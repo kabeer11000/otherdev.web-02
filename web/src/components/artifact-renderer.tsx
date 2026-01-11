@@ -40,26 +40,33 @@ export function ArtifactRenderer({
   }, [code]);
 
   const handleCopy = async () => {
+    console.log("Copy button clicked");
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      console.log("Code copied successfully");
     } catch (error) {
       console.error("Failed to copy code:", error);
     }
   };
 
+  const handleClose = () => {
+    console.log("Close button clicked");
+    onClose?.();
+  };
+
   if (mode === "panel") {
     return (
       <div className="flex h-full flex-col border-l border-border bg-background">
-        <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-3 relative z-[60] pointer-events-auto">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             {onClose && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onClose}
-                className="h-8 w-8 shrink-0 p-0 md:hidden"
+                onClick={handleClose}
+                className="h-8 w-8 shrink-0 p-0 md:hidden cursor-pointer pointer-events-auto"
                 title="Back to chat"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -76,12 +83,12 @@ export function ArtifactRenderer({
               )}
             </div>
           </div>
-          <div className="ml-3 flex items-center gap-2">
+          <div className="ml-3 flex items-center gap-2 pointer-events-auto">
             <Button
               variant="ghost"
               size="sm"
               onClick={handleCopy}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 cursor-pointer hover:bg-muted pointer-events-auto"
               title="Copy code"
             >
               {copied ? (
@@ -94,8 +101,8 @@ export function ArtifactRenderer({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onClose}
-                className="hidden h-8 w-8 p-0 md:flex"
+                onClick={handleClose}
+                className="hidden h-8 w-8 p-0 md:flex cursor-pointer hover:bg-muted pointer-events-auto"
                 title="Close"
               >
                 <X className="h-4 w-4" />

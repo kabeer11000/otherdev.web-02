@@ -47,7 +47,11 @@ export default function AIPage() {
 
   return (
     <>
-      <Navigation isLoomPage={true} onClear={runtime.clear} />
+      <Navigation
+        isLoomPage={true}
+        onClear={runtime.clear}
+        hasActiveArtifact={!!activeArtifact}
+      />
       <main className="h-screen">
         <AssistantRuntimeProvider runtime={runtime}>
           <RuntimeContext.Provider
