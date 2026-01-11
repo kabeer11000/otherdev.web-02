@@ -5,6 +5,7 @@ import type { ToolCallMessagePart } from "@assistant-ui/react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { X, Code2, Eye, Copy, Check, ChevronLeft } from "lucide-react";
+import { codeToHtml, type BundledLanguage } from "shiki";
 
 interface ArtifactRendererProps {
   toolCall: ToolCallMessagePart;
@@ -19,6 +20,7 @@ export function ArtifactRenderer({
 }: ArtifactRendererProps) {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("preview");
+  const [highlightedCode, setHighlightedCode] = useState<string>("");
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const { title, code, description } = toolCall.args as {
@@ -39,20 +41,42 @@ export function ArtifactRenderer({
     }
   }, [code]);
 
+  useEffect(() => {
+    const highlightCode = async () => {
+      if (!code) {
+        setHighlightedCode("<pre><code></code></pre>");
+        return;
+      }
+
+      try {
+        const html = await codeToHtml(code.trim(), {
+          lang: "html" as BundledLanguage,
+          themes: {
+            light: "github-light",
+            dark: "github-dark",
+          },
+        });
+        setHighlightedCode(html);
+      } catch (error) {
+        console.error("Error highlighting code:", error);
+        setHighlightedCode(`<pre><code>${code}</code></pre>`);
+      }
+    };
+
+    highlightCode();
+  }, [code]);
+
   const handleCopy = async () => {
-    console.log("Copy button clicked");
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      console.log("Code copied successfully");
     } catch (error) {
       console.error("Failed to copy code:", error);
     }
   };
 
   const handleClose = () => {
-    console.log("Close button clicked");
     onClose?.();
   };
 
@@ -148,9 +172,16 @@ export function ArtifactRenderer({
             className="m-0 flex-1 overflow-auto data-[state=inactive]:hidden"
             forceMount
           >
-            <pre className="h-full p-4 font-mono text-sm">
-              <code className="text-foreground">{code}</code>
-            </pre>
+            {highlightedCode ? (
+              <div
+                className="h-full w-full [&>pre]:h-full [&>pre]:p-4 [&>pre]:text-sm [&>pre]:overflow-auto"
+                dangerouslySetInnerHTML={{ __html: highlightedCode }}
+              />
+            ) : (
+              <pre className="h-full p-4 font-mono text-sm">
+                <code className="text-foreground">{code}</code>
+              </pre>
+            )}
           </TabsContent>
         </Tabs>
       </div>
