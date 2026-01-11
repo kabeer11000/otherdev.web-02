@@ -84,10 +84,10 @@ function UserMessage() {
           <MessagePrimitive.Content />
         </MessageContent>
         <MessageAvatar
-          src="https://github.com/shadcn.png"
+          src="/loom-avatar.svg"
           alt="User"
           fallback="U"
-          className="h-7 w-7 sm:h-8 sm:w-8"
+          className="h-12 w-12"
         />
       </Message>
     </div>
