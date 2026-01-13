@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     url: "https://otherdev.com",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "OtherDev - Digital Platforms for Pioneering Creatives",
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     title: "OtherDev - Digital Platforms for Pioneering Creatives",
     description:
       "Full-service web development and design studio for pioneering creatives",
-    images: ["/og-image.png"],
+    images: ["/og-image.jpg"],
   },
   robots: {
     index: true,

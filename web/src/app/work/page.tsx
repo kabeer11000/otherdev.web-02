@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     url: "https://otherdev.com/work",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "OtherDev Portfolio",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Our Work | OtherDev",
     description: "Premium web design and development portfolio",
-    images: ["/og-image.png"],
+    images: ["/og-image.jpg"],
   },
   // canonical: "https://otherdev.com/work",
 };

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     url: "https://otherdev.com/loom",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "OtherDev Loom",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     title: "OtherDev Loom",
     description:
       "Chat with Loom, OtherDev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
-    images: ["/og-image.png"],
+    images: ["/og-image.jpg"],
   },
   robots: {
     index: true,
