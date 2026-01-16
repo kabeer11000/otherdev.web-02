@@ -2,7 +2,7 @@
 
 > Digital platforms for pioneering creatives
 
-A modern portfolio and agency website showcasing otherdev's work - a full-service web development and design studio based in Karachi City, specializing in fashion, design, and enterprise digital solutions.
+A modern agency website showcasing otherdev's work - a full-service web development and design studio based in Karachi City, specializing in fashion, design, and enterprise digital solutions.
 
 
 
