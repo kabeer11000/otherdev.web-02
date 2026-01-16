@@ -207,7 +207,7 @@ export const projects: Project[] = [
     slug: "blvd-pakistan-2025",
     image: "/images/projects/boulevard-2025/blvdretail-home.webp",
     description:
-      "Boulevard Pakistan is a contemporary Pakistani menswear brand, rooted in local culture and refined with a global design sensibility. The brand collaborates with select international and regional retail partners while building a strong direct presence of its own. Since 2021, Other Dev has worked closely with Boulevard Pakistan, shaping its digital identity and supporting the brand through art direction, marketing strategy, and ongoing brand consultation."
+      "Boulevard Pakistan is a contemporary Pakistani menswear brand, rooted in local culture and refined with a global design sensibility. The brand collaborates with select international and regional retail partners while building a strong direct presence of its own. Since 2021, Other Dev has worked closely with Boulevard Pakistan, shaping its digital identity and supporting the brand through art direction, marketing strategy, and ongoing brand consultation.",
     url: "www.blvdretail.co",
     media: [
       "/images/projects/boulevard-2025/blvdretail-home.webp",
