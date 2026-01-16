@@ -61,6 +61,11 @@ export default function RootLayout({
   return (
     <html lang="en" style={{ colorScheme: "light dark" }}>
       <head>
+        {/* Favicon - Multiple sizes for optimal display */}
+        <link rel="icon" href="/favicon-48x48.png" sizes="48x48" type="image/png" />
+        <link rel="icon" href="/favicon-96x96.png" sizes="96x96" type="image/png" />
+        <link rel="icon" href="/favicon-144x144.png" sizes="144x144" type="image/png" />
+        <link rel="icon" href="/favicon-192x192.png" sizes="192x192" type="image/png" />
         {/* View Transitions API Support */}
         <meta name="view-transition" content="same-origin" />
       </head>
