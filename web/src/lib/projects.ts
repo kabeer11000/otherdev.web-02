@@ -90,15 +90,15 @@ export const projects: Project[] = [
   {
     id: "6",
     title: "Website infrastructure creation for Narkins Builders",
-    slug: "narkins-2025",
-    image: "/images/projects/narkins-2025/narkinsbuilders.com_.webp",
+    slug: "narkins-2024",
+    image: "/images/projects/narkins-2024/narkinsbuilders.com_.webp",
     description:
       "Robust website infrastructure for Narkins Builders showcasing their construction portfolio and services. User-friendly platform designed to facilitate client inquiries and enhance digital communication with stakeholders.",
     url: "narkinsbuilders.com",
     media: [
-      "/images/projects/narkins-2025/narkins-collage.webp",
-      "/images/projects/narkins-2025/1743813250549_100.webp",
-      "/images/projects/narkins-2025/hcr_new.webp",
+      "/images/projects/narkins-2024/narkins-collage.webp",
+      "/images/projects/narkins-2024/1743813250549_100.webp",
+      "/images/projects/narkins-2024/hcr_new.webp",
     ],
   },
   {
@@ -165,14 +165,14 @@ export const projects: Project[] = [
   {
     id: "11",
     title: "Website Development for Cultured Legacy",
-    slug: "cultured-legacy-2025",
-    image: "/images/projects/cultured-legacy-2025/culturedlegacy.shop_.png",
+    slug: "cultured-legacy-2024",
+    image: "/images/projects/cultured-legacy-2024/culturedlegacy-home.webp",
     description:
       "Strategic e-commerce website development for Cultured Legacy that honors the brand's refined heritage. A sophisticated yet accessible digital space that guides customers through a curated journey of exploration and discovery.",
     url: "culturedlegacy.shop",
     media: [
-      "/images/projects/cultured-legacy-2025/culturedlegacy.shop_.png",
-      "/images/projects/cultured-legacy-2025/other.dev-13-11-2025-0004.webp",
+      "/images/projects/cultured-legacy-2024/culturedlegacy-home.webp",
+      "/images/projects/cultured-legacy-2024/culturedlegacy-mobile.webp",
     ],
   },
   {
@@ -201,4 +201,36 @@ export const projects: Project[] = [
       "/images/projects/ntl-trading-2024/IMG_20250405_065546_880.webp",
     ],
   },
+  {
+    id: "14",
+    title: "Branding & website development for Boulevard Pakistan",
+    slug: "blvd-pakistan-2025",
+    image: "/images/projects/boulevard-2025/blvdretail-home.webp",
+    description:
+      "Boulevard Pakistan is a contemporary Pakistani menswear brand, rooted in local culture and refined with a global design sensibility. The brand collaborates with select international and regional retail partners while building a strong direct presence of its own. Since 2021, Other Dev has worked closely with Boulevard Pakistan, shaping its digital identity and supporting the brand through art direction, marketing strategy, and ongoing brand consultation."
+    url: "www.blvdretail.co",
+    media: [
+      "/images/projects/boulevard-2025/blvdretail-home.webp",
+      "/images/projects/boulevard-2025/blvdretail-product-page.webp",
+      "/images/projects/boulevard-2025/blvdretail-product-page-mobile.webp",
+    ],
+  },
+  {
+    id: "15",
+    title: "Branding & website development for Kiswa Noire",
+    slug: "kiswanoire-2025",
+    image: "/images/projects/kiswanoire-2025/kiswanoire-home.webp",
+    description:
+      "Kiswa Noire is a contemporary fashion label with a distinct, avant-garde aesthetic rooted in refined craftsmanship and dark elegance. We developed a minimal, interactive digital presence for the brand to express its identity, focusing on visual storytelling, clarity, and an elevated user experience tailored to its creative direction.",
+    url: "kiswanoire.com",
+    media: [
+      "/images/projects/kiswanoire-2025/kiswanoire-home.webp",
+      "/images/projects/kiswanoire-2025/kiswanoire-collections.webp",
+      "/images/projects/kiswanoire-2025/kiswanoire-product.webp",
+      "/images/projects/kiswanoire-2025/kiswanoire-collections-mobile.webp",
+      "/images/projects/kiswanoire-2025/kiswanoire-product-mobile.webp",
+      "/images/projects/kiswanoire-2025/kiswanoire-product-mobile-2.webp",
+    ],
+  },
+
 ];

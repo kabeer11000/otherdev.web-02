@@ -45,6 +45,16 @@ const nextConfig: NextConfig = {
         destination: "/:path*",
         permanent: true,
       },
+      {
+        source: "/work/narkins-2025",
+        destination: "/work/narkins-2024",
+        permanent: true,
+      },
+      {
+        source: "/work/cultured-legacy-2025",
+        destination: "/work/cultured-legacy-2024",
+        permanent: true,
+      },
     ];
   },
 };
