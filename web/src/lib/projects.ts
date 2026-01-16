@@ -6,6 +6,7 @@ export interface Project {
   description: string;
   url?: string;
   media?: string[];
+  year: number;
 }
 
 export const projects: Project[] = [
@@ -24,6 +25,7 @@ export const projects: Project[] = [
       "/images/projects/narkins-seo-2025/www.narkinsbuilders.com_blog_2025_10_thar-water-supply-project-october-2025-nabisar-vajihar-completion.webp",
       "/images/projects/narkins-seo-2025/www.narkinsbuilders.com_blog_comments.webp",
     ],
+    year: 2025,
   },
   {
     id: "2",
@@ -40,6 +42,7 @@ export const projects: Project[] = [
       "/images/projects/bin-yousuf-2025/luxury-apartments-karachi.webp",
       "/images/projects/bin-yousuf-2025/byg-logo-brand.webp",
     ],
+    year: 2025,
   },
   {
     id: "3",
@@ -55,6 +58,7 @@ export const projects: Project[] = [
       "/images/projects/lexa-2025/signing-desktop.webp",
       "/images/projects/lexa-2025/lexa.deployments.otherdev.com_chat.webp",
     ],
+    year: 2025,
   },
   {
     id: "4",
@@ -69,6 +73,7 @@ export const projects: Project[] = [
       "/images/projects/olly-2025/product-page-2.webp",
       "/images/projects/olly-2025/olly-shinder-product-page.webp",
     ],
+    year: 2025,
   },
   {
     id: "5",
@@ -86,6 +91,7 @@ export const projects: Project[] = [
       "/images/projects/wish-2024/wish-logo.webp",
       "/images/projects/wish-2024/with-other-dev.webp",
     ],
+    year: 2024,
   },
   {
     id: "6",
@@ -100,6 +106,7 @@ export const projects: Project[] = [
       "/images/projects/narkins-2024/1743813250549_100.webp",
       "/images/projects/narkins-2024/hcr_new.webp",
     ],
+    year: 2024,
   },
   {
     id: "7",
@@ -117,6 +124,7 @@ export const projects: Project[] = [
       "/images/projects/finlit-2025/finlit-logo.webp",
       "/images/projects/finlit-2025/finlit.deployments.otherdev.com_trading_1x1.webp",
     ],
+    year: 2025,
   },
   {
     id: "8",
@@ -132,6 +140,7 @@ export const projects: Project[] = [
       "/images/projects/groovy-pakistan-2024/groovy-layers.webp",
       "/images/projects/groovy-pakistan-2024/shirts-cropped.webp",
     ],
+    year: 2024,
   },
   {
     id: "9",
@@ -147,6 +156,7 @@ export const projects: Project[] = [
       "/images/projects/parcheh81-2024/parcheh-logo-gridded.webp",
       "/images/projects/parcheh81-2024/girl-standing-square.webp",
     ],
+    year: 2024,
   },
   {
     id: "10",
@@ -161,6 +171,7 @@ export const projects: Project[] = [
       "/images/projects/tinyfootprintcoffee/www.tinyfootprintcoffee.com_.webp",
       "/images/projects/tinyfootprintcoffee/Mexico_808b95c1-9643-49c2-a054-eaf2bc2cf8f9.webp",
     ],
+    year: 2024,
   },
   {
     id: "11",
@@ -174,6 +185,7 @@ export const projects: Project[] = [
       "/images/projects/cultured-legacy-2024/culturedlegacy-home.webp",
       "/images/projects/cultured-legacy-2024/culturedlegacy-mobile.webp",
     ],
+    year: 2024,
   },
   {
     id: "12",
@@ -187,6 +199,7 @@ export const projects: Project[] = [
       "/images/projects/eqa-2024/www.ekqadamaur.org_.webp",
       "/images/projects/eqa-2024/ekqadamaur.webp",
     ],
+    year: 2024,
   },
   {
     id: "13",
@@ -200,6 +213,7 @@ export const projects: Project[] = [
       "/images/projects/ntl-trading-2024/ntl-home.webp",
       "/images/projects/ntl-trading-2024/ntl-mobile.webp",
     ],
+    year: 2024,
   },
   {
     id: "14",
@@ -214,6 +228,7 @@ export const projects: Project[] = [
       "/images/projects/boulevard-2025/blvdretail-product-page.webp",
       "/images/projects/boulevard-2025/blvdretail-product-page-mobile.webp",
     ],
+    year: 2025,
   },
   {
     id: "15",
@@ -231,6 +246,7 @@ export const projects: Project[] = [
       "/images/projects/kiswanoire-2025/kiswanoire-product-mobile.webp",
       "/images/projects/kiswanoire-2025/kiswanoire-product-mobile-2.webp",
     ],
+    year: 2025,
   },
 
 ];
