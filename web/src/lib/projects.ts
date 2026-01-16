@@ -192,13 +192,13 @@ export const projects: Project[] = [
     id: "13",
     title: "Enterprise infrastructure development for NTL Exchange",
     slug: "ntl-2024",
-    image: "/images/projects/ntl-trading-2024/1743818053315_100.png",
+    image: "/images/projects/ntl-trading-2024/ntl-home.webp",
     description:
       "Comprehensive digital transformation for NTL Exchange, encompassing complete brand identity creation, custom mobile application development for seamless on-the-go trading, responsive website design and development, and robust enterprise infrastructure solutions. A unified ecosystem that delivers secure, efficient, and user-friendly exchange services across all platforms.",
     url: "www.ntlex.com",
     media: [
-      "/images/projects/ntl-trading-2024/1743818053315_100.png",
-      "/images/projects/ntl-trading-2024/IMG_20250405_065546_880.webp",
+      "/images/projects/ntl-trading-2024/ntl-home.webp",
+      "/images/projects/ntl-trading-2024/ntl-mobile.webp",
     ],
   },
   {
