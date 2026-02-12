@@ -4,6 +4,7 @@ import { TRPCProvider } from "@/components/providers";
 import { TenantProvider } from "@/lib/tenant-context";
 import { ChatWidget } from "@/components/chat-widget";
 import { Suspense } from "react";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://otherdev.com"),
@@ -70,6 +71,18 @@ export default function RootLayout({
         <meta name="view-transition" content="same-origin" />
       </head>
       <body className="antialiased bg-background">
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-X44LVED9G5"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-X44LVED9G5');
+          `}
+        </Script>
         <TenantProvider>
           <TRPCProvider>
             <Suspense fallback={null}>{children}</Suspense>
