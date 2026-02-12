@@ -1,9 +1,19 @@
-import { createClient } from "@supabase/supabase-js";
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
-const supabaseUrl = process.env.PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_PROJECT_ID!,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, "\n"),
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
+    }),
+  });
+}
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const db = getFirestore();
+
+const DOCUMENTS_COLLECTION = "documents";
 
 export interface MatchedDocument {
   id: string;
@@ -25,48 +35,50 @@ export async function searchSimilarDocuments(
   matchThreshold: number = 0.1,
   matchCount: number = 5,
 ): Promise<MatchedDocument[]> {
-  try {
-    const { data, error } = await supabase.rpc("match_documents", {
-      query_embedding: queryEmbedding,
-      match_threshold: matchThreshold,
-      match_count: matchCount,
-    });
+  const collection = db.collection(DOCUMENTS_COLLECTION);
 
-    if (error) {
-      console.error("Supabase RPC error:", error);
-      throw new Error("Failed to search documents");
-    }
+  const vectorQuery = collection.findNearest({
+    vectorField: "embedding",
+    queryVector: FieldValue.vector(queryEmbedding),
+    limit: matchCount,
+    distanceMeasure: "COSINE",
+    distanceResultField: "distance",
+    distanceThreshold: 1 - matchThreshold,
+  });
 
-    if (!data || data.length === 0) {
-      return [];
-    }
+  const snapshot = await vectorQuery.get();
 
-    return data.map((doc: any) => ({
-      id: doc.id,
-      content: doc.content,
-      metadata: doc.metadata,
-      similarity: doc.similarity,
-    }));
-  } catch (error) {
-    console.error("Error searching documents:", error);
-    throw new Error("Failed to search documents");
+  if (snapshot.empty) {
+    return [];
   }
+
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    const distance = data.distance as number;
+    return {
+      id: doc.id,
+      content: data.content as string,
+      metadata: data.metadata as MatchedDocument["metadata"],
+      similarity: 1 - distance,
+    };
+  });
 }
 
 export async function deleteAllDocuments(): Promise<void> {
-  try {
-    const { error } = await supabase
-      .from("documents")
-      .delete()
-      .neq("id", "00000000-0000-0000-0000-000000000000");
+  const collection = db.collection(DOCUMENTS_COLLECTION);
+  const snapshot = await collection.get();
 
-    if (error) {
-      console.error("Supabase delete error:", error);
-      throw new Error("Failed to delete documents");
+  if (snapshot.empty) return;
+
+  const batchSize = 500;
+  const docs = snapshot.docs;
+
+  for (let i = 0; i < docs.length; i += batchSize) {
+    const batch = db.batch();
+    for (const doc of docs.slice(i, i + batchSize)) {
+      batch.delete(doc.ref);
     }
-  } catch (error) {
-    console.error("Error deleting documents:", error);
-    throw new Error("Failed to delete documents");
+    await batch.commit();
   }
 }
 
@@ -83,25 +95,14 @@ export async function insertDocument(
   },
   embedding: number[],
 ): Promise<string> {
-  try {
-    const { data, error } = await supabase
-      .from("documents")
-      .insert({
-        content,
-        metadata,
-        embedding,
-      })
-      .select("id")
-      .single();
+  const collection = db.collection(DOCUMENTS_COLLECTION);
 
-    if (error) {
-      console.error("Supabase insert error:", error);
-      throw new Error("Failed to insert document");
-    }
+  const docRef = await collection.add({
+    content,
+    metadata,
+    embedding: FieldValue.vector(embedding),
+    createdAt: FieldValue.serverTimestamp(),
+  });
 
-    return data.id;
-  } catch (error) {
-    console.error("Error inserting document:", error);
-    throw new Error("Failed to insert document");
-  }
+  return docRef.id;
 }
