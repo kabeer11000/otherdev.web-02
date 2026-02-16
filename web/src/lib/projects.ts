@@ -7,6 +7,7 @@ export interface Project {
   url?: string;
   media?: string[];
   year: number;
+  downloadUrl?: string;
 }
 
 export const projects: Project[] = [
@@ -238,15 +239,29 @@ export const projects: Project[] = [
     description:
       "Kiswa Noire is a contemporary fashion label with a distinct, avant-garde aesthetic rooted in refined craftsmanship and dark elegance. We developed a minimal, interactive digital presence for the brand to express its identity, focusing on visual storytelling, clarity, and an elevated user experience tailored to its creative direction.",
     url: "kiswanoire.com",
-    media: [
-      "/images/projects/kiswanoire-2025/kiswanoire-home.webp",
-      "/images/projects/kiswanoire-2025/kiswanoire-collections.webp",
-      "/images/projects/kiswanoire-2025/kiswanoire-product.webp",
-      "/images/projects/kiswanoire-2025/kiswanoire-collections-mobile.webp",
-      "/images/projects/kiswanoire-2025/kiswanoire-product-mobile.webp",
-      "/images/projects/kiswanoire-2025/kiswanoire-product-mobile-2.webp",
-    ],
-    year: 2025,
-  },
-
-];
+          media: [
+          "/images/projects/kiswanoire-2025/kiswanoire-home.webp",
+          "/images/projects/kiswanoire-2025/kiswanoire-collections.webp",
+          "/images/projects/kiswanoire-2025/kiswanoire-product.webp",
+          "/images/projects/kiswanoire-2025/kiswanoire-collections-mobile.webp",
+          "/images/projects/kiswanoire-2025/kiswanoire-product-mobile.webp",
+          "/images/projects/kiswanoire-2025/kiswanoire-product-mobile-2.webp",
+        ],
+        year: 2025,
+      },
+        {
+          id: "16",
+          title: "Ads Portfolio & Creative Design",
+          slug: "ads-portfolio",
+          image: "/images/projects/ads-portfolio/ads-portfolio-1.webp",
+          description:
+            "A curated collection of digital advertisements and creative designs. This portfolio showcases our expertise in visual storytelling, brand engagement, and high-impact social media assets designed to drive conversions and brand awareness across multiple platforms.",
+                            media: [
+                              "/images/projects/ads-portfolio/ads-portfolio-3.webp",
+                              "/images/projects/ads-portfolio/ads-portfolio-6.webp",
+                              "/images/projects/ads-portfolio/ads-portfolio-8.webp",
+                            ],
+                            year: 2026,
+                            downloadUrl: "/images/projects/ads-portfolio/otherdev_ads_portfolio.pdf",
+                          },
+                        ];

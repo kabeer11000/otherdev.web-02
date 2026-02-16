@@ -176,6 +176,24 @@ export function Navigation({
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.26, duration: 0.3 }}
+              >
+                <Button
+                  asChild
+                  variant="nav"
+                  size="nav-mobile"
+                  className={
+                    pathname === "/work/ads-portfolio" ? "text-foreground" : ""
+                  }
+                >
+                  <Link href="/work/ads-portfolio" data-slot="nav-item">
+                    Ads
+                  </Link>
+                </Button>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.27, duration: 0.3 }}
               >
                 <Button
@@ -252,6 +270,17 @@ export function Navigation({
           >
             <Link href="/loom" data-slot="nav-item">
               Ai
+            </Link>
+          </Button>
+
+          <Button
+            asChild
+            variant="nav"
+            size="nav-default"
+            className={pathname === "/work/ads-portfolio" ? "text-foreground" : ""}
+          >
+            <Link href="/work/ads-portfolio" data-slot="nav-item">
+              Ads
             </Link>
           </Button>
 
