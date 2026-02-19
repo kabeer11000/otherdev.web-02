@@ -120,7 +120,6 @@ export const projects: Project[] = [
     media: [
       "/images/projects/finlit-2025/finlit-group.webp",
       "/images/projects/finlit-2025/finlit-home-mobile.webp",
-      "/images/projects/finlit-2025/team-groupchat.webp",
       "/images/projects/finlit-2025/finlit-courses-macbook.webp",
       "/images/projects/finlit-2025/finlit-logo.webp",
       "/images/projects/finlit-2025/finlit.deployments.otherdev.com_trading_1x1.webp",
