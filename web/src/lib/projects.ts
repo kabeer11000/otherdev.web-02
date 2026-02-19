@@ -264,4 +264,20 @@ export const projects: Project[] = [
     year: 2026,
     downloadUrl: "/images/projects/ads-portfolio/OD Ads Digital Issue.pdf",
   },
+  {
+    id: "17",
+    title: "Adina Household",
+    slug: "adinahousehold",
+    image: "/images/projects/adina-household-2026/adinahousehold-1.webp",
+    description:
+      "A sophisticated e-commerce platform for Adina Household, showcasing premium ceramic tableware and dinnerware collections. The website features an elegant design that highlights the craftsmanship and quality of their fine china and decorative ceramic pieces.",
+    url: "adinahousehold.com",
+    media: [
+      "/images/projects/adina-household-2026/adinahousehold-1.webp",
+      "/images/projects/adina-household-2026/adinahousehold-2.webp",
+      "/images/projects/adina-household-2026/adinahousehold-3.webp",
+      "/images/projects/adina-household-2026/adinahousehold-4.webp",
+    ],
+    year: 2026,
+  },
 ];
