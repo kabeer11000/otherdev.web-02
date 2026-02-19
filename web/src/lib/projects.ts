@@ -253,15 +253,15 @@ export const projects: Project[] = [
     id: "16",
     title: "Ads Portfolio & Creative Design",
     slug: "ads-portfolio",
-    image: "/images/projects/ads-portfolio/ads-portfolio-1.webp",
+    image: "/images/projects/ads-portfolio/ads-portfolio-14.webp",
     description:
       "A curated collection of digital advertisements and creative designs. This portfolio showcases our expertise in visual storytelling, brand engagement, and high-impact social media assets designed to drive conversions and brand awareness across multiple platforms.",
     media: [
-      "/images/projects/ads-portfolio/ads-portfolio-3.webp",
-      "/images/projects/ads-portfolio/ads-portfolio-6.webp",
-      "/images/projects/ads-portfolio/ads-portfolio-8.webp",
+      "/images/projects/ads-portfolio/ads-portfolio-14.webp",
+      "/images/projects/ads-portfolio/ads-portfolio-17.webp",
+      "/images/projects/ads-portfolio/ads-portfolio-21.webp",
     ],
     year: 2026,
-    downloadUrl: "/images/projects/ads-portfolio/otherdev_ads_portfolio.pdf",
+    downloadUrl: "/images/projects/ads-portfolio/OD Ads Digital Issue.pdf",
   },
 ];
