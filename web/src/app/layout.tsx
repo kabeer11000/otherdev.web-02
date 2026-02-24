@@ -10,26 +10,6 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://otherdev.com"),
   title: "OtherDev",
   description: "Digital platforms for pioneering creatives",
-  openGraph: {
-    title: "OtherDev",
-    description: "Digital platforms for pioneering creatives",
-    type: "website",
-    url: "https://otherdev.com",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "OtherDev Logo",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "OtherDev",
-    description: "Digital platforms for pioneering creatives",
-    images: ["/og-image.jpg"],
-  },
   robots: {
     index: true,
     follow: true,

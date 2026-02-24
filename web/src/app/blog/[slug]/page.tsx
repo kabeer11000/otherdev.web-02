@@ -2,6 +2,30 @@ import Link from "next/link";
 import { CanvasClient } from "@od-canvas/sdk";
 
 // @ts-ignore
+export async function generateMetadata({ params }) {
+  const slug = (await params).slug as string;
+  const canvas = new CanvasClient({
+    baseUrl: process.env.CANVAS_API_URL,
+    apiKey: process.env.CANVAS_API_KEY,
+  });
+  let post = null;
+  try {
+    post = await canvas.getPublicDocument(parseInt(slug));
+  } catch (e) {}
+
+  if (!post) {
+    return {
+      title: "Blog Post Not Found | OtherDev",
+    };
+  }
+
+  return {
+    title: `${post.title} | OtherDev Blog`,
+    description: post.content.replace(/<[^>]*>/g, "").substring(0, 160),
+  };
+}
+
+// @ts-ignore
 export default async function BlogPostPage({ params }) {
   const slug = (await params).slug as string;
   const canvas = new CanvasClient({

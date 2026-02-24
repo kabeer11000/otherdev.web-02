@@ -17,28 +17,6 @@ export const metadata: Metadata = {
     "digital solutions",
     "OtherDev",
   ],
-  openGraph: {
-    title: "Our Work | OtherDev",
-    description:
-      "Explore our premium web design and development projects. We engineer digital solutions for pioneering brands.",
-    type: "website",
-    url: "https://otherdev.com/work",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "OtherDev Portfolio",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Our Work | OtherDev",
-    description: "Premium web design and development portfolio",
-    images: ["/og-image.jpg"],
-  },
-  // canonical: "https://otherdev.com/work",
 };
 
 export default function WorkPage() {
