@@ -263,16 +263,19 @@ export async function POST(request: Request): Promise<Response> {
 
     const queryQuality = detectQueryQuality(normalizedQuery);
 
-    const queryEmbedding = await generateEmbedding(normalizedQuery);
-
-    const adaptiveThreshold = getAdaptiveThreshold(queryQuality);
-    const similarDocs = await searchSimilarDocuments(
-      queryEmbedding,
-      adaptiveThreshold,
-      RAG_MATCH_COUNT,
-    );
-
-    const context = buildContext(similarDocs, queryQuality);
+    let context = "";
+    try {
+      const queryEmbedding = await generateEmbedding(normalizedQuery);
+      const adaptiveThreshold = getAdaptiveThreshold(queryQuality);
+      const similarDocs = await searchSimilarDocuments(
+        queryEmbedding,
+        adaptiveThreshold,
+        RAG_MATCH_COUNT,
+      );
+      context = buildContext(similarDocs, queryQuality);
+    } catch {
+      // Embedding service unavailable — proceed without RAG context
+    }
 
     const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{context}", context);
 

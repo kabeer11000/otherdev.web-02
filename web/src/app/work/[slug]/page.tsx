@@ -8,7 +8,7 @@ import { Footer } from "@/components/footer";
 import { projects } from "@/lib/projects";
 import { ProjectCard } from "@/components/project-card";
 import { cn } from "@/lib/utils";
-import { DownloadButton } from "@/components/download-button";
+import { Download } from "lucide-react";
 
 interface ProjectPageProps {
   params: Promise<{
@@ -105,7 +105,16 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           </p>
 
           {project.downloadUrl && (
-            <DownloadButton href={project.downloadUrl} />
+            <Link
+              href={project.downloadUrl}
+              download
+              className="inline-flex bg-neutral-200 hover:bg-neutral-300 transition-colors rounded-[5px] h-[32px] px-[16px] items-center mb-[64px] gap-2"
+            >
+              <Download className="w-[14px] h-[14px] text-[#686868]" />
+              <span className="text-[13px] leading-[16px] tracking-[-0.24px] font-normal text-[#686868]">
+                Download Full Issue
+              </span>
+            </Link>
           )}
         </div>
 
