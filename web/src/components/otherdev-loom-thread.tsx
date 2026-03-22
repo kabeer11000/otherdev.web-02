@@ -45,6 +45,7 @@ import {
   PromptInputTextarea,
 } from "@/components/ui/prompt-input";
 import { VoiceRecorderButton } from "@/components/voice-recorder-button";
+import { VoiceWaveform } from "@/components/voice-waveform";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
 import { encodeImageToBase64, extractTextFromFile } from "@/lib/file-processor";
 import { cn } from "@/lib/utils";
@@ -267,6 +268,7 @@ export function OtherDevLoomThread() {
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const [fileError, setFileError] = useState("");
+  const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null);
 
   const processAndAttachFiles = async (files: File[]) => {
     if (files.length === 0) {
@@ -481,12 +483,16 @@ export function OtherDevLoomThread() {
           onValueChange={setInputValue}
           onSubmit={handleSubmit}
         >
-          <PromptInputTextarea
-            ref={inputRef}
-            placeholder={placeholder}
-            className="font-sans text-sm sm:text-base"
-            autoFocus
-          />
+          {recordingStream ? (
+            <VoiceWaveform stream={recordingStream} />
+          ) : (
+            <PromptInputTextarea
+              ref={inputRef}
+              placeholder={placeholder}
+              className="font-sans text-sm sm:text-base"
+              autoFocus
+            />
+          )}
           {suggestion && !inputValue && (
             <button
               type="button"
@@ -508,6 +514,9 @@ export function OtherDevLoomThread() {
                 <VoiceRecorderButton
                   onTranscript={handleTranscriptReceived}
                   onError={handleRecorderError}
+                  onRecordingChange={(active, stream) =>
+                    setRecordingStream(active && stream ? stream : null)
+                  }
                   disabled={isProcessingFiles}
                 />
               </PromptInputAction>

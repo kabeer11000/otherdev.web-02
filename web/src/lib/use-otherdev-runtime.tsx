@@ -94,10 +94,14 @@ export function useOtherDevRuntime() {
       const hasImages = composedContent.some((block) => block.type === "image_url");
 
       // Store only text in the thread message — assistant-ui can't render image_url parts
-      // Images are kept in metadata for API serialization
+      // Images and file text blocks are kept in metadata for API serialization
       const imageUrls = composedContent
         .filter((b) => b.type === "image_url")
         .map((b) => (b as { type: "image_url"; image_url: { url: string } }).image_url);
+
+      const fileTexts = composedContent
+        .filter((b) => b.type === "text")
+        .map((b) => (b as { type: "text"; text: string }).text);
 
       const userMessage: ThreadMessage = {
         id: `user-${Date.now()}`,
@@ -106,7 +110,7 @@ export function useOtherDevRuntime() {
         createdAt: new Date(),
         attachments: [],
         metadata: {
-          custom: { hasImageContent: hasImages, images: imageUrls },
+          custom: { hasImageContent: hasImages, images: imageUrls, fileTexts },
         },
       };
 
@@ -122,14 +126,18 @@ export function useOtherDevRuntime() {
       try {
         const apiMessages = messages.concat(userMessage).map((msg) => {
           const text = msg.content.find((c) => c.type === "text");
-          const storedImages = (msg.metadata?.custom as { images?: { url: string }[] } | undefined)?.images ?? [];
+          const custom = msg.metadata?.custom as { images?: { url: string }[]; fileTexts?: string[] } | undefined;
+          const storedImages = custom?.images ?? [];
+          const storedFileTexts = custom?.fileTexts ?? [];
 
-          if (storedImages.length > 0) {
+          if (storedImages.length > 0 || storedFileTexts.length > 0) {
+            const inputText = text && text.type === "text" ? text.text : "";
+            const combinedText = [...storedFileTexts, inputText].filter(Boolean).join("\n\n");
             return {
               role: msg.role,
               content: [
                 ...storedImages.map((img) => ({ type: "image_url", image_url: img })),
-                { type: "text", text: text && text.type === "text" ? text.text : "" },
+                { type: "text", text: combinedText },
               ],
             };
           }
