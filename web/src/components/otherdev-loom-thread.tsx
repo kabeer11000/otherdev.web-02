@@ -8,7 +8,8 @@ import {
   useAssistantApi,
   useMessage,
 } from "@assistant-ui/react";
-import { ArrowUp, ChevronRight, FileCode2, FileText } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowUp, ChevronRight, FileCode2, FileText, Upload } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useArtifact, useRuntimeContext } from "@/app/loom/page";
@@ -140,7 +141,7 @@ function UserMessage() {
               ))}
             </div>
           )}
-          {message.content.some((p) => p.type === "text") && (
+          {message.content.some((p) => p.type === "text" && p.text.trim()) && (
             <MessageContent className="rounded-2xl bg-accent px-3 py-2 text-sm text-accent-foreground sm:px-4 sm:py-3 sm:text-base">
               <MessagePrimitive.Content />
             </MessageContent>
@@ -287,6 +288,8 @@ export function OtherDevLoomThread() {
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const [fileError, setFileError] = useState("");
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
 
   const processAndAttachFiles = async (files: File[]) => {
     if (files.length === 0) {
@@ -337,6 +340,36 @@ export function OtherDevLoomThread() {
 
   const handleRecorderError = (error: string) => {
     setFileError(error);
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      await handleFilesSelected(files);
+    }
   };
 
   const handleSubmit = () => {
@@ -391,7 +424,43 @@ export function OtherDevLoomThread() {
   const placeholder = suggestion || "Type your message...";
 
   return (
-    <div className="relative h-full flex flex-col bg-background">
+    <div
+      className="relative h-full flex flex-col bg-background"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      <AnimatePresence>
+        {isDragging && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 z-20 flex items-center justify-center bg-background/85 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.165, 0.85, 0.45, 1] }}
+              className="flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-foreground/20 bg-card/50 px-12 py-10"
+            >
+              <motion.div
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 1.6, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+              >
+                <Upload className="h-8 w-8 text-foreground/40" />
+              </motion.div>
+              <div className="text-center">
+                <p className="font-sans text-sm font-medium text-foreground">Drop files to attach</p>
+                <p className="mt-1 font-sans text-xs text-muted-foreground">Images, PDFs, code, and documents</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <ChatContainerRoot className="flex-1 w-full">
         <ChatContainerContent
           className="flex-1 scroll-smooth pb-32 sm:pb-40"
@@ -494,7 +563,7 @@ export function OtherDevLoomThread() {
         </div>
 
         <PromptInput
-          className="rounded-2xl border-border shadow-sm pointer-events-auto"
+          className="relative rounded-2xl border-border shadow-sm pointer-events-auto"
           disabled={false}
           maxHeight={96}
           value={inputValue}
@@ -507,7 +576,10 @@ export function OtherDevLoomThread() {
             <PromptInputTextarea
               ref={inputRef}
               placeholder={placeholder}
-              className="font-sans text-sm sm:text-base"
+              className={cn(
+                "font-sans text-sm sm:text-base",
+                suggestion && !inputValue && "placeholder:text-transparent placeholder:md:text-muted-foreground",
+              )}
               autoFocus
             />
           )}
@@ -515,7 +587,7 @@ export function OtherDevLoomThread() {
             <button
               type="button"
               onClick={applySuggestion}
-              className="absolute left-3 top-2.5 font-sans text-sm text-muted-foreground hover:opacity-80 transition-opacity sm:left-4 sm:top-3 sm:text-base md:hidden"
+              className="absolute inset-2 bottom-auto h-[44px] pl-3 pt-2 font-sans text-sm text-muted-foreground hover:opacity-80 transition-opacity md:hidden overflow-hidden text-left"
             >
               {suggestion}
             </button>

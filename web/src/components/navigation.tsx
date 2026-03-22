@@ -38,6 +38,10 @@ export function Navigation({
     sessionStorage.setItem("mobileMenuOpen", isOpen.toString());
   }, [isOpen]);
 
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
+
   const handleContactClick = () => {
     setContactDialogOpen(true);
   };
@@ -312,7 +316,10 @@ export function Navigation({
           variant="nav"
           size="nav-default"
           onClick={onClear}
-          className="absolute right-3 top-0 pointer-events-auto bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70 flex items-center gap-1.5"
+          className={cn(
+            "absolute right-12 sm:right-3 top-0 pointer-events-auto bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70 flex items-center gap-1.5",
+            isOpen && "hidden",
+          )}
         >
           <Trash2 size={12} strokeWidth={2} />
           clear
