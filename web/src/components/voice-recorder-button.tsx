@@ -1,8 +1,7 @@
 "use client";
 
 import { Mic, Square } from "lucide-react";
-import { useState } from "react";
-import { VoiceRecorder } from "@/lib/voice-recorder";
+import { useRef, useState } from "react";
 
 interface VoiceRecorderButtonProps {
   onTranscript: (transcript: string) => void;
@@ -16,100 +15,66 @@ export function VoiceRecorderButton({
   disabled = false,
 }: VoiceRecorderButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [recorder, setRecorder] = useState<VoiceRecorder | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const finalTranscriptRef = useRef("");
 
-  const handleStartRecording = async () => {
-    try {
-      setIsProcessing(true);
-      const stream = await VoiceRecorder.requestMicrophone();
-      const newRecorder = new VoiceRecorder(stream);
-      newRecorder.start();
-      setRecorder(newRecorder);
-      setIsRecording(true);
-      setIsProcessing(false);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to access microphone";
-      onError(message);
-      setIsProcessing(false);
-    }
-  };
-
-  const handleStopRecording = async () => {
-    if (!recorder) return;
-
-    try {
-      setIsProcessing(true);
-      const audioBlob = await recorder.stop();
-
-      // Release microphone immediately — done recording
-      recorder.release();
-      setRecorder(null);
-      setIsRecording(false);
-
-      // Send to transcription API
-      const formData = new FormData();
-      formData.append("audio", audioBlob, "recording.webm");
-
-      const response = await fetch("/api/transcribe", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Transcription failed");
-      }
-
-      // Handle streaming transcription
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error("Response body is not readable");
-      }
-
-      let fullTranscript = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-
-          const data = line.slice(6);
-          if (data === "[DONE]") continue;
-
-          try {
-            const parsed = JSON.parse(data);
-
-            if (parsed.type === "transcript-chunk") {
-              fullTranscript += parsed.content;
-              onTranscript(fullTranscript);
-            } else if (parsed.type === "transcript-complete") {
-              fullTranscript = parsed.content;
-              onTranscript(fullTranscript);
-            }
-          } catch (parseError) {
-            console.error("Error parsing transcription chunk:", parseError);
+  const handleStartRecording = () => {
+    const SpeechRecognitionAPI =
+      window.SpeechRecognition ??
+      (
+        window as Window &
+          typeof globalThis & {
+            webkitSpeechRecognition: typeof SpeechRecognition;
           }
+      ).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionAPI) {
+      onError("Speech recognition is not supported in this browser");
+      return;
+    }
+
+    finalTranscriptRef.current = "";
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscriptRef.current += transcript;
+        } else {
+          interim += transcript;
         }
       }
 
-      setIsProcessing(false);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Transcription error";
-      onError(message);
-      recorder.release();
-      setRecorder(null);
+      onTranscript(finalTranscriptRef.current + interim);
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      if (event.error !== "aborted") {
+        onError(`Speech recognition error: ${event.error}`);
+      }
       setIsRecording(false);
-      setIsProcessing(false);
-    }
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
+    setIsRecording(true);
+  };
+
+  const handleStopRecording = () => {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setIsRecording(false);
   };
 
   const buttonClass = isRecording
@@ -120,12 +85,10 @@ export function VoiceRecorderButton({
     <button
       type="button"
       onClick={isRecording ? handleStopRecording : handleStartRecording}
-      disabled={disabled || isProcessing}
+      disabled={disabled}
       className={`flex h-6 w-6 items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] disabled:opacity-50 sm:h-7 sm:w-7 rounded-full ${buttonClass}`}
       aria-label={isRecording ? "Stop recording" : "Start recording"}
-      title={
-        isRecording ? "Stop recording (click to send)" : "Record voice message"
-      }
+      title={isRecording ? "Stop recording" : "Record voice message"}
     >
       {isRecording ? (
         <Square className="h-3 w-3 sm:h-4 sm:w-4 fill-current" />
