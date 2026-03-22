@@ -13,6 +13,72 @@ import { ArrowUp, ChevronRight, FileCode2, FileText, Upload } from "lucide-react
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useArtifact, useRuntimeContext } from "@/app/loom/page";
+
+function useTimeBasedGreeting() {
+  const [greeting, setGreeting] = useState("Welcome");
+
+  useEffect(() => {
+    const updateGreeting = () => {
+      const hour = new Date().getHours();
+
+      let greetings: string[] = [];
+
+      if (hour >= 0 && hour < 5) {
+        greetings = [
+          "Hello, night owl",
+          "Burning the midnight oil?",
+          "Still up, I see",
+          "Late night inspiration strike?",
+          "Welcome back, creative soul",
+        ];
+      } else if (hour >= 5 && hour < 9) {
+        greetings = [
+          "Good morning",
+          "Early riser mode on",
+          "Fresh start ahead",
+          "Ready to create?",
+        ];
+      } else if (hour >= 9 && hour < 12) {
+        greetings = [
+          "Good morning",
+          "Morning, let's make something great",
+          "What's on your mind today?",
+          "Feeling creative?",
+        ];
+      } else if (hour >= 12 && hour < 17) {
+        greetings = [
+          "Good afternoon",
+          "Afternoon vibes",
+          "Still grinding?",
+          "How's the day treating you?",
+        ];
+      } else if (hour >= 17 && hour < 21) {
+        greetings = [
+          "Good evening",
+          "Evening, creator",
+          "Golden hour thinking time",
+          "Winding down or gearing up?",
+        ];
+      } else {
+        greetings = [
+          "Good night",
+          "Late night magic hour",
+          "Night mode activated",
+          "Quiet hours for the best ideas",
+        ];
+      }
+
+      const random = greetings[Math.floor(Math.random() * greetings.length)];
+      setGreeting(random);
+    };
+
+    updateGreeting();
+    const interval = setInterval(updateGreeting, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return greeting;
+}
 import { FileAttachmentButton } from "@/components/file-attachment-button";
 import { FilePreview } from "@/components/file-preview";
 import { Button } from "@/components/ui/button";
@@ -290,6 +356,7 @@ export function OtherDevLoomThread() {
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
+  const greeting = useTimeBasedGreeting();
 
   const processAndAttachFiles = async (files: File[]) => {
     if (files.length === 0) {
@@ -479,9 +546,15 @@ export function OtherDevLoomThread() {
                       className="h-7 w-7 sm:h-8 sm:w-8"
                     />
                   </div>
-                  <h2 className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl">
-                    How can I help you today?
-                  </h2>
+                  <motion.h2
+                    key={greeting}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl"
+                  >
+                    {greeting}
+                  </motion.h2>
                   <p className="font-sans text-sm text-muted-foreground sm:text-base">
                     Ask me anything about OtherDev
                   </p>
