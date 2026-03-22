@@ -7,11 +7,8 @@ export interface Message {
   content: MessageContent;
 }
 
-export function selectModel(hasImageContent: boolean | undefined): string {
-  if (hasImageContent === true) {
-    return "meta-llama/llama-4-scout-17b-16e-instruct";
-  }
-  return "openai/gpt-oss-120b";
+export function selectModel(_hasImageContent: boolean | undefined): string {
+  return "meta-llama/llama-4-scout-17b-16e-instruct";
 }
 
 export function validateImageContent(

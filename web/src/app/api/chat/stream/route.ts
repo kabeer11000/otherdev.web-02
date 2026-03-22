@@ -51,7 +51,7 @@ const RAG_MAX_MESSAGE_LENGTH = Number.parseInt(
 const RAG_SIMILARITY_THRESHOLD = Number.parseFloat(
   process.env.RAG_SIMILARITY_THRESHOLD || "0.1",
 );
-const RAG_MATCH_COUNT = Number.parseInt(process.env.RAG_MATCH_COUNT || "10", 10);
+const RAG_MATCH_COUNT = Number.parseInt(process.env.RAG_MATCH_COUNT || "5", 10);
 
 const DANGEROUS_PATTERNS = [
   /\[INST\]/gi,
@@ -299,7 +299,7 @@ export async function POST(request: Request): Promise<Response> {
       model: selectedModel,
       messages: chatMessages,
       temperature: 0.7,
-      max_tokens: 8000,
+      max_tokens: 1024,
       stream: true,
       tools: [createArtifactTool],
       tool_choice: "auto",
