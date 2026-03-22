@@ -7,23 +7,11 @@ export interface Message {
   content: MessageContent;
 }
 
-export interface GroqMessage {
-  role: "user" | "assistant";
-  content: string | ContentBlock[];
-}
-
 export function selectModel(hasImageContent: boolean | undefined): string {
   if (hasImageContent === true) {
     return "meta-llama/llama-4-scout-17b-16e-instruct";
   }
   return "openai/gpt-oss-120b";
-}
-
-export function formatMessagesForGroq(messages: Message[]): GroqMessage[] {
-  return messages.map((message) => ({
-    role: message.role,
-    content: message.content,
-  }));
 }
 
 export function validateImageContent(

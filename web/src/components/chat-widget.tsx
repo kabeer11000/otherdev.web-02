@@ -152,6 +152,17 @@ async function streamChat(
               }
             }
 
+            if (parsed.type === "content-final" && parsed.content) {
+              accumulatedContent = parsed.content;
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMessageId
+                    ? { ...msg, content: accumulatedContent }
+                    : msg,
+                ),
+              );
+            }
+
             if (parsed.type === "content" && parsed.content) {
               accumulatedContent += parsed.content;
 
@@ -416,17 +427,7 @@ export function ChatWidget() {
             "lg:h-[650px] lg:max-h-[calc(100vh-5rem)]",
             "xl:h-[700px] xl:max-h-[calc(100vh-6rem)]",
           )}
-          style={{
-            zIndex: Z_INDEX.chatWidget,
-            ...(typeof window !== "undefined" && window.innerWidth >= 768
-              ? {
-                  top: "auto",
-                  left: "auto",
-                  bottom: window.innerWidth >= 1024 ? "2.5rem" : "2rem",
-                  right: window.innerWidth >= 1024 ? "2.5rem" : "2rem",
-                }
-              : {}),
-          }}
+          style={{ zIndex: Z_INDEX.chatWidget }}
           onWheel={handleWheel}
         >
           <div

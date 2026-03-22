@@ -1,30 +1,4 @@
-import { z } from "zod";
-
 export const CREATE_ARTIFACT_TOOL_NAME = "create_artifact";
-
-export const createArtifactSchema = z.object({
-  title: z
-    .string()
-    .min(1, "Title is required")
-    .max(100, "Title must be 100 characters or less")
-    .describe("A short, descriptive title for the artifact"),
-  code: z
-    .string()
-    .min(1, "Code is required")
-    .max(50000, "Code must be 50KB or less")
-    .describe(
-      "Complete HTML code. Can include modern frameworks like React, Vue, or Tailwind CSS via CDN (use unpkg.com or cdn.jsdelivr.net). For React, include React/ReactDOM from CDN and use Babel standalone for JSX. Include all CSS in <style> tags and JavaScript in <script> tags. Must be self-contained and work in a sandboxed iframe.",
-    ),
-  description: z
-    .string()
-    .min(1, "Description is required")
-    .max(500, "Description must be 500 characters or less")
-    .describe(
-      "A brief explanation of what this artifact does and how to use it",
-    ),
-});
-
-export type CreateArtifactArgs = z.infer<typeof createArtifactSchema>;
 
 export const createArtifactTool = {
   type: "function" as const,

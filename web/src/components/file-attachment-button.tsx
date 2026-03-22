@@ -37,7 +37,7 @@ export function FileAttachmentButton({
     const validFiles: File[] = []
 
     for (const file of files) {
-      const validation = validateFile(file, maxTotalSize)
+      const validation = validateFile(file)
       if (!validation.valid) {
         setError(validation.error || "Invalid file")
         return

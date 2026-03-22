@@ -1,5 +1,6 @@
 import { z } from "zod";
 import Groq from "groq-sdk";
+import type { ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
 import { generateEmbedding } from "@/server/lib/rag/embeddings";
 import { searchSimilarDocuments } from "@/server/lib/rag/vector-search";
 import {
@@ -9,7 +10,7 @@ import {
 } from "@/server/lib/rate-limit";
 import { createArtifactTool } from "@/server/lib/artifact-tool";
 import { stripMarkdown } from "@/lib/utils";
-import { selectModel, formatMessagesForGroq, validateImageContent, type Message } from "./helpers";
+import { selectModel, validateImageContent, type Message } from "./helpers";
 
 // Zod schemas for validating content blocks (matching shared ContentBlock types)
 const TextBlockSchema = z.object({
@@ -277,16 +278,21 @@ export async function POST(request: Request): Promise<Response> {
 
     const selectedModel = selectModel(hasImageContent);
 
-    const formattedMessages = formatMessagesForGroq(typedMessages).map((m) => ({
+    const formattedMessages = typedMessages.map((m) => ({
       role: m.role as "user" | "assistant",
-      content: typeof m.content === "string"
-        ? sanitizeInput(m.content)
-        : m.content,
+      content:
+        typeof m.content === "string"
+          ? sanitizeInput(m.content)
+          : m.content.map((block) =>
+              block.type === "text"
+                ? ({ type: "text" as const, text: sanitizeInput(block.text) })
+                : block,
+            ),
     }));
 
-    const chatMessages = [
-      { role: "system" as const, content: systemPrompt },
-      ...formattedMessages,
+    const chatMessages: ChatCompletionMessageParam[] = [
+      { role: "system", content: systemPrompt },
+      ...(formattedMessages as ChatCompletionMessageParam[]),
     ];
 
     const completion = await groq.chat.completions.create({
