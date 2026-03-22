@@ -8,7 +8,7 @@ import {
   useAssistantApi,
   useMessage,
 } from "@assistant-ui/react";
-import { ArrowUp, ChevronRight, FileCode2 } from "lucide-react";
+import { ArrowUp, ChevronRight, FileCode2, FileText } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useArtifact, useRuntimeContext } from "@/app/loom/page";
@@ -104,7 +104,12 @@ function SuggestionButton({
 
 function UserMessage() {
   const message = useMessage();
-  const images = (message.metadata?.custom as { images?: { url: string }[] } | undefined)?.images ?? [];
+  const custom = message.metadata?.custom as { images?: { url: string }[]; fileTexts?: string[] } | undefined;
+  const images = custom?.images ?? [];
+  const fileNames = (custom?.fileTexts ?? []).map((t) => {
+    const match = t.match(/^\[File: (.+?)\]/);
+    return match ? match[1] : "Attached file";
+  });
 
   return (
     <div className="flex justify-end">
@@ -119,6 +124,19 @@ function UserMessage() {
                   alt="Attached image"
                   className="max-h-48 max-w-48 rounded-xl object-cover"
                 />
+              ))}
+            </div>
+          )}
+          {fileNames.length > 0 && (
+            <div className="flex flex-wrap gap-2 justify-end">
+              {fileNames.map((name, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground"
+                >
+                  <FileText className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                  <span className="max-w-[180px] truncate">{name}</span>
+                </div>
               ))}
             </div>
           )}

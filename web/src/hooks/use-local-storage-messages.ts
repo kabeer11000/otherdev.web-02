@@ -24,43 +24,30 @@ export function useLocalStorageMessages<T>({
   serialize,
   expirationMinutes = DEFAULT_EXPIRATION_MINUTES,
 }: UseLocalStorageMessagesProps<T>) {
-  const [messages, setMessages] = useState<T[]>(() => {
-    if (typeof window === "undefined") {
-      return initialValue;
-    }
-
-    try {
-      const item = window.localStorage.getItem(key);
-      if (!item) {
-        return initialValue;
-      }
-
-      const storedData: StoredData<T> = JSON.parse(item);
-      const now = Date.now();
-      const expirationMs = expirationMinutes * 60 * 1000;
-
-      if (now - storedData.timestamp > expirationMs) {
-        window.localStorage.removeItem(key);
-        return initialValue;
-      }
-
-      if (deserialize) {
-        return deserialize(JSON.stringify(storedData.messages));
-      }
-
-      return storedData.messages;
-    } catch (error) {
-      console.error(
-        `Error loading messages from localStorage (${key}):`,
-        error,
-      );
-      return initialValue;
-    }
-  });
-
+  const [messages, setMessages] = useState<T[]>(initialValue);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Load from localStorage after hydration to avoid SSR/client mismatch
   useEffect(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      if (item) {
+        const storedData: StoredData<T> = JSON.parse(item);
+        const now = Date.now();
+        const expirationMs = expirationMinutes * 60 * 1000;
+
+        if (now - storedData.timestamp > expirationMs) {
+          window.localStorage.removeItem(key);
+        } else {
+          const loaded = deserialize
+            ? deserialize(JSON.stringify(storedData.messages))
+            : storedData.messages;
+          setMessages(loaded);
+        }
+      }
+    } catch (error) {
+      console.error(`Error loading messages from localStorage (${key}):`, error);
+    }
     setIsLoaded(true);
   }, []);
 
