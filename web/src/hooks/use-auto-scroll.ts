@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export function useAutoScroll(dependencies: any[] = []) {
+export function useAutoScroll(messageCount: number) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const userScrolledRef = useRef(false);
@@ -32,11 +32,12 @@ export function useAutoScroll(dependencies: any[] = []) {
     userScrolledRef.current = true;
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — trigger on messageCount only, read current scroll state without re-subscribing
   useEffect(() => {
     if (shouldAutoScroll && !userScrolledRef.current) {
       scrollToBottom();
     }
-  }, dependencies);
+  }, [messageCount]);
 
   return {
     containerRef,

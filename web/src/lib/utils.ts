@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from "clsx";
+import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]): string {
@@ -22,6 +22,10 @@ export function stripMarkdown(text: string): string {
 // Source - https://stackoverflow.com/a/2450976
 // Posted by ChristopheD, modified by community. See post 'Timeline' for change history
 // Retrieved 2025-11-12, License - CC BY-SA 4.0
+export function cleanSuggestionMarkers(content: string): string {
+  return content.replace(/\s*SUGGESTION:[\s\S]*$/i, "").trim();
+}
+
 export function shuffle<T>(array: T[]): T[] {
   let currentIndex = array.length;
 

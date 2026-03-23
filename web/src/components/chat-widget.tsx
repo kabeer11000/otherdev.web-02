@@ -1,37 +1,31 @@
 "use client";
 
-import * as React from "react";
-import { ChevronDown, Send, ArrowDown, ChevronRight } from "lucide-react";
+import { ArrowDown, ChevronDown, ChevronRight, Send } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { type Message } from "@/components/ui/chat-message";
-import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
-import { CopyButton } from "@/components/ui/copy-button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Collapsible,
-  CollapsibleTrigger,
   CollapsibleContent,
+  CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { CopyButton } from "@/components/ui/copy-button";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { PromptSuggestions } from "@/components/ui/prompt-suggestions";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
 import { useAutosizeTextArea } from "@/hooks/use-autosize-textarea";
-import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { useLocalStorageMessages } from "@/hooks/use-local-storage-messages";
-import { PromptSuggestions } from "@/components/ui/prompt-suggestions";
-import { Z_INDEX, SUGGESTED_PROMPTS } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
+import { SUGGESTED_PROMPTS, Z_INDEX } from "@/lib/constants";
+import type { WidgetMessage as Message } from "@/lib/content-types";
+import { parseSSEStream } from "@/lib/sse";
+import { cleanSuggestionMarkers, cn } from "@/lib/utils";
 
 const MAX_INPUT_LENGTH = 500;
 const CHAT_WIDGET_STORAGE_KEY = "otherdev-chat-widget-messages";
-
-function cleanSuggestionMarkers(content: string): string {
-  return content
-    .replace(/\s*SUGGESTION:[\s\S]*$/i, "")
-    .replace(/\n+SUGGESTION:[\s\S]*$/i, "")
-    .trim();
-}
 
 function serializeMessages(messages: Message[]): string {
   return JSON.stringify(
@@ -48,15 +42,6 @@ function deserializeMessages(data: string): Message[] {
     ...msg,
     createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
   }));
-}
-
-function setTextareaValue(textarea: HTMLTextAreaElement, value: string) {
-  const setter = Object.getOwnPropertyDescriptor(
-    HTMLTextAreaElement.prototype,
-    "value",
-  )?.set;
-  setter?.call(textarea, value);
-  textarea.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 async function streamChat(
@@ -94,7 +79,6 @@ async function streamChat(
     }
 
     const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
 
     if (!reader) {
       throw new Error("Response body is not readable");
@@ -103,97 +87,72 @@ async function streamChat(
     let accumulatedContent = "";
     let accumulatedReasoning = "";
 
-    while (true) {
-      const { done, value } = await reader.read();
+    await parseSSEStream(reader, (event) => {
+      if (event.type === "suggestion" && typeof event.content === "string") {
+        setSuggestion(event.content);
+      }
 
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n");
-
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          const data = line.slice(6);
-
-          if (data === "[DONE]") {
-            break;
-          }
-
-          try {
-            const parsed = JSON.parse(data);
-
-            if (parsed.type === "suggestion" && parsed.content) {
-              setSuggestion(parsed.content);
-            }
-
-            if (parsed.type === "reasoning" && parsed.content) {
-              accumulatedReasoning += parsed.content;
-
-              if (!messageAdded) {
-                setMessages((prev) => [
-                  ...prev,
-                  {
-                    id: assistantMessageId,
-                    role: "assistant",
-                    content: accumulatedContent,
-                    reasoning: accumulatedReasoning,
-                    createdAt: new Date(),
-                  },
-                ]);
-                messageAdded = true;
-              } else {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, reasoning: accumulatedReasoning }
-                      : msg,
-                  ),
-                );
-              }
-            }
-
-            if (parsed.type === "content-final" && parsed.content) {
-              accumulatedContent = parsed.content;
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMessageId
-                    ? { ...msg, content: accumulatedContent }
-                    : msg,
-                ),
-              );
-            }
-
-            if (parsed.type === "content" && parsed.content) {
-              accumulatedContent += parsed.content;
-
-              if (!messageAdded) {
-                setMessages((prev) => [
-                  ...prev,
-                  {
-                    id: assistantMessageId,
-                    role: "assistant",
-                    content: accumulatedContent,
-                    reasoning: accumulatedReasoning,
-                    createdAt: new Date(),
-                  },
-                ]);
-                messageAdded = true;
-              } else {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, content: accumulatedContent }
-                      : msg,
-                  ),
-                );
-              }
-            }
-          } catch (parseError) {
-            console.error("Error parsing SSE data:", parseError);
-          }
+      if (event.type === "reasoning" && typeof event.content === "string") {
+        accumulatedReasoning += event.content;
+        if (!messageAdded) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: assistantMessageId,
+              role: "assistant",
+              content: accumulatedContent,
+              reasoning: accumulatedReasoning,
+              createdAt: new Date(),
+            },
+          ]);
+          messageAdded = true;
+        } else {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, reasoning: accumulatedReasoning }
+                : msg,
+            ),
+          );
         }
       }
-    }
+
+      if (event.type === "content-final" && typeof event.content === "string") {
+        accumulatedContent = event.content;
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId
+              ? { ...msg, content: accumulatedContent }
+              : msg,
+          ),
+        );
+      }
+
+      if (event.type === "content" && typeof event.content === "string") {
+        accumulatedContent += event.content;
+        if (!messageAdded) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: assistantMessageId,
+              role: "assistant",
+              content: accumulatedContent,
+              reasoning: accumulatedReasoning,
+              createdAt: new Date(),
+            },
+          ]);
+          messageAdded = true;
+        } else {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: accumulatedContent }
+                : msg,
+            ),
+          );
+        }
+      }
+    });
   } catch (error) {
     console.error("Chat error:", error);
 
@@ -237,12 +196,9 @@ export function ChatWidget() {
   const cardRef = React.useRef<HTMLDivElement>(null);
 
   const applySuggestion = React.useCallback(() => {
-    if (textareaRef.current) {
-      setTextareaValue(textareaRef.current, suggestion);
-      setInput(suggestion);
-      setSuggestion("");
-      textareaRef.current.focus();
-    }
+    setInput(suggestion);
+    setSuggestion("");
+    textareaRef.current?.focus();
   }, [suggestion]);
 
   const {
@@ -251,7 +207,7 @@ export function ChatWidget() {
     handleScroll,
     shouldAutoScroll,
     handleTouchStart,
-  } = useAutoScroll([messages]);
+  } = useAutoScroll(messages.length);
 
   useAutosizeTextArea({
     ref: textareaRef,
@@ -283,14 +239,7 @@ export function ChatWidget() {
         !textareaRef.current.value
       ) {
         e.preventDefault();
-        setTextareaValue(textareaRef.current, suggestion);
         setInput(suggestion);
-        setSuggestion("");
-      }
-    };
-
-    const handleInput = () => {
-      if (textareaRef.current && textareaRef.current.value && suggestion) {
         setSuggestion("");
       }
     };
@@ -298,11 +247,7 @@ export function ChatWidget() {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.addEventListener("keydown", handleKeyDown);
-      textarea.addEventListener("input", handleInput);
-      return () => {
-        textarea.removeEventListener("keydown", handleKeyDown);
-        textarea.removeEventListener("input", handleInput);
-      };
+      return () => textarea.removeEventListener("keydown", handleKeyDown);
     }
   }, [suggestion]);
 
@@ -310,55 +255,13 @@ export function ChatWidget() {
     return null;
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!input.trim() || isGenerating) return;
-
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content: input.trim(),
-      createdAt: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setSuggestion("");
-
-    if (textareaRef.current) {
-      textareaRef.current.value = "";
-    }
-
-    setIsGenerating(true);
-    const assistantMessageId = `assistant-${Date.now()}`;
-    const apiMessages = messages.concat(userMessage).map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    }));
-
-    await streamChat(apiMessages, assistantMessageId, threadId, {
-      setMessages,
-      setSuggestion,
-      setThreadId,
-      setIsGenerating,
-    });
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
-
-  const append = (message: { role: "user"; content: string }) => {
+  const sendMessage = (content: string) => {
     if (isGenerating) return;
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
-      role: message.role,
-      content: message.content,
+      role: "user",
+      content,
       createdAt: new Date(),
     };
 
@@ -367,7 +270,7 @@ export function ChatWidget() {
     setIsGenerating(true);
 
     const assistantMessageId = `assistant-${Date.now()}`;
-    const apiMessages = messages.concat(userMessage).map((msg) => ({
+    const apiMessages = [...messages, userMessage].map((msg) => ({
       role: msg.role,
       content: msg.content,
     }));
@@ -380,12 +283,32 @@ export function ChatWidget() {
     });
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isGenerating) return;
+    const content = input.trim();
+    setInput("");
+    sendMessage(content);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  };
+
+  const append = (message: { role: "user"; content: string }) => {
+    sendMessage(message.content);
+  };
+
   const isEmpty = messages.length === 0;
 
   return (
     <>
       {!isOpen && (
         <button
+          type="button"
           onClick={() => setIsOpen(true)}
           className={cn(
             "fixed",
@@ -441,6 +364,7 @@ export function ChatWidget() {
               </h3>
             </div>
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
               className="bg-transparent border-none hover:opacity-80 transition-all cursor-pointer p-0"
               aria-label="Close chat"

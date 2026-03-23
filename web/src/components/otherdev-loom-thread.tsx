@@ -9,13 +9,23 @@ import {
   useAssistantApi,
   useMessage,
 } from "@assistant-ui/react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp, AudioLines, ChevronRight, File, FileCode2, FileText, Paperclip, Square, Upload, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowUp,
+  AudioLines,
+  ChevronRight,
+  File,
+  FileCode2,
+  FileText,
+  Paperclip,
+  Square,
+  Upload,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { ArtifactRenderer } from "@/components/artifact-renderer";
 import { Navigation } from "@/components/navigation";
-import { useOtherDevRuntime } from "@/lib/use-otherdev-runtime";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -48,9 +58,16 @@ import {
 } from "@/components/ui/prompt-input";
 import { VoiceWaveform } from "@/components/voice-waveform";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
-import { encodeImageToBase64, extractTextFromFile, validateFile } from "@/lib/file-processor";
+import type { ContentBlock } from "@/lib/content-types";
+import {
+  encodeImageToBase64,
+  extractTextFromFile,
+  validateFile,
+} from "@/lib/file-processor";
+import { parseSSEStream } from "@/lib/sse";
+import { useOtherDevRuntime } from "@/lib/use-otherdev-runtime";
+import { cleanSuggestionMarkers, cn } from "@/lib/utils";
 import { VoiceRecorder } from "@/lib/voice-recorder";
-import { cn } from "@/lib/utils";
 import { CREATE_ARTIFACT_TOOL_NAME } from "@/server/lib/artifact-tool";
 
 interface ArtifactContextType {
@@ -62,37 +79,92 @@ const ArtifactContext = createContext<ArtifactContextType | null>(null);
 
 export function useArtifact() {
   const context = useContext(ArtifactContext);
-  if (!context) throw new Error("useArtifact must be used within ArtifactProvider");
+  if (!context)
+    throw new Error("useArtifact must be used within ArtifactProvider");
   return context;
 }
 
 interface RuntimeContextType {
   suggestion: string;
   setSuggestion: (suggestion: string) => void;
-  appendFileContent: (contentBlocks: any[]) => void;
-  composedContent: any[];
+  appendFileContent: (contentBlocks: ContentBlock[]) => void;
+  composedContent: ContentBlock[];
 }
 
 const RuntimeContext = createContext<RuntimeContextType | null>(null);
 
 export function useRuntimeContext() {
   const context = useContext(RuntimeContext);
-  if (!context) throw new Error("useRuntimeContext must be used within RuntimeContextProvider");
+  if (!context)
+    throw new Error(
+      "useRuntimeContext must be used within RuntimeContextProvider",
+    );
   return context;
 }
 
 const GREETINGS: { range: [number, number]; options: string[] }[] = [
-  { range: [0, 5], options: ["Hello, night owl", "Burning the midnight oil?", "Still up, I see", "Late night inspiration strike?", "Welcome back, creative soul"] },
-  { range: [5, 9], options: ["Good morning", "Early riser mode on", "Fresh start ahead", "Ready to create?"] },
-  { range: [9, 12], options: ["Good morning", "Morning, let's make something great", "What's on your mind today?", "Feeling creative?"] },
-  { range: [12, 17], options: ["Good afternoon", "Afternoon vibes", "Still grinding?", "How's the day treating you?"] },
-  { range: [17, 21], options: ["Good evening", "Evening, creator", "Golden hour thinking time", "Winding down or gearing up?"] },
-  { range: [21, 24], options: ["Good night", "Late night magic hour", "Night mode activated", "Quiet hours for the best ideas"] },
+  {
+    range: [0, 5],
+    options: [
+      "Hello, night owl",
+      "Burning the midnight oil?",
+      "Still up, I see",
+      "Late night inspiration strike?",
+      "Welcome back, creative soul",
+    ],
+  },
+  {
+    range: [5, 9],
+    options: [
+      "Good morning",
+      "Early riser mode on",
+      "Fresh start ahead",
+      "Ready to create?",
+    ],
+  },
+  {
+    range: [9, 12],
+    options: [
+      "Good morning",
+      "Morning, let's make something great",
+      "What's on your mind today?",
+      "Feeling creative?",
+    ],
+  },
+  {
+    range: [12, 17],
+    options: [
+      "Good afternoon",
+      "Afternoon vibes",
+      "Still grinding?",
+      "How's the day treating you?",
+    ],
+  },
+  {
+    range: [17, 21],
+    options: [
+      "Good evening",
+      "Evening, creator",
+      "Golden hour thinking time",
+      "Winding down or gearing up?",
+    ],
+  },
+  {
+    range: [21, 24],
+    options: [
+      "Good night",
+      "Late night magic hour",
+      "Night mode activated",
+      "Quiet hours for the best ideas",
+    ],
+  },
 ];
 
 function pickGreeting() {
   const hour = new Date().getHours();
-  const bucket = GREETINGS.find(({ range: [min, max] }) => hour >= min && hour < max)!;
+  const bucket =
+    GREETINGS.find(({ range: [min, max] }) => hour >= min && hour < max) ??
+    GREETINGS[0];
   return bucket.options[Math.floor(Math.random() * bucket.options.length)];
 }
 
@@ -113,14 +185,6 @@ function useTimeBasedGreeting() {
   return greeting;
 }
 
-type ContentBlock =
-  | { type: "image_url"; image_url: { url: string } }
-  | { type: "text"; text: string };
-
-function cleanSuggestionMarkers(content: string): string {
-  return content.replace(/\s*SUGGESTION:[\s\S]*$/i, "").trim();
-}
-
 function ReasoningCollapsible({ reasoning }: { reasoning: string }) {
   return (
     <Collapsible defaultOpen={false}>
@@ -137,11 +201,19 @@ function ReasoningCollapsible({ reasoning }: { reasoning: string }) {
   );
 }
 
-function SuggestionButton({ display, prompt }: { display: string; prompt: string }) {
+function SuggestionButton({
+  display,
+  prompt,
+}: {
+  display: string;
+  prompt: string;
+}) {
   const api = useAssistantApi();
 
   const handleClick = () => {
-    api.thread().append({ role: "user", content: [{ type: "text", text: prompt }] });
+    api
+      .thread()
+      .append({ role: "user", content: [{ type: "text", text: prompt }] });
   };
 
   return (
@@ -158,7 +230,9 @@ function SuggestionButton({ display, prompt }: { display: string; prompt: string
 
 function UserMessage() {
   const message = useMessage();
-  const custom = message.metadata?.custom as { images?: { url: string }[]; fileTexts?: string[] } | undefined;
+  const custom = message.metadata?.custom as
+    | { images?: { url: string }[]; fileTexts?: string[] }
+    | undefined;
   const images = custom?.images ?? [];
   const fileNames = (custom?.fileTexts ?? []).map((t) => {
     const match = t.match(/^\[File: (.+?)\]/);
@@ -172,10 +246,11 @@ function UserMessage() {
           {images.length > 0 && (
             <div className="flex flex-wrap gap-2 justify-end">
               {images.map((img, i) => (
+                // biome-ignore lint/performance/noImgElement: base64 data URL, next/image doesn't optimize these
                 <img
                   key={i}
                   src={img.url}
-                  alt="Attached image"
+                  alt="Attachment"
                   className="max-h-48 max-w-48 rounded-xl object-cover"
                 />
               ))}
@@ -183,9 +258,9 @@ function UserMessage() {
           )}
           {fileNames.length > 0 && (
             <div className="flex flex-wrap gap-2 justify-end">
-              {fileNames.map((name, i) => (
+              {fileNames.map((name) => (
                 <div
-                  key={i}
+                  key={name}
                   className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground"
                 >
                   <FileText className="h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -200,7 +275,12 @@ function UserMessage() {
             </MessageContent>
           )}
         </div>
-        <MessageAvatar src="/loom-avatar.svg" alt="User" fallback="U" className="h-12 w-12" />
+        <MessageAvatar
+          src="/loom-avatar.svg"
+          alt="User"
+          fallback="U"
+          className="h-12 w-12"
+        />
       </Message>
     </div>
   );
@@ -218,12 +298,15 @@ function AssistantMessage() {
   const reasoning = message.metadata?.custom?.reasoning as string | undefined;
   const hasToolCall = Boolean(toolCallPart);
 
-  const cleanedText = textPart?.type === "text" ? cleanSuggestionMarkers(textPart.text) : "";
+  const cleanedText =
+    textPart?.type === "text" ? cleanSuggestionMarkers(textPart.text) : "";
 
   const getHtmlContent = () => contentRef.current?.innerHTML;
 
   if (hasToolCall && toolCallPart) {
-    const artifactArgs = toolCallPart.args as { title: string; description: string } | undefined;
+    const artifactArgs = toolCallPart.args as
+      | { title: string; description: string }
+      | undefined;
 
     return (
       <div className="flex justify-start">
@@ -237,7 +320,10 @@ function AssistantMessage() {
             {reasoning && <ReasoningCollapsible reasoning={reasoning} />}
             {cleanedText && (
               <div ref={contentRef}>
-                <MessageContent markdown className="max-w-none rounded-lg bg-transparent p-0">
+                <MessageContent
+                  markdown
+                  className="max-w-none rounded-lg bg-transparent p-0"
+                >
                   {cleanedText}
                 </MessageContent>
               </div>
@@ -256,7 +342,9 @@ function AssistantMessage() {
                       <CardTitle className="truncate text-sm font-medium leading-tight">
                         {artifactArgs?.title || "View Artifact"}
                       </CardTitle>
-                      <CardDescription className="mt-1 text-xs">Artifact · HTML</CardDescription>
+                      <CardDescription className="mt-1 text-xs">
+                        Artifact · HTML
+                      </CardDescription>
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground/60" />
@@ -272,21 +360,28 @@ function AssistantMessage() {
   return (
     <div className="flex justify-start">
       <Message className="w-full max-w-full gap-2 sm:gap-3 lg:max-w-5xl">
-        <AssistantIf condition={({ message }) => message.status?.type !== "running"}>
+        <AssistantIf
+          condition={({ message }) => message.status?.type !== "running"}
+        >
           <MessageAvatar
             src="/otherdev-chat-logo.svg"
             alt="OtherDev Loom"
             className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
           />
         </AssistantIf>
-        <AssistantIf condition={({ message }) => message.status?.type === "running"}>
+        <AssistantIf
+          condition={({ message }) => message.status?.type === "running"}
+        >
           <div className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8" />
         </AssistantIf>
         <div className="flex-1 space-y-2 min-w-0">
           {reasoning && <ReasoningCollapsible reasoning={reasoning} />}
           {cleanedText && (
             <div ref={contentRef}>
-              <MessageContent markdown className="max-w-none rounded-lg bg-transparent p-0">
+              <MessageContent
+                markdown
+                className="max-w-none rounded-lg bg-transparent p-0"
+              >
                 {cleanedText}
               </MessageContent>
             </div>
@@ -307,19 +402,23 @@ function AssistantMessage() {
 }
 
 export function OtherDevLoomThread() {
-  const { suggestion, setSuggestion, appendFileContent, composedContent } = useRuntimeContext();
+  const { suggestion, setSuggestion, appendFileContent, composedContent } =
+    useRuntimeContext();
   const api = useAssistantApi();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<VoiceRecorder | null>(null);
   const dragCounterRef = useRef(0);
+  const processedBlocksRef = useRef<Map<File, ContentBlock>>(new Map());
 
   const [inputValue, setInputValue] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<Map<File, string>>(new Map());
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const [fileError, setFileError] = useState("");
-  const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null);
+  const [recordingStream, setRecordingStream] = useState<MediaStream | null>(
+    null,
+  );
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingProcessing, setIsRecordingProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -327,9 +426,11 @@ export function OtherDevLoomThread() {
 
   useEffect(() => {
     const urls = new Map<File, string>();
-    attachedFiles.filter((f) => f.type.startsWith("image/")).forEach((f) => {
-      urls.set(f, URL.createObjectURL(f));
-    });
+    attachedFiles
+      .filter((f) => f.type.startsWith("image/"))
+      .forEach((f) => {
+        urls.set(f, URL.createObjectURL(f));
+      });
     setImageUrls(urls);
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [attachedFiles]);
@@ -343,21 +444,30 @@ export function OtherDevLoomThread() {
     try {
       setFileError("");
       setIsProcessingFiles(true);
-      const contentBlocks: ContentBlock[] = [];
 
-      for (const file of files) {
-        if (file.type.startsWith("image/")) {
-          const dataUri = await encodeImageToBase64(file);
-          contentBlocks.push({ type: "image_url", image_url: { url: dataUri } });
-        } else {
-          const text = await extractTextFromFile(file);
-          contentBlocks.push({ type: "text", text: `[File: ${file.name}]\n${text}` });
-        }
-      }
+      const contentBlocks: ContentBlock[] = await Promise.all(
+        files.map(async (file) => {
+          const cached = processedBlocksRef.current.get(file);
+          if (cached) return cached;
+
+          let block: ContentBlock;
+          if (file.type.startsWith("image/")) {
+            const dataUri = await encodeImageToBase64(file);
+            block = { type: "image_url", image_url: { url: dataUri } };
+          } else {
+            const text = await extractTextFromFile(file);
+            block = { type: "text", text: `[File: ${file.name}]\n${text}` };
+          }
+          processedBlocksRef.current.set(file, block);
+          return block;
+        }),
+      );
 
       appendFileContent(contentBlocks);
     } catch (error) {
-      setFileError(error instanceof Error ? error.message : "Failed to process files");
+      setFileError(
+        error instanceof Error ? error.message : "Failed to process files",
+      );
     } finally {
       setIsProcessingFiles(false);
     }
@@ -369,6 +479,8 @@ export function OtherDevLoomThread() {
   };
 
   const handleRemoveFile = async (index: number) => {
+    const removed = attachedFiles[index];
+    processedBlocksRef.current.delete(removed);
     const remaining = attachedFiles.filter((_, i) => i !== index);
     setAttachedFiles(remaining);
     await processAndAttachFiles(remaining);
@@ -420,7 +532,9 @@ export function OtherDevLoomThread() {
       setRecordingStream(stream);
       setIsRecordingProcessing(false);
     } catch (error) {
-      setFileError(error instanceof Error ? error.message : "Failed to access microphone");
+      setFileError(
+        error instanceof Error ? error.message : "Failed to access microphone",
+      );
       setIsRecordingProcessing(false);
     }
   };
@@ -440,37 +554,36 @@ export function OtherDevLoomThread() {
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.webm");
 
-      const response = await fetch("/api/transcribe", { method: "POST", body: formData });
+      const response = await fetch("/api/transcribe", {
+        method: "POST",
+        body: formData,
+      });
       if (!response.ok) throw new Error("Transcription failed");
 
       const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
       if (!reader) throw new Error("Response body is not readable");
 
       let fullTranscript = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split("\n")) {
-          if (!line.startsWith("data: ")) continue;
-          const data = line.slice(6);
-          if (data === "[DONE]") continue;
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.type === "transcript-chunk") {
-              fullTranscript += parsed.content;
-              handleTranscriptReceived(fullTranscript);
-            } else if (parsed.type === "transcript-complete") {
-              handleTranscriptReceived(parsed.content);
-            }
-          } catch {}
+      await parseSSEStream(reader, (event) => {
+        if (
+          event.type === "transcript-chunk" &&
+          typeof event.content === "string"
+        ) {
+          fullTranscript += event.content;
+          handleTranscriptReceived(fullTranscript);
+        } else if (
+          event.type === "transcript-complete" &&
+          typeof event.content === "string"
+        ) {
+          handleTranscriptReceived(event.content);
         }
-      }
+      });
 
       setIsRecordingProcessing(false);
     } catch (error) {
-      setFileError(error instanceof Error ? error.message : "Transcription error");
+      setFileError(
+        error instanceof Error ? error.message : "Transcription error",
+      );
       recorderRef.current?.release();
       recorderRef.current = null;
       setIsRecording(false);
@@ -499,8 +612,33 @@ export function OtherDevLoomThread() {
     e.preventDefault();
     dragCounterRef.current = 0;
     setIsDragging(false);
+    setFileError("");
+
     const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) await handleFilesSelected(files);
+    if (files.length === 0) return;
+
+    if (files.length > 5) {
+      setFileError("Maximum 5 files allowed");
+      return;
+    }
+
+    let totalSize = 0;
+    const validFiles: File[] = [];
+    for (const file of files) {
+      const validation = validateFile(file);
+      if (!validation.valid) {
+        setFileError(validation.error || "Invalid file");
+        return;
+      }
+      totalSize += file.size;
+      if (totalSize > 50 * 1024 * 1024) {
+        setFileError("Total file size exceeds 50MB limit");
+        return;
+      }
+      validFiles.push(file);
+    }
+
+    await handleFilesSelected(validFiles);
   };
 
   const handleSubmit = () => {
@@ -530,7 +668,9 @@ export function OtherDevLoomThread() {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const shouldApplySuggestion =
-        (e.key === "Tab" || e.key === "ArrowRight") && suggestion && !inputElement.value;
+        (e.key === "Tab" || e.key === "ArrowRight") &&
+        suggestion &&
+        !inputElement.value;
       if (shouldApplySuggestion) {
         e.preventDefault();
         setInputValue(suggestion);
@@ -577,13 +717,21 @@ export function OtherDevLoomThread() {
             >
               <motion.div
                 animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 1.6, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                transition={{
+                  duration: 1.6,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "easeInOut",
+                }}
               >
                 <Upload className="h-8 w-8 text-foreground/40" />
               </motion.div>
               <div className="text-center">
-                <p className="font-sans text-sm font-medium text-foreground">Drop files to attach</p>
-                <p className="mt-1 font-sans text-xs text-muted-foreground">Images, PDFs, code, and documents</p>
+                <p className="font-sans text-sm font-medium text-foreground">
+                  Drop files to attach
+                </p>
+                <p className="mt-1 font-sans text-xs text-muted-foreground">
+                  Images, PDFs, code, and documents
+                </p>
               </div>
             </motion.div>
           </motion.div>
@@ -636,7 +784,9 @@ export function OtherDevLoomThread() {
           </ThreadPrimitive.Empty>
 
           <div className="space-y-4 px-3 py-6 sm:space-y-6 sm:px-4 sm:py-8 md:px-8">
-            <ThreadPrimitive.Messages components={{ UserMessage, AssistantMessage }} />
+            <ThreadPrimitive.Messages
+              components={{ UserMessage, AssistantMessage }}
+            />
 
             <ThreadPrimitive.If running>
               <div className="flex items-start gap-2 sm:gap-3">
@@ -649,9 +799,18 @@ export function OtherDevLoomThread() {
                 />
                 <div className="flex items-center gap-2 font-sans text-xs text-muted-foreground sm:text-sm">
                   <div className="flex gap-1">
-                    <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2" style={{ animationDelay: "0ms" }} />
-                    <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2" style={{ animationDelay: "150ms" }} />
-                    <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2" style={{ animationDelay: "300ms" }} />
+                    <div
+                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
+                      style={{ animationDelay: "0ms" }}
+                    />
+                    <div
+                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
+                      style={{ animationDelay: "150ms" }}
+                    />
+                    <div
+                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
+                      style={{ animationDelay: "300ms" }}
+                    />
                   </div>
                   <span>Thinking...</span>
                 </div>
@@ -667,12 +826,15 @@ export function OtherDevLoomThread() {
           {fileError && (
             <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive flex items-center justify-between">
               <span>{fileError}</span>
-              <button onClick={() => setFileError("")} className="text-destructive hover:opacity-70 transition-opacity">
+              <button
+                type="button"
+                onClick={() => setFileError("")}
+                className="text-destructive hover:opacity-70 transition-opacity"
+              >
                 ×
               </button>
             </div>
           )}
-
         </div>
 
         <PromptInput
@@ -689,7 +851,12 @@ export function OtherDevLoomThread() {
                 <div key={`${file.name}-${idx}`} className="relative group">
                   <div className="h-16 w-16 rounded-xl overflow-hidden bg-muted">
                     {imageUrls.get(file) && (
-                      <img src={imageUrls.get(file)} alt={file.name} className="h-full w-full object-cover" />
+                      // biome-ignore lint/performance/noImgElement: object URL from local file, next/image doesn't handle these
+                      <img
+                        src={imageUrls.get(file)}
+                        alt={file.name}
+                        className="h-full w-full object-cover"
+                      />
                     )}
                   </div>
                   <button
@@ -706,10 +873,13 @@ export function OtherDevLoomThread() {
                 const Icon = file.name.match(/\.(ts|tsx|js|jsx|py|json)$/i)
                   ? FileCode2
                   : file.name.match(/\.(txt|md|pdf)$/i)
-                  ? FileText
-                  : File;
+                    ? FileText
+                    : File;
                 return (
-                  <div key={`${file.name}-${idx}`} className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground">
+                  <div
+                    key={`${file.name}-${idx}`}
+                    className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground"
+                  >
                     <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
                     <span className="max-w-[140px] truncate">{file.name}</span>
                     <button
@@ -733,7 +903,9 @@ export function OtherDevLoomThread() {
               placeholder={placeholder}
               className={cn(
                 "font-sans text-sm sm:text-base",
-                suggestion && !inputValue && "placeholder:text-transparent placeholder:md:text-muted-foreground",
+                suggestion &&
+                  !inputValue &&
+                  "placeholder:text-transparent placeholder:md:text-muted-foreground",
               )}
               autoFocus
             />
@@ -772,13 +944,19 @@ export function OtherDevLoomThread() {
               <PromptInputAction tooltip="Use voice mode">
                 <button
                   type="button"
-                  onClick={isRecording ? handleStopRecording : handleStartRecording}
+                  onClick={
+                    isRecording ? handleStopRecording : handleStartRecording
+                  }
                   disabled={isProcessingFiles || isRecordingProcessing}
                   className={cn(
                     "flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] disabled:opacity-50 sm:h-7 sm:w-7",
-                    isRecording ? "bg-red-500 hover:bg-red-600 text-white" : "text-muted-foreground hover:opacity-70",
+                    isRecording
+                      ? "bg-red-500 hover:bg-red-600 text-white"
+                      : "text-muted-foreground hover:opacity-70",
                   )}
-                  aria-label={isRecording ? "Stop recording" : "Start recording"}
+                  aria-label={
+                    isRecording ? "Stop recording" : "Start recording"
+                  }
                 >
                   {isRecording ? (
                     <Square className="h-3 w-3 sm:h-4 sm:w-4 fill-current" />
@@ -812,7 +990,8 @@ export function OtherDevLoomThread() {
 
 export function LoomPageClient() {
   const runtime = useOtherDevRuntime();
-  const [activeArtifact, setActiveArtifact] = useState<ToolCallMessagePart | null>(null);
+  const [activeArtifact, setActiveArtifact] =
+    useState<ToolCallMessagePart | null>(null);
 
   return (
     <>
@@ -831,9 +1010,13 @@ export function LoomPageClient() {
               composedContent: runtime.composedContent,
             }}
           >
-            <ArtifactContext.Provider value={{ activeArtifact, setActiveArtifact }}>
+            <ArtifactContext.Provider
+              value={{ activeArtifact, setActiveArtifact }}
+            >
               <div className="flex h-full overflow-hidden">
-                <div className={`h-full ${activeArtifact ? "hidden md:block md:w-1/2" : "w-full"}`}>
+                <div
+                  className={`h-full ${activeArtifact ? "hidden md:block md:w-1/2" : "w-full"}`}
+                >
                   <OtherDevLoomThread />
                 </div>
                 {activeArtifact && (

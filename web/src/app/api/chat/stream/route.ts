@@ -1,6 +1,8 @@
-import { z } from "zod";
 import Groq from "groq-sdk";
 import type { ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
+import { z } from "zod";
+import { stripMarkdown } from "@/lib/utils";
+import { createArtifactTool } from "@/server/lib/artifact-tool";
 import { generateEmbedding } from "@/server/lib/rag/embeddings";
 import { searchSimilarDocuments } from "@/server/lib/rag/vector-search";
 import {
@@ -8,9 +10,11 @@ import {
   getClientIdentifier,
   REQUESTS_PER_WINDOW,
 } from "@/server/lib/rate-limit";
-import { createArtifactTool } from "@/server/lib/artifact-tool";
-import { stripMarkdown } from "@/lib/utils";
-import { selectModel, validateImageContent, type Message } from "./helpers";
+import {
+  CHAT_MODEL,
+  type Message,
+  warnOnImageContentMismatch,
+} from "./helpers";
 
 // Zod schemas for validating content blocks (matching shared ContentBlock types)
 const TextBlockSchema = z.object({
@@ -29,15 +33,13 @@ const ContentBlockSchema = z.union([TextBlockSchema, ImageBlockSchema]);
 
 const MessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
-  content: z.union([
-    z.string(),
-    z.array(ContentBlockSchema),
-  ]),
+  content: z.union([z.string(), z.array(ContentBlockSchema)]),
 });
 
 const RequestSchema = z.object({
   messages: z.array(MessageSchema).min(1),
   hasImageContent: z.boolean().optional(),
+  supportsArtifacts: z.boolean().optional(),
 });
 
 const groq = new Groq({
@@ -46,22 +48,15 @@ const groq = new Groq({
 
 const RAG_MAX_MESSAGE_LENGTH = Number.parseInt(
   process.env.RAG_MAX_MESSAGE_LENGTH || "500",
-  10
+  10,
 );
 const RAG_SIMILARITY_THRESHOLD = Number.parseFloat(
   process.env.RAG_SIMILARITY_THRESHOLD || "0.1",
 );
 const RAG_MATCH_COUNT = Number.parseInt(process.env.RAG_MATCH_COUNT || "5", 10);
 
-const DANGEROUS_PATTERNS = [
-  /\[INST\]/gi,
-  /<\|im_start\|>/gi,
-  /<\|im_end\|>/gi,
-  /\[\/INST\]/gi,
-  /<\|system\|>/gi,
-  /<\|user\|>/gi,
-  /<\|assistant\|>/gi,
-];
+const INJECTION_PATTERN =
+  /\[INST\]|\[\/INST\]|<\|im_start\|>|<\|im_end\|>|<\|system\|>|<\|user\|>|<\|assistant\|>/gi;
 
 const CONVERSATIONAL_PHRASES = new Set([
   "ok",
@@ -113,11 +108,7 @@ CONTACT INFORMATION
 Be professional, friendly, and focused on helping potential clients learn about Other Dev. Always be helpful and engaging, never claim to lack information.`;
 
 function sanitizeInput(text: string): string {
-  let sanitized = text;
-  for (const pattern of DANGEROUS_PATTERNS) {
-    sanitized = sanitized.replace(pattern, "");
-  }
-  return sanitized.slice(0, RAG_MAX_MESSAGE_LENGTH);
+  return text.replace(INJECTION_PATTERN, "").slice(0, RAG_MAX_MESSAGE_LENGTH);
 }
 
 interface QueryQuality {
@@ -234,25 +225,28 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    const { messages, hasImageContent } = validation.data;
+    const { messages, hasImageContent, supportsArtifacts } = validation.data;
     const lastUserMessage = messages.filter((m) => m.role === "user").pop();
 
     if (!lastUserMessage) {
       return createJsonResponse({ error: "No user message found" }, 400);
     }
 
-    const typedMessages: Message[] = messages.map(m => ({
+    const typedMessages: Message[] = messages.map((m) => ({
       role: m.role,
       content: m.content,
     }));
 
-    validateImageContent(typedMessages, hasImageContent);
+    warnOnImageContentMismatch(typedMessages, hasImageContent);
 
-    const lastUserContent = typeof lastUserMessage.content === "string"
-      ? lastUserMessage.content
-      : lastUserMessage.content.map(block =>
-          block.type === "text" ? block.text : "[Image content]"
-        ).join(" ");
+    const lastUserContent =
+      typeof lastUserMessage.content === "string"
+        ? lastUserMessage.content
+        : lastUserMessage.content
+            .map((block) =>
+              block.type === "text" ? block.text : "[Image content]",
+            )
+            .join(" ");
 
     const sanitizedQuery = sanitizeInput(lastUserContent);
     const normalizedQuery = sanitizedQuery.replace(/otherdev/gi, "Other Dev");
@@ -275,35 +269,38 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    const selectedModel = selectModel(hasImageContent);
-
+    // Pass history as-is — only the latest user message needs injection sanitization
     const formattedMessages = typedMessages.map((m) => ({
       role: m.role as "user" | "assistant",
-      content:
-        typeof m.content === "string"
-          ? sanitizeInput(m.content)
-          : m.content.map((block) =>
-              block.type === "text"
-                ? ({ type: "text" as const, text: sanitizeInput(block.text) })
-                : block,
-            ),
+      content: m.content,
     }));
+
+    const lastUserIdx = formattedMessages.findLastIndex(
+      (m) => m.role === "user",
+    );
+    if (lastUserIdx !== -1) {
+      const msg = formattedMessages[lastUserIdx];
+      formattedMessages[lastUserIdx] = {
+        ...msg,
+        content:
+          typeof msg.content === "string"
+            ? sanitizeInput(msg.content)
+            : msg.content.map((block) =>
+                block.type === "text"
+                  ? { type: "text" as const, text: sanitizeInput(block.text) }
+                  : block,
+              ),
+      };
+    }
 
     // Inject RAG context into the last user message so the system prompt stays
     // fully static and benefits from Groq's automatic prompt caching.
-    if (context) {
-      const lastIdx = formattedMessages.findLastIndex((m) => m.role === "user");
-      if (lastIdx !== -1) {
-        const msg = formattedMessages[lastIdx];
-        const userText = typeof msg.content === "string" ? msg.content : msg.content
-          .filter((b): b is { type: "text"; text: string } => b.type === "text")
-          .map((b) => b.text)
-          .join(" ");
-        formattedMessages[lastIdx] = {
-          ...msg,
-          content: `=== CONTEXT ===\n${context}\n=== END CONTEXT ===\n\n${userText}`,
-        };
-      }
+    if (context && lastUserIdx !== -1) {
+      const msg = formattedMessages[lastUserIdx];
+      formattedMessages[lastUserIdx] = {
+        ...msg,
+        content: `=== CONTEXT ===\n${context}\n=== END CONTEXT ===\n\n${sanitizedQuery}`,
+      };
     }
 
     const chatMessages: ChatCompletionMessageParam[] = [
@@ -312,13 +309,13 @@ export async function POST(request: Request): Promise<Response> {
     ];
 
     const completion = await groq.chat.completions.create({
-      model: selectedModel,
+      model: CHAT_MODEL,
       messages: chatMessages,
       temperature: 0.7,
       max_tokens: 1024,
       stream: true,
-      tools: [createArtifactTool],
-      tool_choice: "auto",
+      tools: supportsArtifacts ? [createArtifactTool] : undefined,
+      tool_choice: supportsArtifacts ? "auto" : undefined,
     });
 
     const encoder = new TextEncoder();

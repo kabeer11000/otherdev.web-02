@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
 import type { ToolCallMessagePart } from "@assistant-ui/react";
+import { Check, ChevronLeft, Code2, Copy, Eye, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { type BundledLanguage, codeToHtml } from "shiki";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, Code2, Eye, Copy, Check, ChevronLeft } from "lucide-react";
-import { codeToHtml, type BundledLanguage } from "shiki";
+import { SHIKI_THEMES } from "@/lib/shiki-config";
 
 function ArtifactHeader({
   mode,
@@ -124,6 +125,13 @@ export function ArtifactRenderer({
   const [activeTab, setActiveTab] = useState("preview");
   const [highlightedCode, setHighlightedCode] = useState<string>("");
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   const { title, code, description } = toolCall.args as {
     title: string;
@@ -153,10 +161,7 @@ export function ArtifactRenderer({
       try {
         const html = await codeToHtml(code.trim(), {
           lang: "html" as BundledLanguage,
-          themes: {
-            light: "github-light",
-            dark: "github-dark",
-          },
+          themes: SHIKI_THEMES,
         });
         setHighlightedCode(html);
       } catch (error) {
@@ -172,14 +177,11 @@ export function ArtifactRenderer({
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error("Failed to copy code:", error);
     }
-  };
-
-  const handleClose = () => {
-    onClose?.();
   };
 
   if (mode === "panel") {
@@ -191,7 +193,7 @@ export function ArtifactRenderer({
           description={description}
           copied={copied}
           onCopy={handleCopy}
-          onClose={onClose ? handleClose : undefined}
+          onClose={onClose}
         />
 
         <Tabs

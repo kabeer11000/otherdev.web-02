@@ -7,11 +7,9 @@ export interface Message {
   content: MessageContent;
 }
 
-export function selectModel(_hasImageContent: boolean | undefined): string {
-  return "meta-llama/llama-4-scout-17b-16e-instruct";
-}
+export const CHAT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
-export function validateImageContent(
+export function warnOnImageContentMismatch(
   messages: Message[],
   hasImageContent: boolean | undefined,
 ): void {
@@ -24,15 +22,13 @@ export function validateImageContent(
 
   if (hasImageContent === true && !hasImages) {
     console.warn(
-      "WARNING: hasImageContent flag is true but no images found in message content. " +
-        "This may indicate a mismatch between the flag and actual content.",
+      "WARNING: hasImageContent flag is true but no images found in message content.",
     );
   }
 
   if (hasImageContent === false && hasImages) {
     console.warn(
-      "WARNING: hasImageContent flag is false but images found in message content. " +
-        "Consider setting hasImageContent to true for better model selection.",
+      "WARNING: hasImageContent flag is false but images found in message content.",
     );
   }
 }

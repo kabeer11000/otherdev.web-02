@@ -15,7 +15,7 @@ interface StoredData<T> {
   timestamp: number;
 }
 
-const DEFAULT_EXPIRATION_MINUTES = 5;
+const DEFAULT_EXPIRATION_MINUTES = 60;
 
 export function useLocalStorageMessages<T>({
   key,
@@ -52,26 +52,16 @@ export function useLocalStorageMessages<T>({
   }, []);
 
   useEffect(() => {
-    if (!isLoaded || typeof window === "undefined") {
-      return;
-    }
+    if (!isLoaded) return;
 
     try {
-      const storedData: StoredData<T> = {
-        messages,
+      // serialize produces a JSON string of the storable shape (e.g. with ISO date strings).
+      // Parse it back so the StoredData wrapper holds the same shape deserialization expects.
+      const serialized = serialize ? serialize(messages) : JSON.stringify(messages);
+      const dataToStore: StoredData<unknown> = {
+        messages: JSON.parse(serialized),
         timestamp: Date.now(),
       };
-
-      const serializedMessages = serialize
-        ? serialize(messages)
-        : JSON.stringify(messages);
-      const parsedMessages = JSON.parse(serializedMessages);
-
-      const dataToStore: StoredData<unknown> = {
-        messages: parsedMessages,
-        timestamp: storedData.timestamp,
-      };
-
       window.localStorage.setItem(key, JSON.stringify(dataToStore));
     } catch (error) {
       console.error(`Error saving messages to localStorage (${key}):`, error);
@@ -80,15 +70,10 @@ export function useLocalStorageMessages<T>({
 
   const clearHistory = useCallback(() => {
     setMessages(initialValue);
-    if (typeof window !== "undefined") {
-      try {
-        window.localStorage.removeItem(key);
-      } catch (error) {
-        console.error(
-          `Error clearing messages from localStorage (${key}):`,
-          error,
-        );
-      }
+    try {
+      window.localStorage.removeItem(key);
+    } catch (error) {
+      console.error(`Error clearing messages from localStorage (${key}):`, error);
     }
   }, [key, initialValue]);
 

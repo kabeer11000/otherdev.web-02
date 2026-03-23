@@ -11,6 +11,7 @@ import { useExternalStoreRuntime } from "@assistant-ui/react";
 import { useCallback, useRef, useState } from "react";
 import { useLocalStorageMessages } from "@/hooks/use-local-storage-messages";
 import type { ContentBlock } from "@/lib/content-types";
+import { parseSSEStream } from "@/lib/sse";
 
 const LOOM_STORAGE_KEY = "otherdev-loom-messages";
 
@@ -85,19 +86,21 @@ export function useOtherDevRuntime() {
   const [composedContent, setComposedContent] = useState<
     AppendableContentPart[]
   >([]);
-  const [hasImageContent, setHasImageContent] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const onNew = useCallback(
     async (message: AppendMessage) => {
       const textContent = message.content.find((part) => part.type === "text");
-      const hasImages = composedContent.some((block) => block.type === "image_url");
+      const hasImages = composedContent.some((b) => b.type === "image_url");
 
       // Store only text in the thread message — assistant-ui can't render image_url parts
       // Images and file text blocks are kept in metadata for API serialization
       const imageUrls = composedContent
         .filter((b) => b.type === "image_url")
-        .map((b) => (b as { type: "image_url"; image_url: { url: string } }).image_url);
+        .map(
+          (b) =>
+            (b as { type: "image_url"; image_url: { url: string } }).image_url,
+        );
 
       const fileTexts = composedContent
         .filter((b) => b.type === "text")
@@ -117,7 +120,6 @@ export function useOtherDevRuntime() {
       setMessages((prev) => [...prev, userMessage]);
       setIsRunning(true);
       setComposedContent([]);
-      setHasImageContent(false);
 
       abortControllerRef.current = new AbortController();
       const assistantMessageId = `assistant-${Date.now()}`;
@@ -126,17 +128,24 @@ export function useOtherDevRuntime() {
       try {
         const apiMessages = messages.concat(userMessage).map((msg) => {
           const text = msg.content.find((c) => c.type === "text");
-          const custom = msg.metadata?.custom as { images?: { url: string }[]; fileTexts?: string[] } | undefined;
+          const custom = msg.metadata?.custom as
+            | { images?: { url: string }[]; fileTexts?: string[] }
+            | undefined;
           const storedImages = custom?.images ?? [];
           const storedFileTexts = custom?.fileTexts ?? [];
 
           if (storedImages.length > 0 || storedFileTexts.length > 0) {
             const inputText = text && text.type === "text" ? text.text : "";
-            const combinedText = [...storedFileTexts, inputText].filter(Boolean).join("\n\n");
+            const combinedText = [...storedFileTexts, inputText]
+              .filter(Boolean)
+              .join("\n\n");
             return {
               role: msg.role,
               content: [
-                ...storedImages.map((img) => ({ type: "image_url", image_url: img })),
+                ...storedImages.map((img) => ({
+                  type: "image_url",
+                  image_url: img,
+                })),
                 { type: "text", text: combinedText },
               ],
             };
@@ -151,7 +160,11 @@ export function useOtherDevRuntime() {
         const response = await fetch("/api/chat/stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: apiMessages, hasImageContent: hasImages }),
+          body: JSON.stringify({
+            messages: apiMessages,
+            hasImageContent: hasImages,
+            supportsArtifacts: true,
+          }),
           signal: abortControllerRef.current.signal,
         });
 
@@ -160,7 +173,6 @@ export function useOtherDevRuntime() {
         }
 
         const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
 
         if (!reader) {
           throw new Error("Response body is not readable");
@@ -214,73 +226,54 @@ export function useOtherDevRuntime() {
           }
         };
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-
-            const data = line.slice(6);
-            if (data === "[DONE]") break;
-
-            try {
-              const parsed = JSON.parse(data);
-
-              switch (parsed.type) {
-                case "reasoning":
-                  if (parsed.content) {
-                    accumulatedReasoning += parsed.content;
-                    updateOrAddMessage({
-                      metadata: { custom: { reasoning: accumulatedReasoning } },
-                    });
-                  }
-                  break;
-
-                case "content":
-                  if (parsed.content) {
-                    accumulatedContent += parsed.content;
-                    updateOrAddMessage({});
-                  }
-                  break;
-
-                case "tool-call": {
-                  const toolCall: ToolCallMessagePart = {
-                    type: "tool-call",
-                    toolCallId: parsed.toolCallId,
-                    toolName: parsed.toolName,
-                    args: JSON.parse(parsed.args),
-                    argsText: parsed.args,
-                  };
-                  toolCalls.push(toolCall);
-                  updateOrAddMessage({});
-                  break;
-                }
-
-                case "suggestion":
-                  if (parsed.content) {
-                    setSuggestion(parsed.content);
-                  }
-                  break;
-
-                case "content-final":
-                  if (parsed.content) {
-                    const contentParts = buildContentParts(
-                      parsed.content,
-                      toolCalls,
-                    );
-                    updateOrAddMessage({ content: contentParts });
-                  }
-                  break;
+        await parseSSEStream(reader, (event) => {
+          switch (event.type) {
+            case "reasoning":
+              if (typeof event.content === "string") {
+                accumulatedReasoning += event.content;
+                updateOrAddMessage({
+                  metadata: { custom: { reasoning: accumulatedReasoning } },
+                });
               }
-            } catch (parseError) {
-              console.error("Error parsing SSE data:", parseError);
+              break;
+
+            case "content":
+              if (typeof event.content === "string") {
+                accumulatedContent += event.content;
+                updateOrAddMessage({});
+              }
+              break;
+
+            case "tool-call": {
+              const toolCall: ToolCallMessagePart = {
+                type: "tool-call",
+                toolCallId: event.toolCallId as string,
+                toolName: event.toolName as string,
+                args: JSON.parse(event.args as string),
+                argsText: event.args as string,
+              };
+              toolCalls.push(toolCall);
+              updateOrAddMessage({});
+              break;
             }
+
+            case "suggestion":
+              if (typeof event.content === "string") {
+                setSuggestion(event.content);
+              }
+              break;
+
+            case "content-final":
+              if (typeof event.content === "string") {
+                const contentParts = buildContentParts(
+                  event.content,
+                  toolCalls,
+                );
+                updateOrAddMessage({ content: contentParts });
+              }
+              break;
           }
-        }
+        });
 
         setMessages((prev) =>
           prev.map((msg) =>
@@ -352,19 +345,12 @@ export function useOtherDevRuntime() {
         abortControllerRef.current = null;
       }
     },
-    [messages, setMessages, composedContent, hasImageContent],
+    [messages, setMessages, composedContent],
   );
 
   const appendFileContent = useCallback(
     (contentBlocks: AppendableContentPart[]) => {
-      // Check if any blocks contain image content
-      const hasImages = contentBlocks.some(
-        (block) => block.type === "image_url",
-      );
-
-      // Update composed content and flags
       setComposedContent(contentBlocks);
-      setHasImageContent(hasImages);
     },
     [],
   );
@@ -398,6 +384,5 @@ export function useOtherDevRuntime() {
     clear,
     appendFileContent,
     composedContent,
-    hasImageContent,
   };
 }

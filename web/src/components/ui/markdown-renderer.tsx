@@ -5,6 +5,8 @@ import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { type BundledLanguage, codeToHtml } from "shiki";
+import type { Plugin } from "unified";
+import { SHIKI_THEMES } from "@/lib/shiki-config";
 import { CopyButton } from "./copy-button";
 
 interface CodeBlockProps {
@@ -22,10 +24,7 @@ function CodeBlock({ children, className }: CodeBlockProps) {
       try {
         const html = await codeToHtml(children.trim(), {
           lang: language,
-          themes: {
-            light: "github-light",
-            dark: "github-dark",
-          },
+          themes: SHIKI_THEMES,
         });
         setHighlightedCode(html);
       } catch (error) {
@@ -79,9 +78,17 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
-      rehypePlugins={[rehypeRaw as any]}
+      rehypePlugins={[rehypeRaw as Plugin]}
       components={{
-        code({ className, children, ...props }: any) {
+        code({
+          className,
+          children,
+          ...props
+        }: {
+          className?: string;
+          children?: React.ReactNode;
+          [key: string]: unknown;
+        }) {
           const content = String(children).replace(/\n$/, "");
           const isInline = !className;
 

@@ -26,3 +26,15 @@ export type ContentBlock = TextContentBlock | ImageUrlContentBlock;
  * or an array of content blocks (with file/voice attachments).
  */
 export type MessageContent = string | ContentBlock[];
+
+/**
+ * Message type for the chat widget (not the loom/assistant-ui runtime).
+ * Kept separate from @assistant-ui/react's ThreadMessage.
+ */
+export interface WidgetMessage {
+  id?: string;
+  role: "user" | "assistant";
+  content: string;
+  reasoning?: string;
+  createdAt?: Date;
+}
