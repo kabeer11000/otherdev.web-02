@@ -260,17 +260,19 @@ export async function POST(request: Request): Promise<Response> {
     const queryQuality = detectQueryQuality(normalizedQuery);
 
     let context = "";
-    try {
-      const queryEmbedding = await generateEmbedding(normalizedQuery);
-      const adaptiveThreshold = getAdaptiveThreshold(queryQuality);
-      const similarDocs = await searchSimilarDocuments(
-        queryEmbedding,
-        adaptiveThreshold,
-        RAG_MATCH_COUNT,
-      );
-      context = buildContext(similarDocs, queryQuality);
-    } catch {
-      // Embedding service unavailable — proceed without RAG context
+    if (!queryQuality.isConversational) {
+      try {
+        const queryEmbedding = await generateEmbedding(normalizedQuery);
+        const adaptiveThreshold = getAdaptiveThreshold(queryQuality);
+        const similarDocs = await searchSimilarDocuments(
+          queryEmbedding,
+          adaptiveThreshold,
+          RAG_MATCH_COUNT,
+        );
+        context = buildContext(similarDocs, queryQuality);
+      } catch {
+        // Embedding service unavailable — proceed without RAG context
+      }
     }
 
     const selectedModel = selectModel(hasImageContent);
