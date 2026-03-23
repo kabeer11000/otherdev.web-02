@@ -59,6 +59,9 @@ const RAG_MATCH_COUNT = Number.parseInt(process.env.RAG_MATCH_COUNT || "5", 10);
 const INJECTION_PATTERN =
   /\[INST\]|\[\/INST\]|<\|im_start\|>|<\|im_end\|>|<\|system\|>|<\|user\|>|<\|assistant\|>/gi;
 
+const ARTIFACT_INTENT_PATTERN =
+  /\b(build|create|make|generate|write|design|code|demo|example|template|prototype|app|website|calculator|game|form|dashboard|visualization|chart|component|widget)\b/;
+
 const CONVERSATIONAL_PHRASES = new Set([
   "ok",
   "okay",
@@ -117,6 +120,7 @@ interface QueryQuality {
   isConversational: boolean;
   tokenCount: number;
   hasRepeatedWords: boolean;
+  needsArtifact: boolean;
 }
 
 function detectQueryQuality(query: string): QueryQuality {
@@ -138,6 +142,7 @@ function detectQueryQuality(query: string): QueryQuality {
     isConversational,
     tokenCount: tokens.length,
     hasRepeatedWords,
+    needsArtifact: ARTIFACT_INTENT_PATTERN.test(normalized),
   };
 }
 
@@ -299,14 +304,16 @@ export async function POST(request: Request): Promise<Response> {
       ...(formattedMessages as ChatCompletionMessageParam[]),
     ];
 
+    const enableArtifacts = supportsArtifacts && queryQuality.needsArtifact;
+
     const completion = await groq.chat.completions.create({
       model: CHAT_MODEL,
       messages: chatMessages,
       temperature: 0.7,
       max_tokens: 1024,
       stream: true,
-      tools: supportsArtifacts ? [createArtifactTool] : undefined,
-      tool_choice: supportsArtifacts ? "auto" : undefined,
+      tools: enableArtifacts ? [createArtifactTool] : undefined,
+      tool_choice: enableArtifacts ? "auto" : undefined,
     });
 
     const encoder = new TextEncoder();
