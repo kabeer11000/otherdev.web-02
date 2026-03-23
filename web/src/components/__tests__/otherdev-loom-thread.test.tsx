@@ -2,10 +2,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { OtherDevLoomThread } from "../otherdev-loom-thread";
 import { useAssistantApi } from "@assistant-ui/react";
-import { useArtifact, useRuntimeContext } from "@/app/loom/page";
+import { useArtifact, useRuntimeContext } from "../otherdev-loom-thread";
 
 jest.mock("@assistant-ui/react");
-jest.mock("@/app/loom/page");
+jest.mock("../otherdev-loom-thread", () => ({
+  ...jest.requireActual("../otherdev-loom-thread"),
+  useArtifact: jest.fn(),
+  useRuntimeContext: jest.fn(),
+}));
 
 describe("OtherDevLoomThread", () => {
   const mockAppendFileContent = jest.fn();

@@ -3,16 +3,19 @@
 import type { ToolCallMessagePart } from "@assistant-ui/react";
 import {
   AssistantIf,
+  AssistantRuntimeProvider,
   MessagePrimitive,
   ThreadPrimitive,
   useAssistantApi,
   useMessage,
 } from "@assistant-ui/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp, ChevronRight, File, FileCode2, FileText, Mic, Paperclip, Square, Upload, X } from "lucide-react";
+import { ArrowUp, AudioLines, ChevronRight, File, FileCode2, FileText, Paperclip, Square, Upload, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { useArtifact, useRuntimeContext } from "@/app/loom/page";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { ArtifactRenderer } from "@/components/artifact-renderer";
+import { Navigation } from "@/components/navigation";
+import { useOtherDevRuntime } from "@/lib/use-otherdev-runtime";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -49,6 +52,34 @@ import { encodeImageToBase64, extractTextFromFile, validateFile } from "@/lib/fi
 import { VoiceRecorder } from "@/lib/voice-recorder";
 import { cn } from "@/lib/utils";
 import { CREATE_ARTIFACT_TOOL_NAME } from "@/server/lib/artifact-tool";
+
+interface ArtifactContextType {
+  activeArtifact: ToolCallMessagePart | null;
+  setActiveArtifact: (artifact: ToolCallMessagePart | null) => void;
+}
+
+const ArtifactContext = createContext<ArtifactContextType | null>(null);
+
+export function useArtifact() {
+  const context = useContext(ArtifactContext);
+  if (!context) throw new Error("useArtifact must be used within ArtifactProvider");
+  return context;
+}
+
+interface RuntimeContextType {
+  suggestion: string;
+  setSuggestion: (suggestion: string) => void;
+  appendFileContent: (contentBlocks: any[]) => void;
+  composedContent: any[];
+}
+
+const RuntimeContext = createContext<RuntimeContextType | null>(null);
+
+export function useRuntimeContext() {
+  const context = useContext(RuntimeContext);
+  if (!context) throw new Error("useRuntimeContext must be used within RuntimeContextProvider");
+  return context;
+}
 
 const GREETINGS: { range: [number, number]; options: string[] }[] = [
   { range: [0, 5], options: ["Hello, night owl", "Burning the midnight oil?", "Still up, I see", "Late night inspiration strike?", "Welcome back, creative soul"] },
@@ -642,50 +673,6 @@ export function OtherDevLoomThread() {
             </div>
           )}
 
-          {attachedFiles.length > 0 && (
-            <div className="rounded-lg border border-border bg-card/50 p-3">
-              <div className="flex flex-wrap items-end gap-2">
-                {imageItems.map(({ file, idx }) => (
-                  <div key={`${file.name}-${idx}`} className="relative group">
-                    <div className="h-16 w-16 rounded-xl overflow-hidden bg-muted">
-                      {imageUrls.get(file) && (
-                        <img src={imageUrls.get(file)} alt={file.name} className="h-full w-full object-cover" />
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveFile(idx)}
-                      className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-background opacity-0 group-hover:opacity-100 transition-opacity"
-                      aria-label={`Remove ${file.name}`}
-                    >
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </div>
-                ))}
-                {otherItems.map(({ file, idx }) => {
-                  const Icon = file.name.match(/\.(ts|tsx|js|jsx|py|json)$/i)
-                    ? FileCode2
-                    : file.name.match(/\.(txt|md|pdf)$/i)
-                    ? FileText
-                    : File;
-                  return (
-                    <div key={`${file.name}-${idx}`} className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground">
-                      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-                      <span className="max-w-[140px] truncate">{file.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFile(idx)}
-                        className="ml-1 text-muted-foreground hover:text-foreground transition-colors"
-                        aria-label={`Remove ${file.name}`}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
 
         <PromptInput
@@ -696,6 +683,48 @@ export function OtherDevLoomThread() {
           onValueChange={setInputValue}
           onSubmit={handleSubmit}
         >
+          {attachedFiles.length > 0 && (
+            <div className="flex flex-wrap items-end gap-2 pb-2 border-b border-border/50">
+              {imageItems.map(({ file, idx }) => (
+                <div key={`${file.name}-${idx}`} className="relative group">
+                  <div className="h-16 w-16 rounded-xl overflow-hidden bg-muted">
+                    {imageUrls.get(file) && (
+                      <img src={imageUrls.get(file)} alt={file.name} className="h-full w-full object-cover" />
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFile(idx)}
+                    className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-background opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label={`Remove ${file.name}`}
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </div>
+              ))}
+              {otherItems.map(({ file, idx }) => {
+                const Icon = file.name.match(/\.(ts|tsx|js|jsx|py|json)$/i)
+                  ? FileCode2
+                  : file.name.match(/\.(txt|md|pdf)$/i)
+                  ? FileText
+                  : File;
+                return (
+                  <div key={`${file.name}-${idx}`} className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground">
+                    <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                    <span className="max-w-[140px] truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(idx)}
+                      className="ml-1 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={`Remove ${file.name}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {recordingStream ? (
             <VoiceWaveform stream={recordingStream} />
           ) : (
@@ -740,7 +769,7 @@ export function OtherDevLoomThread() {
                   <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </PromptInputAction>
-              <PromptInputAction tooltip="Record voice message">
+              <PromptInputAction tooltip="Use voice mode">
                 <button
                   type="button"
                   onClick={isRecording ? handleStopRecording : handleStartRecording}
@@ -754,7 +783,7 @@ export function OtherDevLoomThread() {
                   {isRecording ? (
                     <Square className="h-3 w-3 sm:h-4 sm:w-4 fill-current" />
                   ) : (
-                    <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <AudioLines className="h-4 w-4 sm:h-5 sm:w-5" />
                   )}
                 </button>
               </PromptInputAction>
@@ -778,5 +807,49 @@ export function OtherDevLoomThread() {
         </PromptInput>
       </div>
     </div>
+  );
+}
+
+export function LoomPageClient() {
+  const runtime = useOtherDevRuntime();
+  const [activeArtifact, setActiveArtifact] = useState<ToolCallMessagePart | null>(null);
+
+  return (
+    <>
+      <Navigation
+        isLoomPage={true}
+        onClear={runtime.clear}
+        hasActiveArtifact={!!activeArtifact}
+      />
+      <main className="h-screen">
+        <AssistantRuntimeProvider runtime={runtime}>
+          <RuntimeContext.Provider
+            value={{
+              suggestion: runtime.suggestion,
+              setSuggestion: runtime.setSuggestion,
+              appendFileContent: runtime.appendFileContent,
+              composedContent: runtime.composedContent,
+            }}
+          >
+            <ArtifactContext.Provider value={{ activeArtifact, setActiveArtifact }}>
+              <div className="flex h-full overflow-hidden">
+                <div className={`h-full ${activeArtifact ? "hidden md:block md:w-1/2" : "w-full"}`}>
+                  <OtherDevLoomThread />
+                </div>
+                {activeArtifact && (
+                  <div className="h-full w-full md:w-1/2">
+                    <ArtifactRenderer
+                      toolCall={activeArtifact}
+                      mode="panel"
+                      onClose={() => setActiveArtifact(null)}
+                    />
+                  </div>
+                )}
+              </div>
+            </ArtifactContext.Provider>
+          </RuntimeContext.Provider>
+        </AssistantRuntimeProvider>
+      </main>
+    </>
   );
 }
