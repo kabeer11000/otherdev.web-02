@@ -1,27 +1,24 @@
-import { HfInference } from "@huggingface/inference";
-
-const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
-
-const MODEL = "BAAI/bge-large-en-v1.5";
+const MODEL = "mistral-embed";
 
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    const response = await hf.featureExtraction({
-      model: MODEL,
-      inputs: text,
+    const response = await fetch("https://api.mistral.ai/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model: MODEL, input: [text] }),
     });
 
-    if (Array.isArray(response) && response.length > 0) {
-      if (Array.isArray(response[0])) {
-        return response[0] as number[];
-      }
-      return response as number[];
+    if (!response.ok) {
+      throw new Error(`Mistral API error: ${response.status}`);
     }
 
-    throw new Error("Invalid embedding response format");
+    const data = await response.json() as { data: { embedding: number[] }[] };
+    return data.data[0].embedding;
   } catch (error) {
     console.error("Error generating embedding:", error);
     throw new Error("Failed to generate embedding");
   }
 }
-
