@@ -84,7 +84,7 @@ const CONVERSATIONAL_PHRASES = new Set([
   "hey",
 ]);
 
-const SYSTEM_PROMPT_TEMPLATE = `You are a helpful assistant representing Other Dev, a web development and design studio based in Karachi, Pakistan.
+const SYSTEM_PROMPT = `You are a helpful assistant representing Other Dev, a web development and design studio based in Karachi, Pakistan.
 
 Answer questions about Other Dev's projects, services, technologies, and capabilities in a professional, conversational tone.
 
@@ -96,7 +96,7 @@ CRITICAL RULES
 5. ALWAYS end your response with a contextual follow-up suggestion.
 
 GUIDELINES
-1. Use the context provided below to answer questions accurately and factually.
+1. Use the context provided in the user message to answer questions accurately and factually.
 2. When specific details aren't in the context, provide general helpful information about Other Dev and invite them to connect for specifics.
 3. When discussing projects, include relevant details like the project name and year when available.
 4. Keep responses concise and well-structured, using 2-3 short paragraphs maximum.
@@ -104,10 +104,6 @@ GUIDELINES
 6. Focus on being helpful, engaging, and client-friendly.
 7. For conversational inputs like "sure", "ok", "thanks", respond naturally and ask how you can help further.
 8. IMPORTANT: After your main response, add a new line with "SUGGESTION:" followed by a short, relevant question or prompt (max 60 characters) that the user might want to ask next. It MUST be phrased from the USER's perspective as if they are typing it — never from the AI's perspective. Good examples: "Tell me about your SaaS projects", "What technologies do you use?", "Show me your e-commerce work". Bad examples (never do this): "I can tell you more about...", "Would you like to know about...", "Let me show you...".
-
-=== CONTEXT ===
-{context}
-=== END CONTEXT ===
 
 CONTACT INFORMATION
 - Website: https://otherdev.com
@@ -277,8 +273,6 @@ export async function POST(request: Request): Promise<Response> {
       // Embedding service unavailable — proceed without RAG context
     }
 
-    const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{context}", context);
-
     const selectedModel = selectModel(hasImageContent);
 
     const formattedMessages = typedMessages.map((m) => ({
@@ -293,8 +287,25 @@ export async function POST(request: Request): Promise<Response> {
             ),
     }));
 
+    // Inject RAG context into the last user message so the system prompt stays
+    // fully static and benefits from Groq's automatic prompt caching.
+    if (context) {
+      const lastIdx = formattedMessages.findLastIndex((m) => m.role === "user");
+      if (lastIdx !== -1) {
+        const msg = formattedMessages[lastIdx];
+        const userText = typeof msg.content === "string" ? msg.content : msg.content
+          .filter((b): b is { type: "text"; text: string } => b.type === "text")
+          .map((b) => b.text)
+          .join(" ");
+        formattedMessages[lastIdx] = {
+          ...msg,
+          content: `=== CONTEXT ===\n${context}\n=== END CONTEXT ===\n\n${userText}`,
+        };
+      }
+    }
+
     const chatMessages: ChatCompletionMessageParam[] = [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: SYSTEM_PROMPT },
       ...(formattedMessages as ChatCompletionMessageParam[]),
     ];
 
