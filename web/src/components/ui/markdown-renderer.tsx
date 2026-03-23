@@ -78,16 +78,14 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
-      rehypePlugins={[rehypeRaw as Plugin]}
+      rehypePlugins={[rehypeRaw as unknown as Plugin]}
       components={{
         code({
           className,
           children,
-          ...props
         }: {
           className?: string;
           children?: React.ReactNode;
-          [key: string]: unknown;
         }) {
           const content = String(children).replace(/\n$/, "");
           const isInline = !className;
@@ -96,7 +94,6 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
             return (
               <code
                 className="bg-muted/50 px-1.5 py-0.5 rounded text-[0.875em] font-mono border border-border/50"
-                {...props}
               >
                 {content}
               </code>

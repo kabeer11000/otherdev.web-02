@@ -1,9 +1,11 @@
 import Link from "next/link";
+import sanitizeHtml from "sanitize-html";
 import { CanvasClient } from "@od-canvas/sdk";
 
-// @ts-ignore
-export async function generateMetadata({ params }) {
-  const slug = (await params).slug as string;
+type PageProps = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: PageProps) {
+  const { slug } = await params;
   const canvas = new CanvasClient({
     baseUrl: process.env.CANVAS_API_URL,
     apiKey: process.env.CANVAS_API_KEY,
@@ -25,9 +27,8 @@ export async function generateMetadata({ params }) {
   };
 }
 
-// @ts-ignore
-export default async function BlogPostPage({ params }) {
-  const slug = (await params).slug as string;
+export default async function BlogPostPage({ params }: PageProps) {
+  const { slug } = await params;
   const canvas = new CanvasClient({
     baseUrl: process.env.CANVAS_API_URL,
     apiKey: process.env.CANVAS_API_KEY,
@@ -74,7 +75,7 @@ export default async function BlogPostPage({ params }) {
 
       <div
         className="prose prose-lg w-full content"
-        dangerouslySetInnerHTML={{ __html: post.content }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
       />
 
       <footer className="mt-12 pt-8 border-t border-neutral-200">

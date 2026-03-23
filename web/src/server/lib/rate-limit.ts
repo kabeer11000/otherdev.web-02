@@ -7,6 +7,8 @@ const rateLimitMap = new Map<string, RateLimitEntry>();
 
 export const REQUESTS_PER_WINDOW = 10;
 const WINDOW_MS = 60 * 1000;
+const MAX_ENTRIES = 10_000;
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
 function cleanupExpiredEntries() {
   const now = Date.now();
@@ -15,6 +17,21 @@ function cleanupExpiredEntries() {
       rateLimitMap.delete(key);
     }
   }
+  // If still over limit after cleanup, evict oldest entries
+  if (rateLimitMap.size > MAX_ENTRIES) {
+    const overflow = rateLimitMap.size - MAX_ENTRIES;
+    let evicted = 0;
+    for (const key of rateLimitMap.keys()) {
+      if (evicted >= overflow) break;
+      rateLimitMap.delete(key);
+      evicted++;
+    }
+  }
+}
+
+// Periodic cleanup to prevent unbounded memory growth
+if (typeof setInterval !== "undefined") {
+  setInterval(cleanupExpiredEntries, CLEANUP_INTERVAL_MS);
 }
 
 export function checkRateLimit(identifier: string): {

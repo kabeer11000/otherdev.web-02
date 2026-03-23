@@ -1,7 +1,7 @@
 interface PromptSuggestionsProps {
   label: string;
   append: (message: { role: "user"; content: string }) => void;
-  suggestions: string[] | { label: string; prompt: string }[];
+  suggestions: readonly string[] | readonly { label: string; prompt: string }[];
 }
 
 export function PromptSuggestions({

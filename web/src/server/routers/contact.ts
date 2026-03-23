@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { google } from "googleapis";
 import nodemailer from "nodemailer";
+import { checkRateLimit, getClientIdentifier } from "../lib/rate-limit";
 import { publicProcedure, router } from "../trpc";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
@@ -106,8 +108,28 @@ const contactFormSchema = z.object({
 export const contactRouter = router({
   submit: publicProcedure
     .input(contactFormSchema)
-    .mutation(async ({ input }) => {
-      await Promise.all([appendToSheet(input), sendEmail(input)]);
+    .mutation(async ({ input, ctx }) => {
+      const identifier = getClientIdentifier(ctx.req);
+      const { allowed, resetTime } = checkRateLimit(`contact:${identifier}`);
+      if (!allowed) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: `Too many submissions. Try again after ${new Date(resetTime).toLocaleTimeString()}.`,
+        });
+      }
+
+      const [sheetResult, emailResult] = await Promise.allSettled([
+        appendToSheet(input),
+        sendEmail(input),
+      ]);
+
+      if (sheetResult.status === "rejected" && emailResult.status === "rejected") {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to submit. Please try again.",
+        });
+      }
+
       return { message: "Form submitted successfully" };
     }),
 });

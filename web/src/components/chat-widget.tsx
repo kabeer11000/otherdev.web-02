@@ -195,11 +195,11 @@ export function ChatWidget() {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
 
-  const applySuggestion = React.useCallback(() => {
+  const applySuggestion = () => {
     setInput(suggestion);
     setSuggestion("");
     textareaRef.current?.focus();
-  }, [suggestion]);
+  };
 
   const {
     containerRef,

@@ -11,6 +11,7 @@ export const createTRPCContext = async (opts: { req: Request }) => {
 
   return {
     domain,
+    req: opts.req,
   };
 };
 

@@ -8,7 +8,7 @@ export interface BlogPost {
   id: number;
   title: string;
   slug: string;
-  content: any; // Lexical rich text
+  content: string;
   excerpt?: string;
   status: "draft" | "published";
   author: {

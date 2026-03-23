@@ -23,10 +23,10 @@ export function ShuffledProjectGrid({ initialData }: ShuffledProjectGridProps) {
         <ProjectCard
           key={project.id}
           title={project.title}
-          slug={project?.slug ?? project.url}
+          slug={"slug" in project ? project.slug : (project.url ?? "")}
           image={project.image}
           description={project.description}
-          variant={project?.isPlaylistOrImage ? "broll" : "home"}
+          variant={"isPlaylistOrImage" in project ? "broll" : "home"}
         />
       ))}
     </div>

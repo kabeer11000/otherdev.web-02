@@ -1,6 +1,13 @@
 import { CanvasClient } from "@od-canvas/sdk";
 import Link from "next/link";
 
+interface CanvasDocument {
+  id: number;
+  title: string;
+  created_at: string;
+  content: string;
+}
+
 const canvas = new CanvasClient({
   baseUrl: process.env.CANVAS_API_URL,
   apiKey: process.env.CANVAS_API_KEY,
@@ -8,7 +15,7 @@ const canvas = new CanvasClient({
 
 export default async function BlogPage() {
   // Fetch published documents (blog posts) using public endpoint
-  let posts: any[] = [];
+  let posts: CanvasDocument[] = [];
   try {
     const documents =
       (await canvas.getPublicDocuments(

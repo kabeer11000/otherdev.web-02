@@ -183,9 +183,10 @@ export function useOtherDevRuntime() {
         const toolCalls: ToolCallMessagePart[] = [];
 
         const updateOrAddMessage = (
-          updates: Partial<
-            Pick<ThreadAssistantMessage, "content" | "metadata">
-          >,
+          updates: {
+            content?: ContentPart[];
+            metadata?: { custom: Record<string, unknown> };
+          },
         ) => {
           const contentParts = buildContentParts(accumulatedContent, toolCalls);
 
@@ -335,7 +336,7 @@ export function useOtherDevRuntime() {
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMessageId
-                ? { ...msg, content: errorContent, status: errorStatus }
+                ? ({ ...msg, content: errorContent, status: errorStatus } as ThreadMessage)
                 : msg,
             ),
           );
