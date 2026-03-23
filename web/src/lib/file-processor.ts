@@ -1,11 +1,11 @@
-const SUPPORTED_IMAGE_PREFIX = "image/";
-const PDF_TYPE = "application/pdf";
-
-const SUPPORTED_TEXT_TYPES = new Set([
+// File types read directly as plain text (no OCR needed)
+const PLAIN_TEXT_TYPES = new Set([
   "text/plain",
   "text/markdown",
   "text/css",
   "text/html",
+  "text/csv",
+  "text/xml",
   "application/json",
   "application/javascript",
   "text/javascript",
@@ -13,13 +13,42 @@ const SUPPORTED_TEXT_TYPES = new Set([
   "application/typescript",
   "application/x-python",
   "text/x-python",
+  "application/xml",
+]);
+
+// File types that require server-side Mistral OCR
+export const OCR_DOCUMENT_TYPES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // docx
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation", // pptx
+  "application/epub+zip",
+  "application/rtf",
+  "text/rtf",
+  "application/vnd.oasis.opendocument.text", // odt
+  "application/x-tex",
+  "text/x-tex",
+]);
+
+const SUPPORTED_IMAGE_PREFIX = "image/";
+
+// Images supported by Mistral OCR (used for display + OCR extraction)
+export const SUPPORTED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/avif",
+  "image/tiff",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+  "image/bmp",
+  "image/webp",
 ]);
 
 const FILE_SIZE_LIMIT = 50 * 1024 * 1024; // 50MB
 const IMAGE_BASE64_LIMIT = 4 * 1024 * 1024; // 4MB
 
 /**
- * Encode image file to data URI format for Groq
+ * Encode image to data URI for inline vision (Groq/LLM)
  */
 export function encodeImageToBase64(file: File): Promise<string> {
   if (!file.type.startsWith(SUPPORTED_IMAGE_PREFIX)) {
@@ -43,46 +72,41 @@ export function encodeImageToBase64(file: File): Promise<string> {
 }
 
 /**
- * Extract text from a PDF file using pdfjs-dist
+ * Extract text via Mistral OCR (server-side). Used for PDFs, DOCX, PPTX, images, etc.
  */
-async function extractTextFromPdf(file: File): Promise<string> {
-  const { getDocument, GlobalWorkerOptions } = await import("pdfjs-dist");
-  GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.mjs",
-    import.meta.url,
-  ).toString();
+async function extractTextViaMistralOcr(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
 
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await getDocument({ data: arrayBuffer }).promise;
-  const pages: string[] = [];
+  const res = await fetch("/api/process-document", {
+    method: "POST",
+    body: formData,
+  });
 
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const pageText = content.items
-      .map((item) => ("str" in item ? item.str : ""))
-      .join(" ");
-    pages.push(pageText);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "OCR failed" }));
+    throw new Error(err.error ?? "OCR failed");
   }
 
-  return pages.join("\n\n");
+  const { text } = await res.json();
+  return text as string;
 }
 
 /**
- * Extract text from documents and code files
+ * Extract text from a file. Routes to Mistral OCR or plain text read based on type.
  */
 export async function extractTextFromFile(file: File): Promise<string> {
-  const baseMimeType = file.type.split(";")[0];
+  const mimeType = file.type.split(";")[0].toLowerCase();
 
-  if (baseMimeType === PDF_TYPE) {
-    return extractTextFromPdf(file);
+  if (PLAIN_TEXT_TYPES.has(mimeType)) {
+    return file.text();
   }
 
-  if (!SUPPORTED_TEXT_TYPES.has(baseMimeType)) {
-    throw new Error(`Unsupported file type: ${file.type}`);
+  if (OCR_DOCUMENT_TYPES.has(mimeType) || SUPPORTED_IMAGE_TYPES.has(mimeType)) {
+    return extractTextViaMistralOcr(file);
   }
 
-  return file.text();
+  throw new Error(`Unsupported file type: ${file.type}`);
 }
 
 /**
@@ -93,12 +117,12 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
     return { valid: false, error: "File exceeds 50MB limit" };
   }
 
-  const baseMimeType = file.type.split(";")[0];
+  const mimeType = file.type.split(";")[0].toLowerCase();
   const isImage = file.type.startsWith(SUPPORTED_IMAGE_PREFIX);
-  const isText = SUPPORTED_TEXT_TYPES.has(baseMimeType);
-  const isPdf = baseMimeType === PDF_TYPE;
+  const isPlainText = PLAIN_TEXT_TYPES.has(mimeType);
+  const isOcrDocument = OCR_DOCUMENT_TYPES.has(mimeType);
 
-  if (!isImage && !isText && !isPdf) {
+  if (!isImage && !isPlainText && !isOcrDocument) {
     return { valid: false, error: `Unsupported file type: ${file.type}` };
   }
 

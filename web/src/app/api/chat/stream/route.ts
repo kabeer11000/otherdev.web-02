@@ -10,6 +10,7 @@ import {
   getClientIdentifier,
   REQUESTS_PER_WINDOW,
 } from "@/server/lib/rate-limit";
+import { createJsonResponse } from "@/server/lib/api-helpers";
 import {
   CHAT_MODEL,
   type Message,
@@ -183,16 +184,6 @@ function buildContext(
   return "Provide helpful general information about Other Dev based on common topics: projects (fashion, e-commerce, real estate, legal tech, SaaS), web development services, design capabilities, and technologies used.";
 }
 
-function createJsonResponse(
-  data: object,
-  status: number,
-  headers?: Record<string, string>,
-): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json", ...headers },
-  });
-}
 
 export async function POST(request: Request): Promise<Response> {
   try {
