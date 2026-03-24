@@ -2,15 +2,16 @@
 
 import type {
   AppendMessage,
+  CompleteAttachment,
   TextMessagePart,
   ThreadAssistantMessage,
   ThreadMessage,
   ToolCallMessagePart,
 } from "@assistant-ui/react";
 import { useExternalStoreRuntime } from "@assistant-ui/react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useLocalStorageMessages } from "@/hooks/use-local-storage-messages";
-import type { ContentBlock } from "@/lib/content-types";
+import { OcrAttachmentAdapter } from "@/lib/attachment-adapter";
 import { parseSSEStream } from "@/lib/sse";
 
 const LOOM_STORAGE_KEY = "otherdev-loom-messages";
@@ -18,11 +19,21 @@ const LOOM_STORAGE_KEY = "otherdev-loom-messages";
 type ContentPart = TextMessagePart | ToolCallMessagePart;
 type MessageStatus = ThreadAssistantMessage["status"];
 
-/**
- * AppendableContentPart is an alias for ContentBlock, representing
- * content that can be appended from file attachments (text and image blocks).
- */
-export type AppendableContentPart = ContentBlock;
+type AttachmentImageContent = { type: "image"; image: string };
+type AttachmentTextContent = { type: "text"; text: string };
+type AttachmentContentPart = AttachmentImageContent | AttachmentTextContent;
+
+function extractAttachmentData(attachments: readonly CompleteAttachment[]) {
+  const allContent = attachments.flatMap((a) => (a.content ?? []) as AttachmentContentPart[]);
+  const hasImages = allContent.some((c) => c.type === "image");
+  const imageUrls = allContent
+    .filter((c): c is AttachmentImageContent => c.type === "image")
+    .map((c) => ({ url: c.image }));
+  const fileTexts = allContent
+    .filter((c): c is AttachmentTextContent => c.type === "text")
+    .map((c) => c.text);
+  return { hasImages, imageUrls, fileTexts };
+}
 
 function serializeLoomMessages(messages: ThreadMessage[]): string {
   return JSON.stringify(
@@ -83,28 +94,13 @@ export function useOtherDevRuntime() {
   });
   const [isRunning, setIsRunning] = useState(false);
   const [suggestion, setSuggestion] = useState("");
-  const [composedContent, setComposedContent] = useState<
-    AppendableContentPart[]
-  >([]);
+  const adapter = useMemo(() => new OcrAttachmentAdapter(), []);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const onNew = useCallback(
     async (message: AppendMessage) => {
       const textContent = message.content.find((part) => part.type === "text");
-      const hasImages = composedContent.some((b) => b.type === "image_url");
-
-      // Store only text in the thread message — assistant-ui can't render image_url parts
-      // Images and file text blocks are kept in metadata for API serialization
-      const imageUrls = composedContent
-        .filter((b) => b.type === "image_url")
-        .map(
-          (b) =>
-            (b as { type: "image_url"; image_url: { url: string } }).image_url,
-        );
-
-      const fileTexts = composedContent
-        .filter((b) => b.type === "text")
-        .map((b) => (b as { type: "text"; text: string }).text);
+      const { hasImages, imageUrls, fileTexts } = extractAttachmentData(message.attachments ?? []);
 
       const userMessage: ThreadMessage = {
         id: `user-${Date.now()}`,
@@ -119,7 +115,6 @@ export function useOtherDevRuntime() {
 
       setMessages((prev) => [...prev, userMessage]);
       setIsRunning(true);
-      setComposedContent([]);
 
       abortControllerRef.current = new AbortController();
       const assistantMessageId = `assistant-${Date.now()}`;
@@ -346,14 +341,7 @@ export function useOtherDevRuntime() {
         abortControllerRef.current = null;
       }
     },
-    [messages, setMessages, composedContent],
-  );
-
-  const appendFileContent = useCallback(
-    (contentBlocks: AppendableContentPart[]) => {
-      setComposedContent(contentBlocks);
-    },
-    [],
+    [messages, setMessages],
   );
 
   const onCancel = useCallback(async () => {
@@ -376,6 +364,7 @@ export function useOtherDevRuntime() {
     isRunning,
     onNew,
     onCancel,
+    adapters: { attachments: adapter },
   });
 
   return {
@@ -383,7 +372,5 @@ export function useOtherDevRuntime() {
     suggestion,
     setSuggestion,
     clear,
-    appendFileContent,
-    composedContent,
   };
 }
