@@ -4,6 +4,7 @@ import type { ToolCallMessagePart } from "@assistant-ui/react";
 import {
   AssistantIf,
   AssistantRuntimeProvider,
+  ComposerPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
   useAssistantApi,
@@ -14,16 +15,14 @@ import {
   ArrowUp,
   AudioLines,
   ChevronRight,
-  File,
   FileCode2,
   FileText,
   Paperclip,
   Square,
-  Upload,
   X,
 } from "lucide-react";
 import Image from "next/image";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { ArtifactRenderer } from "@/components/artifact-renderer";
 import { Navigation } from "@/components/navigation";
 import { Button } from "@/components/ui/button";
@@ -58,12 +57,6 @@ import {
 } from "@/components/ui/prompt-input";
 import { VoiceWaveform } from "@/components/voice-waveform";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
-import type { ContentBlock } from "@/lib/content-types";
-import {
-  encodeImageToBase64,
-  extractTextFromFile,
-  validateFile,
-} from "@/lib/file-processor";
 import { parseSSEStream } from "@/lib/sse";
 import { useOtherDevRuntime } from "@/lib/use-otherdev-runtime";
 import { cleanSuggestionMarkers, cn } from "@/lib/utils";
@@ -87,8 +80,6 @@ export function useArtifact() {
 interface RuntimeContextType {
   suggestion: string;
   setSuggestion: (suggestion: string) => void;
-  appendFileContent: (contentBlocks: ContentBlock[]) => void;
-  composedContent: ContentBlock[];
 }
 
 const RuntimeContext = createContext<RuntimeContextType | null>(null);
@@ -401,120 +392,63 @@ function AssistantMessage() {
   );
 }
 
+function AttachmentChip() {
+  const api = useAssistantApi();
+  const state = api.attachment().getState();
+  const isRunning = state.status.type === "running";
+  const isError = state.status.type === "incomplete";
+  const isImage = state.type === "image";
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const file = (state as { file?: File }).file;
+    if (!isImage || !file) return;
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [isImage, state]);
+
+  return (
+    <div className="relative flex items-center gap-1.5 rounded-xl bg-accent px-2 py-1.5 text-xs text-accent-foreground">
+      {isImage && previewUrl ? (
+        // biome-ignore lint/performance/noImgElement: object URL preview
+        <img src={previewUrl} alt={state.name} className="h-8 w-8 rounded-lg object-cover" />
+      ) : (
+        <FileText className="h-3.5 w-3.5 shrink-0 opacity-70" />
+      )}
+      <span className="max-w-[120px] truncate">{state.name}</span>
+      {isRunning && (
+        <div className="h-3 w-3 animate-spin rounded-full border border-foreground/30 border-t-foreground/80" />
+      )}
+      {isError && <span className="font-medium text-destructive">!</span>}
+      {!isRunning && (
+        <button
+          type="button"
+          onClick={() => api.attachment().remove()}
+          className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full hover:bg-foreground/10"
+          aria-label={`Remove ${state.name}`}
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function OtherDevLoomThread() {
-  const { suggestion, setSuggestion, appendFileContent, composedContent } =
-    useRuntimeContext();
+  const { suggestion, setSuggestion } = useRuntimeContext();
   const api = useAssistantApi();
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<VoiceRecorder | null>(null);
-  const dragCounterRef = useRef(0);
-  const processedBlocksRef = useRef<Map<File, ContentBlock>>(new Map());
 
   const [inputValue, setInputValue] = useState("");
-  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
-  const [imageUrls, setImageUrls] = useState<Map<File, string>>(new Map());
-  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
-  const [fileError, setFileError] = useState("");
+  const [inputError, setInputError] = useState("");
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(
     null,
   );
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingProcessing, setIsRecordingProcessing] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const greeting = useTimeBasedGreeting();
-
-  useEffect(() => {
-    const urls = new Map<File, string>();
-    attachedFiles
-      .filter((f) => f.type.startsWith("image/"))
-      .forEach((f) => {
-        urls.set(f, URL.createObjectURL(f));
-      });
-    setImageUrls(urls);
-    return () => urls.forEach((url) => URL.revokeObjectURL(url));
-  }, [attachedFiles]);
-
-  const processAndAttachFiles = async (files: File[]) => {
-    if (files.length === 0) {
-      appendFileContent([]);
-      return;
-    }
-
-    try {
-      setFileError("");
-      setIsProcessingFiles(true);
-
-      const contentBlocks: ContentBlock[] = await Promise.all(
-        files.map(async (file) => {
-          const cached = processedBlocksRef.current.get(file);
-          if (cached) return cached;
-
-          let block: ContentBlock;
-          if (file.type.startsWith("image/")) {
-            const dataUri = await encodeImageToBase64(file);
-            block = { type: "image_url", image_url: { url: dataUri } };
-          } else {
-            const text = await extractTextFromFile(file);
-            block = { type: "text", text: `[File: ${file.name}]\n${text}` };
-          }
-          processedBlocksRef.current.set(file, block);
-          return block;
-        }),
-      );
-
-      appendFileContent(contentBlocks);
-    } catch (error) {
-      setFileError(
-        error instanceof Error ? error.message : "Failed to process files",
-      );
-    } finally {
-      setIsProcessingFiles(false);
-    }
-  };
-
-  const handleFilesSelected = async (files: File[]) => {
-    setAttachedFiles(files);
-    await processAndAttachFiles(files);
-  };
-
-  const handleRemoveFile = async (index: number) => {
-    const removed = attachedFiles[index];
-    processedBlocksRef.current.delete(removed);
-    const remaining = attachedFiles.filter((_, i) => i !== index);
-    setAttachedFiles(remaining);
-    await processAndAttachFiles(remaining);
-  };
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFileError("");
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    if (files.length > 5) {
-      setFileError("Maximum 5 files allowed");
-      return;
-    }
-
-    let totalSize = 0;
-    const validFiles: File[] = [];
-    for (const file of files) {
-      const validation = validateFile(file);
-      if (!validation.valid) {
-        setFileError(validation.error || "Invalid file");
-        return;
-      }
-      totalSize += file.size;
-      if (totalSize > 50 * 1024 * 1024) {
-        setFileError("Total file size exceeds 50MB limit");
-        return;
-      }
-      validFiles.push(file);
-    }
-
-    handleFilesSelected(validFiles);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
 
   const handleTranscriptReceived = (text: string) => {
     setInputValue(text);
@@ -532,7 +466,7 @@ export function OtherDevLoomThread() {
       setRecordingStream(stream);
       setIsRecordingProcessing(false);
     } catch (error) {
-      setFileError(
+      setInputError(
         error instanceof Error ? error.message : "Failed to access microphone",
       );
       setIsRecordingProcessing(false);
@@ -581,7 +515,7 @@ export function OtherDevLoomThread() {
 
       setIsRecordingProcessing(false);
     } catch (error) {
-      setFileError(
+      setInputError(
         error instanceof Error ? error.message : "Transcription error",
       );
       recorderRef.current?.release();
@@ -592,58 +526,10 @@ export function OtherDevLoomThread() {
     }
   };
 
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    dragCounterRef.current++;
-    if (e.dataTransfer.types.includes("Files")) setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    dragCounterRef.current--;
-    if (dragCounterRef.current === 0) setIsDragging(false);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    dragCounterRef.current = 0;
-    setIsDragging(false);
-    setFileError("");
-
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length === 0) return;
-
-    if (files.length > 5) {
-      setFileError("Maximum 5 files allowed");
-      return;
-    }
-
-    let totalSize = 0;
-    const validFiles: File[] = [];
-    for (const file of files) {
-      const validation = validateFile(file);
-      if (!validation.valid) {
-        setFileError(validation.error || "Invalid file");
-        return;
-      }
-      totalSize += file.size;
-      if (totalSize > 50 * 1024 * 1024) {
-        setFileError("Total file size exceeds 50MB limit");
-        return;
-      }
-      validFiles.push(file);
-    }
-
-    await handleFilesSelected(validFiles);
-  };
-
   const handleSubmit = () => {
     const value = inputValue.trim();
-    if (!value && composedContent.length === 0) return;
+    const hasAttachments = api.composer().getState().attachments.length > 0;
+    if (!value && !hasAttachments) return;
 
     api.thread().append({
       role: "user",
@@ -652,7 +538,6 @@ export function OtherDevLoomThread() {
 
     setSuggestion("");
     setInputValue("");
-    setAttachedFiles([]);
   };
 
   const applySuggestion = () => {
@@ -684,60 +569,10 @@ export function OtherDevLoomThread() {
 
   const placeholder = suggestion || "Type your message...";
 
-  const imageItems: { file: File; idx: number }[] = [];
-  const otherItems: { file: File; idx: number }[] = [];
-  attachedFiles.forEach((file, idx) => {
-    if (file.type.startsWith("image/")) imageItems.push({ file, idx });
-    else otherItems.push({ file, idx });
-  });
-
   return (
     <div
       className="relative h-full flex flex-col bg-background"
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
     >
-      <AnimatePresence>
-        {isDragging && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="absolute inset-0 z-20 flex items-center justify-center bg-background/85 backdrop-blur-sm"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.2, ease: [0.165, 0.85, 0.45, 1] }}
-              className="flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-foreground/20 bg-card/50 px-12 py-10"
-            >
-              <motion.div
-                animate={{ y: [0, -5, 0] }}
-                transition={{
-                  duration: 1.6,
-                  repeat: Number.POSITIVE_INFINITY,
-                  ease: "easeInOut",
-                }}
-              >
-                <Upload className="h-8 w-8 text-foreground/40" />
-              </motion.div>
-              <div className="text-center">
-                <p className="font-sans text-sm font-medium text-foreground">
-                  Drop files to attach
-                </p>
-                <p className="mt-1 font-sans text-xs text-muted-foreground">
-                  Images, PDFs, code, and documents
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <ChatContainerRoot className="flex-1 w-full">
         <ChatContainerContent
           className="flex-1 scroll-smooth pb-32 sm:pb-40"
@@ -823,12 +658,12 @@ export function OtherDevLoomThread() {
 
       <div className="absolute bottom-0 left-0 right-0 z-10 p-3 sm:p-4 w-full max-w-3xl mx-auto pointer-events-none">
         <div className="space-y-3 pointer-events-auto">
-          {fileError && (
+          {inputError && (
             <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive flex items-center justify-between">
-              <span>{fileError}</span>
+              <span>{inputError}</span>
               <button
                 type="button"
-                onClick={() => setFileError("")}
+                onClick={() => setInputError("")}
                 className="text-destructive hover:opacity-70 transition-opacity"
               >
                 ×
@@ -837,155 +672,116 @@ export function OtherDevLoomThread() {
           )}
         </div>
 
-        <PromptInput
-          className="relative rounded-2xl border-border shadow-sm pointer-events-auto"
-          disabled={false}
-          maxHeight={96}
-          value={inputValue}
-          onValueChange={setInputValue}
-          onSubmit={handleSubmit}
-        >
-          {attachedFiles.length > 0 && (
-            <div className="flex flex-wrap items-end gap-2 pb-2 border-b border-border/50">
-              {imageItems.map(({ file, idx }) => (
-                <div key={`${file.name}-${idx}`} className="relative group">
-                  <div className="h-16 w-16 rounded-xl overflow-hidden bg-muted">
-                    {imageUrls.get(file) && (
-                      // biome-ignore lint/performance/noImgElement: object URL from local file, next/image doesn't handle these
-                      <img
-                        src={imageUrls.get(file)}
-                        alt={file.name}
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveFile(idx)}
-                    className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-background opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-label={`Remove ${file.name}`}
-                  >
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                </div>
-              ))}
-              {otherItems.map(({ file, idx }) => {
-                const Icon = file.name.match(/\.(ts|tsx|js|jsx|py|json)$/i)
-                  ? FileCode2
-                  : file.name.match(/\.(txt|md|pdf)$/i)
-                    ? FileText
-                    : File;
-                return (
-                  <div
-                    key={`${file.name}-${idx}`}
-                    className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground"
-                  >
-                    <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-                    <span className="max-w-[140px] truncate">{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveFile(idx)}
-                      className="ml-1 text-muted-foreground hover:text-foreground transition-colors"
-                      aria-label={`Remove ${file.name}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {recordingStream ? (
-            <VoiceWaveform stream={recordingStream} />
-          ) : (
-            <PromptInputTextarea
-              ref={inputRef}
-              placeholder={placeholder}
-              className={cn(
-                "font-sans text-sm sm:text-base",
-                suggestion &&
-                  !inputValue &&
-                  "placeholder:text-transparent placeholder:md:text-muted-foreground",
-              )}
-              autoFocus
-            />
-          )}
-          {suggestion && !inputValue && (
-            <button
-              type="button"
-              onClick={applySuggestion}
-              className="absolute inset-2 bottom-auto h-[44px] pl-3 pt-2 font-sans text-sm text-muted-foreground hover:opacity-80 transition-opacity md:hidden overflow-hidden text-left"
-            >
-              {suggestion}
-            </button>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*,.pdf,.txt,.md,.js,.ts,.json,.py"
-            onChange={handleFileInputChange}
-            className="hidden"
-            disabled={isProcessingFiles}
-          />
-          <PromptInputActions className="w-full justify-between">
-            <div className="flex gap-2">
-              <PromptInputAction tooltip="Attach file">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isProcessingFiles}
-                  className="flex h-6 w-6 items-center justify-center text-muted-foreground hover:opacity-70 transition-opacity disabled:opacity-50 sm:h-7 sm:w-7"
-                  aria-label="Attach file"
-                >
-                  <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
-                </button>
-              </PromptInputAction>
-              <PromptInputAction tooltip="Use voice mode">
-                <button
-                  type="button"
-                  onClick={
-                    isRecording ? handleStopRecording : handleStartRecording
-                  }
-                  disabled={isProcessingFiles || isRecordingProcessing}
-                  className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] disabled:opacity-50 sm:h-7 sm:w-7",
-                    isRecording
-                      ? "bg-red-500 hover:bg-red-600 text-white"
-                      : "text-muted-foreground hover:opacity-70",
-                  )}
-                  aria-label={
-                    isRecording ? "Stop recording" : "Start recording"
-                  }
-                >
-                  {isRecording ? (
-                    <Square className="h-3 w-3 sm:h-4 sm:w-4 fill-current" />
-                  ) : (
-                    <AudioLines className="h-4 w-4 sm:h-5 sm:w-5" />
-                  )}
-                </button>
-              </PromptInputAction>
-            </div>
-            <PromptInputAction tooltip="Send message (Enter)">
+        <ComposerPrimitive.AttachmentDropzone className="relative data-[dragging]:ring-2 data-[dragging]:ring-foreground/20 data-[dragging]:rounded-2xl">
+          <ComposerPrimitive.Attachments components={{ Attachment: AttachmentChip }} />
+          <PromptInput
+            className="relative rounded-2xl border-border shadow-sm pointer-events-auto"
+            disabled={false}
+            maxHeight={96}
+            value={inputValue}
+            onValueChange={setInputValue}
+            onSubmit={handleSubmit}
+          >
+            {recordingStream ? (
+              <VoiceWaveform stream={recordingStream} />
+            ) : (
+              <PromptInputTextarea
+                ref={inputRef}
+                placeholder={placeholder}
+                className={cn(
+                  "font-sans text-sm sm:text-base",
+                  suggestion &&
+                    !inputValue &&
+                    "placeholder:text-transparent placeholder:md:text-muted-foreground",
+                )}
+                autoFocus
+              />
+            )}
+            {suggestion && !inputValue && (
               <button
                 type="button"
-                onClick={handleSubmit}
-                disabled={!inputValue.trim() && composedContent.length === 0}
-                className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] sm:h-8 sm:w-8",
-                  inputValue.trim() || composedContent.length > 0
-                    ? "bg-foreground text-background hover:opacity-90"
-                    : "bg-muted text-muted-foreground hover:opacity-70 disabled:opacity-50",
-                )}
+                onClick={applySuggestion}
+                className="absolute inset-2 bottom-auto h-[44px] pl-3 pt-2 font-sans text-sm text-muted-foreground hover:opacity-80 transition-opacity md:hidden overflow-hidden text-left"
               >
-                <ArrowUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                {suggestion}
               </button>
-            </PromptInputAction>
-          </PromptInputActions>
-        </PromptInput>
+            )}
+            <PromptInputActions className="w-full justify-between">
+              <div className="flex gap-2">
+                <PromptInputAction tooltip="Attach file">
+                  <ComposerPrimitive.AddAttachment asChild>
+                    <button
+                      type="button"
+                      className="flex h-6 w-6 items-center justify-center text-muted-foreground hover:opacity-70 transition-opacity sm:h-7 sm:w-7"
+                      aria-label="Attach file"
+                    >
+                      <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </button>
+                  </ComposerPrimitive.AddAttachment>
+                </PromptInputAction>
+                <PromptInputAction tooltip="Use voice mode">
+                  <button
+                    type="button"
+                    onClick={
+                      isRecording ? handleStopRecording : handleStartRecording
+                    }
+                    disabled={isRecordingProcessing}
+                    className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] disabled:opacity-50 sm:h-7 sm:w-7",
+                      isRecording
+                        ? "bg-red-500 hover:bg-red-600 text-white"
+                        : "text-muted-foreground hover:opacity-70",
+                    )}
+                    aria-label={
+                      isRecording ? "Stop recording" : "Start recording"
+                    }
+                  >
+                    {isRecording ? (
+                      <Square className="h-3 w-3 sm:h-4 sm:w-4 fill-current" />
+                    ) : (
+                      <AudioLines className="h-4 w-4 sm:h-5 sm:w-5" />
+                    )}
+                  </button>
+                </PromptInputAction>
+              </div>
+              <PromptInputAction tooltip="Send message (Enter)">
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={!inputValue.trim() && api.composer().getState().attachments.length === 0}
+                  className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] sm:h-8 sm:w-8",
+                    inputValue.trim() || api.composer().getState().attachments.length > 0
+                      ? "bg-foreground text-background hover:opacity-90"
+                      : "bg-muted text-muted-foreground hover:opacity-70 disabled:opacity-50",
+                  )}
+                >
+                  <ArrowUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </button>
+              </PromptInputAction>
+            </PromptInputActions>
+          </PromptInput>
+        </ComposerPrimitive.AttachmentDropzone>
       </div>
     </div>
   );
+}
+
+function LoomPageInner({
+  onClear,
+  hasActiveArtifact,
+}: {
+  onClear: () => void;
+  hasActiveArtifact: boolean;
+}) {
+  const api = useAssistantApi();
+
+  const handleClear = useCallback(() => {
+    onClear();
+    api.composer().clearAttachments();
+  }, [onClear, api]);
+
+  return <Navigation isLoomPage={true} onClear={handleClear} hasActiveArtifact={hasActiveArtifact} />;
 }
 
 export function LoomPageClient() {
@@ -995,24 +791,18 @@ export function LoomPageClient() {
 
   return (
     <>
-      <Navigation
-        isLoomPage={true}
-        onClear={runtime.clear}
-        hasActiveArtifact={!!activeArtifact}
-      />
-      <main className="h-screen">
-        <AssistantRuntimeProvider runtime={runtime}>
-          <RuntimeContext.Provider
-            value={{
-              suggestion: runtime.suggestion,
-              setSuggestion: runtime.setSuggestion,
-              appendFileContent: runtime.appendFileContent,
-              composedContent: runtime.composedContent,
-            }}
+      <AssistantRuntimeProvider runtime={runtime}>
+        <RuntimeContext.Provider
+          value={{
+            suggestion: runtime.suggestion,
+            setSuggestion: runtime.setSuggestion,
+          }}
+        >
+          <ArtifactContext.Provider
+            value={{ activeArtifact, setActiveArtifact }}
           >
-            <ArtifactContext.Provider
-              value={{ activeArtifact, setActiveArtifact }}
-            >
+            <LoomPageInner onClear={runtime.clear} hasActiveArtifact={!!activeArtifact} />
+            <main className="h-screen">
               <div className="flex h-full overflow-hidden">
                 <div
                   className={`h-full ${activeArtifact ? "hidden md:block md:w-1/2" : "w-full"}`}
@@ -1029,10 +819,10 @@ export function LoomPageClient() {
                   </div>
                 )}
               </div>
-            </ArtifactContext.Provider>
-          </RuntimeContext.Provider>
-        </AssistantRuntimeProvider>
-      </main>
+            </main>
+          </ArtifactContext.Provider>
+        </RuntimeContext.Provider>
+      </AssistantRuntimeProvider>
     </>
   );
 }

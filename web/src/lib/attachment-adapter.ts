@@ -11,44 +11,33 @@ export class OcrAttachmentAdapter implements AttachmentAdapter {
   private cache = new Map<string, ContentBlock>();
   private liveIds = new Set<string>();
 
-  async *add({ file }: { file: File }): AsyncGenerator<PendingAttachment, PendingAttachment> {
+  async *add({ file }: { file: File }): AsyncGenerator<PendingAttachment, void> {
     const id = crypto.randomUUID();
     const isImage = file.type.startsWith("image/");
     const attachmentType = isImage ? ("image" as const) : ("document" as const);
 
-    if (this.liveIds.size >= MAX_ATTACHMENTS) {
-      return {
-        id,
-        type: attachmentType,
-        name: file.name,
-        contentType: file.type,
-        file,
-        status: { type: "incomplete", reason: "error" },
-      } as PendingAttachment;
-    }
-
-    const validation = validateFile(file);
-    if (!validation.valid) {
-      return {
-        id,
-        type: attachmentType,
-        name: file.name,
-        contentType: file.type,
-        file,
-        status: { type: "incomplete", reason: "error" },
-      } as PendingAttachment;
-    }
-
-    this.liveIds.add(id);
-
-    yield {
+    const base = {
       id,
       type: attachmentType,
       name: file.name,
       contentType: file.type,
       file,
-      status: { type: "running" } as PendingAttachment["status"],
-    } as PendingAttachment;
+    };
+
+    if (this.liveIds.size >= MAX_ATTACHMENTS) {
+      yield { ...base, status: { type: "incomplete", reason: "error" } } as PendingAttachment;
+      return;
+    }
+
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      yield { ...base, status: { type: "incomplete", reason: "error" } } as PendingAttachment;
+      return;
+    }
+
+    this.liveIds.add(id);
+
+    yield { ...base, status: { type: "running" } as PendingAttachment["status"] } as PendingAttachment;
 
     try {
       let block: ContentBlock;
@@ -62,24 +51,11 @@ export class OcrAttachmentAdapter implements AttachmentAdapter {
       this.cache.set(id, block);
     } catch {
       this.liveIds.delete(id);
-      return {
-        id,
-        type: attachmentType,
-        name: file.name,
-        contentType: file.type,
-        file,
-        status: { type: "incomplete", reason: "error" },
-      } as PendingAttachment;
+      yield { ...base, status: { type: "incomplete", reason: "error" } } as PendingAttachment;
+      return;
     }
 
-    return {
-      id,
-      type: attachmentType,
-      name: file.name,
-      contentType: file.type,
-      file,
-      status: { type: "requires-action", reason: "composer-send" },
-    } as PendingAttachment;
+    yield { ...base, status: { type: "requires-action", reason: "composer-send" } } as PendingAttachment;
   }
 
   async send(attachment: PendingAttachment): Promise<CompleteAttachment> {

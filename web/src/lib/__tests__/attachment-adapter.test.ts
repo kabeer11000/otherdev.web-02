@@ -21,10 +21,12 @@ function makeFile(name: string, type: string, size = 100): File {
 async function drainAdd(adapter: OcrAttachmentAdapter, file: File) {
   const gen = adapter.add({ file });
   const yielded: object[] = [];
+  let final: object | undefined;
   while (true) {
     const result = await gen.next();
-    if (result.done) return { yielded, final: result.value };
+    if (result.done) return { yielded, final };
     yielded.push(result.value);
+    final = result.value;
   }
 }
 
@@ -40,59 +42,59 @@ describe("OcrAttachmentAdapter.add()", () => {
 
   afterEach(() => jest.clearAllMocks());
 
-  it("yields running then returns requires-action for an image", async () => {
+  it("yields running then requires-action for an image", async () => {
     const file = makeFile("photo.png", "image/png");
     const { yielded, final } = await drainAdd(adapter, file);
 
-    expect(yielded).toHaveLength(1);
+    expect(yielded).toHaveLength(2);
     expect((yielded[0] as any).status.type).toBe("running");
     expect((final as any).status.type).toBe("requires-action");
     expect((final as any).status.reason).toBe("composer-send");
     expect(mockEncodeImage).toHaveBeenCalledWith(file);
   });
 
-  it("yields running then returns requires-action for plain text", async () => {
+  it("yields running then requires-action for plain text", async () => {
     const file = makeFile("notes.txt", "text/plain");
     const { yielded, final } = await drainAdd(adapter, file);
 
-    expect(yielded).toHaveLength(1);
+    expect(yielded).toHaveLength(2);
     expect((yielded[0] as any).status.type).toBe("running");
     expect((final as any).status.type).toBe("requires-action");
     expect(mockExtractText).toHaveBeenCalledWith(file);
   });
 
-  it("yields running then returns requires-action for a PDF", async () => {
+  it("yields running then requires-action for a PDF", async () => {
     const file = makeFile("document.pdf", "application/pdf");
     const { yielded, final } = await drainAdd(adapter, file);
 
-    expect(yielded).toHaveLength(1);
+    expect(yielded).toHaveLength(2);
     expect((yielded[0] as any).status.type).toBe("running");
     expect((final as any).status.type).toBe("requires-action");
     expect(mockExtractText).toHaveBeenCalledWith(file);
   });
 
-  it("returns incomplete with no yield for an invalid file", async () => {
+  it("yields incomplete for an invalid file", async () => {
     mockValidateFile.mockReturnValue({ valid: false, error: "File exceeds 50MB limit" });
     const file = makeFile("huge.pdf", "application/pdf");
     const { yielded, final } = await drainAdd(adapter, file);
 
-    expect(yielded).toHaveLength(0);
+    expect(yielded).toHaveLength(1);
     expect((final as any).status.type).toBe("incomplete");
     expect(mockEncodeImage).not.toHaveBeenCalled();
     expect(mockExtractText).not.toHaveBeenCalled();
   });
 
-  it("returns incomplete when attachment count is already at 5", async () => {
+  it("yields incomplete when attachment count is already at 5", async () => {
     const files = Array.from({ length: 5 }, (_, i) => makeFile(`f${i}.txt`, "text/plain"));
     await Promise.all(files.map((f) => drainAdd(adapter, f)));
 
     const { yielded, final } = await drainAdd(adapter, makeFile("sixth.txt", "text/plain"));
 
-    expect(yielded).toHaveLength(0);
+    expect(yielded).toHaveLength(1);
     expect((final as any).status.type).toBe("incomplete");
   });
 
-  it("returns incomplete when processing throws", async () => {
+  it("yields incomplete when processing throws", async () => {
     mockEncodeImage.mockRejectedValue(new Error("encode failed"));
     const { final } = await drainAdd(adapter, makeFile("broken.jpg", "image/jpeg"));
 
