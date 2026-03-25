@@ -13,6 +13,7 @@ import {
 import { createJsonResponse } from "@/server/lib/api-helpers";
 import {
   CHAT_MODEL,
+  VISION_MODEL,
   type Message,
   warnOnImageContentMismatch,
 } from "./helpers";
@@ -307,7 +308,7 @@ export async function POST(request: Request): Promise<Response> {
     const enableArtifacts = supportsArtifacts && queryQuality.needsArtifact;
 
     const completion = await groq.chat.completions.create({
-      model: CHAT_MODEL,
+      model: hasImageContent ? VISION_MODEL : CHAT_MODEL,
       messages: chatMessages,
       temperature: 0.7,
       max_tokens: 1024,

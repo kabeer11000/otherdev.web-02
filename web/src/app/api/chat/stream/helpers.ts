@@ -7,7 +7,8 @@ export interface Message {
   content: MessageContent;
 }
 
-export const CHAT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+export const CHAT_MODEL = "openai/gpt-oss-120b";
+export const VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 export function warnOnImageContentMismatch(
   messages: Message[],
