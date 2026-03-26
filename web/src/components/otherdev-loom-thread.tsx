@@ -1,15 +1,7 @@
 "use client";
 
-import type { ToolCallMessagePart } from "@assistant-ui/react";
-import {
-  AssistantIf,
-  AssistantRuntimeProvider,
-  ComposerPrimitive,
-  MessagePrimitive,
-  ThreadPrimitive,
-  useAssistantApi,
-  useMessage,
-} from "@assistant-ui/react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowUp,
@@ -23,7 +15,8 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ArtifactToolCall } from "@/components/artifact-renderer";
 import { ArtifactRenderer } from "@/components/artifact-renderer";
 import { Navigation } from "@/components/navigation";
 import { Button } from "@/components/ui/button";
@@ -46,11 +39,6 @@ import {
 import { CopyButton } from "@/components/ui/copy-button";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import {
-  Message,
-  MessageAvatar,
-  MessageContent,
-} from "@/components/ui/message";
-import {
   PromptInput,
   PromptInputAction,
   PromptInputActions,
@@ -58,8 +46,8 @@ import {
 } from "@/components/ui/prompt-input";
 import { VoiceWaveform } from "@/components/voice-waveform";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
-import { parseSSEStream } from "@/lib/sse";
 import { useOtherDevRuntime } from "@/lib/otherdev-runtime";
+import { parseSSEStream } from "@/lib/sse";
 import { cleanSuggestionMarkers, cn } from "@/lib/utils";
 import { VoiceRecorder } from "@/lib/voice-recorder";
 import { CREATE_ARTIFACT_TOOL_NAME } from "@/server/lib/artifact-tool";
@@ -147,24 +135,9 @@ function useTimeBasedGreeting() {
   return greeting;
 }
 
-// ✅ Hook to subscribe to composer state changes reactively
-function useComposerState(api: ReturnType<typeof useAssistantApi>) {
-  const [state, setState] = useState(() => api.composer().getState());
-
-  useEffect(() => {
-    setState(api.composer().getState());
-    // @ts-ignore - subscribe may not exist on all API versions
-    const unsubscribe = api.composer().subscribe?.((newState) => {
-      setState(newState);
-    });
-    return () => unsubscribe?.();
-  }, [api]);
-
-  return state;
-}
-
-// ✅ Hook for scroll-to-bottom button visibility
-function useScrollToBottom(containerRef: React.RefObject<HTMLElement>) {
+function useScrollToBottom(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+) {
   const [showButton, setShowButton] = useState(false);
 
   useEffect(() => {
@@ -173,13 +146,12 @@ function useScrollToBottom(containerRef: React.RefObject<HTMLElement>) {
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      // Show button when scrolled up more than 100px from bottom
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       setShowButton(!isNearBottom);
     };
 
     container.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll(); // initial check
+    handleScroll();
 
     return () => container.removeEventListener("scroll", handleScroll);
   }, [containerRef]);
@@ -212,16 +184,22 @@ function ReasoningCollapsible({ reasoning }: { reasoning: string }) {
 function SuggestionButton({
   display,
   prompt,
+  sendMessage,
 }: {
   display: string;
   prompt: string;
+  sendMessage: (message: {
+    text: string;
+    files?: Array<{
+      type: "file";
+      mediaType: string;
+      url: string;
+      name: string;
+    }>;
+  }) => void;
 }) {
-  const api = useAssistantApi();
-
   const handleClick = () => {
-    api
-      .thread()
-      .append({ role: "user", content: [{ type: "text", text: prompt }] });
+    sendMessage({ text: prompt });
   };
 
   return (
@@ -236,101 +214,146 @@ function SuggestionButton({
   );
 }
 
-function UserMessage() {
-  const message = useMessage();
-  const custom = message.metadata?.custom as
-    | { images?: { url: string }[]; fileTexts?: string[] }
-    | undefined;
-  const images = custom?.images ?? [];
-  const fileNames = (custom?.fileTexts ?? []).map((t) => {
-    const match = t.match(/^\[File: (.+?)\]/);
-    return match ? match[1] : "Attached file";
-  });
+function UserMessage({ message }: { message: UIMessage }) {
+  const textContent =
+    message.parts
+      ?.filter((p) => p.type === "text")
+      .map((p) => p.text)
+      .join("") || "";
+
+  const imageParts =
+    (message.parts?.filter((p) => p.type === "image") as Array<{
+      type: "image";
+      mediaType: string;
+      url: string;
+      filename?: string;
+    }>) || [];
+
+  const fileParts =
+    (message.parts?.filter((p) => p.type === "file") as Array<{
+      type: "file";
+      mediaType: string;
+      url: string;
+      filename?: string;
+    }>) || [];
 
   return (
-    <div className="flex justify-end">
-      <Message className="max-w-[95%] gap-2 sm:max-w-[85%] sm:gap-3 md:max-w-[80%]">
+    <div className="flex justify-end items-end gap-2">
+      <div className="max-w-[95%] gap-2 sm:max-w-[85%] sm:gap-3 md:max-w-[80%] flex flex-col">
         <div className="flex flex-col gap-2">
-          {images.length > 0 && (
+          {imageParts.length > 0 && (
             <div className="flex flex-wrap gap-2 justify-end">
-              {images.map((img, i) => (
-                // biome-ignore lint/performance/noImgElement: base64 data URL
+              {imageParts.map((img, i) => (
                 <img
                   key={i}
                   src={img.url}
-                  alt="Attachment"
+                  alt={img.filename || "Attachment"}
                   className="max-h-48 max-w-48 rounded-xl object-cover"
                 />
               ))}
             </div>
           )}
-          {fileNames.length > 0 && (
+          {fileParts.length > 0 && (
             <div className="flex flex-wrap gap-2 justify-end">
-              {fileNames.map((name) => (
+              {fileParts.map((file, i) => (
                 <div
-                  key={name}
+                  key={i}
                   className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground"
                 >
                   <FileText className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                  <span className="max-w-[180px] truncate">{name}</span>
+                  <span className="max-w-[180px] truncate">{file.filename || "File"}</span>
                 </div>
               ))}
             </div>
           )}
-          {message.content.some((p) => p.type === "text" && p.text.trim()) && (
-            <MessageContent className="rounded-2xl bg-accent px-3 py-2 text-sm text-accent-foreground sm:px-4 sm:py-3 sm:text-base">
-              <MessagePrimitive.Content />
-            </MessageContent>
+          {textContent.trim() && (
+            <div className="rounded-2xl bg-accent px-3 py-2 text-sm text-accent-foreground sm:px-4 sm:py-3 sm:text-base">
+              {textContent}
+            </div>
           )}
         </div>
-      </Message>
+      </div>
+      <Image
+        src="/loom-avatar.svg"
+        alt="User"
+        width={32}
+        height={32}
+        className="h-7 w-7 flex-shrink-0 rounded-full sm:h-8 sm:w-8"
+      />
     </div>
   );
 }
 
 function AssistantMessage({
+  message,
   setActiveArtifact,
 }: {
-  setActiveArtifact: (artifact: ToolCallMessagePart | null) => void;
+  message: UIMessage;
+  setActiveArtifact: (artifact: ArtifactToolCall | null) => void;
 }) {
-  const message = useMessage();
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const textPart = message.content.find((part) => part.type === "text");
-  const toolCallPart = message.content.find(
-    (part) => part.type === "tool-call",
-  ) as ToolCallMessagePart | undefined;
-  const reasoning = message.metadata?.custom?.reasoning as string | undefined;
+  const textPart =
+    message.parts
+      ?.filter((p) => p.type === "text")
+      .map((p) => p.text)
+      .join("") || "";
+  const toolCallPart = message.parts?.find(
+    (part) => part.type === "tool-invocation",
+  ) as
+    | {
+        type: "tool-invocation";
+        toolInvocation: { toolName: string; args: unknown };
+      }
+    | undefined;
+  const reasoningPart = message.parts?.find(
+    (part) => part.type === "reasoning",
+  ) as
+    | {
+        type: "reasoning";
+        text: string;
+      }
+    | undefined;
+  const reasoning = reasoningPart?.text;
   const hasToolCall = Boolean(toolCallPart);
 
-  const cleanedText =
-    textPart?.type === "text" ? cleanSuggestionMarkers(textPart.text) : "";
+  const cleanedText = cleanSuggestionMarkers(textPart);
 
   const getHtmlContent = () => contentRef.current?.innerHTML;
 
-  if (hasToolCall && toolCallPart) {
-    const artifactArgs = toolCallPart.args as
+  if (
+    hasToolCall &&
+    toolCallPart?.toolInvocation.toolName === CREATE_ARTIFACT_TOOL_NAME
+  ) {
+    const artifactArgs = toolCallPart.toolInvocation.args as
       | { title: string; description: string }
       | undefined;
 
     return (
-      <div className="flex justify-start mt-12">
-        <Message className="w-full max-w-full gap-2 sm:gap-3 lg:max-w-5xl">
+      <div className="flex justify-start items-start gap-2 mt-12">
+        <Image
+          src="/otherdev-chat-logo.svg"
+          alt="OtherDev Loom"
+          width={32}
+          height={32}
+          className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
+        />
+        <div className="w-full max-w-full gap-2 sm:gap-3 lg:max-w-5xl flex flex-col">
           <div className="flex-1 space-y-3 min-w-0">
             {reasoning && <ReasoningCollapsible reasoning={reasoning} />}
             {cleanedText && (
               <div ref={contentRef}>
-                <MessageContent
-                  markdown
-                  className="max-w-none rounded-lg bg-transparent p-0"
-                >
-                  {cleanedText}
-                </MessageContent>
+                <div className="max-w-none rounded-lg bg-transparent p-0">
+                  <MarkdownRenderer>{cleanedText}</MarkdownRenderer>
+                </div>
               </div>
             )}
-            {toolCallPart.toolName === CREATE_ARTIFACT_TOOL_NAME && (
+            {toolCallPart.toolInvocation.toolName ===
+              CREATE_ARTIFACT_TOOL_NAME && (
               <Card
-                onClick={() => setActiveArtifact(toolCallPart)}
+                onClick={() =>
+                  setActiveArtifact(toolCallPart.toolInvocation as any)
+                }
                 className="w-full max-w-md cursor-pointer border-border/60 bg-card/50 transition-all duration-200 hover:border-foreground/20 hover:bg-card/80 hover:shadow-sm active:scale-[0.99]"
               >
                 <CardHeader className="flex-row items-center justify-between gap-4 p-3.5">
@@ -340,7 +363,7 @@ function AssistantMessage({
                     </div>
                     <div className="min-w-0 flex-1">
                       <CardTitle className="truncate text-sm font-medium leading-tight">
-                        {artifactArgs?.title || "View Artifact"}
+                        {(artifactArgs as any)?.title || "View Artifact"}
                       </CardTitle>
                       <CardDescription className="mt-1 text-xs">
                         Artifact · HTML
@@ -352,103 +375,81 @@ function AssistantMessage({
               </Card>
             )}
           </div>
-        </Message>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex justify-start">
-      <Message className="w-full max-w-full gap-2 sm:gap-3 lg:max-w-5xl">
-        <AssistantIf
-          condition={({ message }) => message.status?.type !== "running"}
-        />
-        <AssistantIf
-          condition={({ message }) => message.status?.type === "running"}
-        >
-          <div className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8" />
-        </AssistantIf>
+    <div className="flex justify-start items-start gap-2">
+      <Image
+        src="/otherdev-chat-logo.svg"
+        alt="OtherDev Loom"
+        width={32}
+        height={32}
+        className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
+      />
+      <div className="w-full max-w-full gap-2 sm:gap-3 lg:max-w-5xl flex flex-col">
         <div className="flex-1 space-y-2 min-w-0">
           {reasoning && <ReasoningCollapsible reasoning={reasoning} />}
           {cleanedText && (
             <div ref={contentRef}>
-              <MessageContent
-                markdown
-                className="max-w-none rounded-lg bg-transparent p-0"
-              >
-                {cleanedText}
-              </MessageContent>
+              <div className="max-w-none rounded-lg bg-transparent p-0">
+                <MarkdownRenderer>{cleanedText}</MarkdownRenderer>
+              </div>
             </div>
           )}
-          <AssistantIf condition={({ thread }) => !thread.isRunning}>
-            {cleanedText && (
-              <CopyButton
-                content={cleanedText}
-                htmlContent={getHtmlContent()}
-                copyMessage="Copied response to clipboard"
-              />
-            )}
-          </AssistantIf>
+          {cleanedText && (
+            <CopyButton
+              content={cleanedText}
+              htmlContent={getHtmlContent()}
+              copyMessage="Copied response to clipboard"
+            />
+          )}
         </div>
-      </Message>
+      </div>
     </div>
   );
 }
 
-function AttachmentChip() {
-  const api = useAssistantApi();
-  const state = api.attachment().getState();
-  const isRunning = state.status.type === "running";
-  const isError = state.status.type === "incomplete";
-  const isImage = state.type === "image";
+function AttachmentChip({
+  file,
+  onRemove,
+}: {
+  file: File;
+  onRemove: () => void;
+}) {
+  const isImage = file.type.startsWith("image/");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const file = (state as { file?: File }).file;
-    if (!isImage || !file) return;
+    if (!isImage) return;
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
-  }, [isImage, state]);
+  }, [isImage, file]);
 
   return (
     <div className="relative flex group items-center gap-1.5 border rounded-t-xl pb-4 mb-[-10px] bg-accent px-2 py-1.5 text-xs text-accent-foreground">
       {isImage && previewUrl ? (
         <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-background">
-          {/* biome-ignore lint/performance/noImgElement: object URL preview */}
           <img
             src={previewUrl}
-            alt={state.name}
-            className={cn(
-              "h-full w-full object-contain transition-opacity",
-              isRunning && "opacity-40"
-            )}
+            alt={file.name}
+            className="h-full w-full object-contain"
           />
-          {/* ✅ Grey overlay during upload */}
-          {isRunning && (
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-t-white" />
-            </div>
-          )}
         </div>
       ) : (
         <FileText className="h-6 w-6 shrink-0 opacity-70" />
       )}
-      <span className="truncate">{state.name}</span>
-      {isRunning && (
-        <div className="h-4 w-4 ml-auto animate-spin rounded-full border border-foreground/30 border-t-foreground/80" />
-      )}
-      {isError && <span className="ml-auto font-medium text-destructive">!</span>}
-      {!isRunning && (
-        <button
-          type="button"
-          onClick={() => api.attachment().remove()}
-          className="ml-0.5 flex h-8 w-8 ml-auto items-center justify-center rounded-full hover:bg-foreground/10"
-          aria-label={`Remove ${state.name}`}
-        >
-          <X className="h-4 w-4" />
-        </button>
-      )}
+      <span className="truncate">{file.name}</span>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="ml-0.5 flex h-8 w-8 ml-auto items-center justify-center rounded-full hover:bg-foreground/10"
+      >
+        <X className="h-4 w-4" />
+      </button>
     </div>
   );
 }
@@ -456,15 +457,22 @@ function AttachmentChip() {
 export function OtherDevLoomThread({
   setActiveArtifact,
 }: {
-  setActiveArtifact: (artifact: ToolCallMessagePart | null) => void;
+  setActiveArtifact: (artifact: ArtifactToolCall | null) => void;
 }) {
-  const api = useAssistantApi();
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/chat/stream",
+    }),
+    experimental_throttle: 100,
+  });
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recorderRef = useRef<VoiceRecorder | null>(null);
-  const contentRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [inputValue, setInputValue] = useState("");
   const [inputError, setInputError] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(
     null,
   );
@@ -473,15 +481,17 @@ export function OtherDevLoomThread({
   const [suggestion, setSuggestion] = useState("");
   const greeting = useTimeBasedGreeting();
 
-  const composerState = useComposerState(api);
-  const attachments = composerState.attachments;
-  const hasUploadingAttachment = attachments.some(
-    (a) => (a as any).status?.type === "running"
-  );
-
-  // ✅ Scroll-to-bottom logic
-  // @ts-ignore - contentRef is correctly typed as HTMLElement, but the type definitions may not reflect that
   const { showButton, scrollToBottom } = useScrollToBottom(contentRef);
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setAttachments((prev) => [...prev, ...Array.from(e.target.files!)]);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleTranscriptReceived = (text: string) => {
     setInputValue(text);
@@ -560,20 +570,35 @@ export function OtherDevLoomThread({
   };
 
   const handleSubmit = () => {
-    if (isRecording || isRecordingProcessing || hasUploadingAttachment) return;
+    if (isRecording || isRecordingProcessing) return;
 
     const value = inputValue.trim();
-    const hasValidAttachments = attachments.length > 0 && !hasUploadingAttachment;
+    if (!value && attachments.length === 0) return;
 
-    if (!value && !hasValidAttachments) return;
+    if (attachments.length === 0) {
+      // Simple text-only message
+      sendMessage({ text: value });
+    } else {
+      // Message with attachments - use text + files format
+      const files = attachments.map((file) => {
+        const isImage = file.type.startsWith("image/");
+        return {
+          type: isImage ? "image" as const : "file" as const,
+          mediaType: file.type || "application/octet-stream",
+          url: URL.createObjectURL(file),
+          filename: file.name,
+        };
+      });
 
-    api.thread().append({
-      role: "user",
-      content: [{ type: "text", text: value || "" }],
-    });
+      sendMessage({ text: value, files });
+    }
 
     setSuggestion("");
     setInputValue("");
+    setAttachments([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const applySuggestion = () => {
@@ -603,117 +628,119 @@ export function OtherDevLoomThread({
     return () => inputElement.removeEventListener("keydown", handleKeyDown);
   }, [suggestion]);
 
-  // ✅ Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     scrollToBottom();
-    //@ts-ignore - contentRef is correctly typed as HTMLElement, but the type definitions may not reflect that
-  }, [composerState.messages?.length, scrollToBottom]);
+  }, [scrollToBottom, messages.length]);
 
   const isSendDisabled = useMemo(() => {
     const hasText = inputValue.trim().length > 0;
-    const hasValidAttachments = attachments.length > 0 && !hasUploadingAttachment;
-    const isBlocked = isRecording || isRecordingProcessing || hasUploadingAttachment;
+    const hasValidAttachments = attachments.length > 0;
+    const isBlocked = isRecording || isRecordingProcessing;
     return (!hasText && !hasValidAttachments) || isBlocked;
-  }, [inputValue, attachments, hasUploadingAttachment, isRecording, isRecordingProcessing]);
+  }, [inputValue, attachments, isRecording, isRecordingProcessing]);
 
   const placeholder = suggestion || "Type your message...";
-
-  const AssistantMessageWithProps = () => (
-    <AssistantMessage setActiveArtifact={setActiveArtifact} />
-  );
 
   return (
     <div className="relative h-full flex flex-col bg-background">
       <ChatContainerRoot className="flex-1 w-full">
         <ChatContainerContent
-          /* @ts-ignore - contentRef is correctly typed as HTMLElement, but the type definitions may not reflect that */
-          ref={contentRef}
           className="flex-1 scroll-smooth pb-32 sm:pb-40"
-          suppressHydrationWarning 
+          suppressHydrationWarning
         >
-          <ThreadPrimitive.Empty>
-            <div className="flex h-full items-center justify-center p-4 sm:p-6 md:p-8 mt-40">
-              <div className="w-full max-w-2xl space-y-6 sm:space-y-8">
-                <div className="space-y-3 text-center sm:space-y-4">
-                  <div className="flex justify-center">
-                    <Image
-                      src="/otherdev-chat-logo.svg"
-                      alt="Other Dev Loom"
-                      width={32}
-                      height={32}
-                      className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
-                    />
+          <div ref={contentRef} className="h-full overflow-auto">
+            {messages.length === 0 && (
+              <div className="flex h-full items-center justify-center p-4 sm:p-6 md:p-8 mt-40">
+                <div className="w-full max-w-2xl space-y-6 sm:space-y-8">
+                  <div className="space-y-3 text-center sm:space-y-4">
+                    <div className="flex justify-center">
+                      <Image
+                        src="/otherdev-chat-logo.svg"
+                        alt="Other Dev Loom"
+                        width={32}
+                        height={32}
+                        className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
+                      />
+                    </div>
+                    {typeof window !== "undefined" && (
+                      <motion.h2
+                        key={greeting}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl"
+                        suppressHydrationWarning
+                      >
+                        {greeting}
+                      </motion.h2>
+                    )}
+                    <p className="font-sans text-sm text-muted-foreground sm:text-base">
+                      Ask me anything about Other Dev
+                    </p>
                   </div>
-                  {typeof window !== "undefined" && (
-                    <motion.h2
-                      key={greeting}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, ease: "easeOut" }}
-                      className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl"
-                    >
-                      {greeting}
-                    </motion.h2>
-                  )}
-                  <p className="font-sans text-sm text-muted-foreground sm:text-base">
-                    Ask me anything about Other Dev
-                  </p>
-                </div>
 
-                <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-                  {SUGGESTED_PROMPTS.map((suggestionItem) => (
-                    <SuggestionButton
-                      key={suggestionItem.label}
-                      display={suggestionItem.label}
-                      prompt={suggestionItem.prompt}
-                    />
-                  ))}
+                  <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+                    {SUGGESTED_PROMPTS.map((suggestionItem) => (
+                      <SuggestionButton
+                        key={suggestionItem.label}
+                        display={suggestionItem.label}
+                        prompt={suggestionItem.prompt}
+                        sendMessage={sendMessage}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
+            )}
+
+            <div className="absolute bottom-0 w-screen h-30 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+            <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-4xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-12">
+              {messages.map((message) =>
+                message.role === "user" ? (
+                  <UserMessage key={message.id} message={message} />
+                ) : (
+                  <AssistantMessage
+                    key={message.id}
+                    message={message}
+                    setActiveArtifact={setActiveArtifact}
+                  />
+                ),
+              )}
+
+              {status === "streaming" && (
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Image
+                    src="/otherdev-chat-logo.svg"
+                    alt="Other Dev Loom"
+                    width={32}
+                    height={32}
+                    className="h-6 w-6 flex-shrink-0 animate-spin sm:h-6 sm:w-6"
+                  />
+                  <div className="flex items-center gap-2 font-sans text-xs text-muted-foreground sm:text-sm">
+                    <span className="text-sm">Thinking </span>
+                    <div className="flex gap-1">
+                      <div
+                        className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
+                        style={{ animationDelay: "0ms" }}
+                      />
+                      <div
+                        className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
+                        style={{ animationDelay: "150ms" }}
+                      />
+                      <div
+                        className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
+                        style={{ animationDelay: "300ms" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </ThreadPrimitive.Empty>
-
-          <div className="absolute bottom-0 w-screen h-30 bg-gradient-to-t from-background to-transparent pointer-events-none" />
-          <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-4xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-12">
-            <ThreadPrimitive.Messages
-              components={{ UserMessage, AssistantMessage: AssistantMessageWithProps }}
-            />
-
-            <ThreadPrimitive.If running>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <Image
-                  src="/otherdev-chat-logo.svg"
-                  alt="Other Dev Loom"
-                  width={32}
-                  height={32}
-                  className="h-6 w-6 flex-shrink-0 animate-spin sm:h-6 sm:w-6"
-                />
-                <div className="flex items-center gap-2 font-sans text-xs text-muted-foreground sm:text-sm">
-
-                  <span className="text-sm">Thinking </span>
-                  <div className="flex gap-1">
-                    <div
-                      className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
-                      style={{ animationDelay: "0ms" }}
-                    />
-                    <div
-                      className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
-                      style={{ animationDelay: "150ms" }}
-                    />
-                    <div
-                      className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
-                      style={{ animationDelay: "300ms" }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </ThreadPrimitive.If>
           </div>
           <ChatContainerScrollAnchor />
         </ChatContainerContent>
       </ChatContainerRoot>
 
-      {/* ✅ Scroll-to-bottom floating button */}
       <AnimatePresence>
         {showButton && (
           <motion.button
@@ -745,98 +772,112 @@ export function OtherDevLoomThread({
               </button>
             </div>
           )}
+          {attachments.map((file, index) => (
+            <AttachmentChip
+              key={`${file.name}-${index}`}
+              file={file}
+              onRemove={() => removeAttachment(index)}
+            />
+          ))}
         </div>
 
-        <ComposerPrimitive.AttachmentDropzone className="relative data-[dragging]:ring-2 pointer-events-auto data-[dragging]:ring-foreground/20 data-[dragging]:rounded-2xl">
-          <ComposerPrimitive.Attachments components={{ Attachment: AttachmentChip }} />
-          <PromptInput
-            className="relative rounded-2xl border-border shadow-sm pointer-events-auto"
-            disabled={false}
-            maxHeight={142}
-            value={inputValue}
-            onValueChange={setInputValue}
-            onSubmit={handleSubmit}
-          >
-            {recordingStream ? (
-              <VoiceWaveform stream={recordingStream} />
-            ) : (
-              <PromptInputTextarea
-                ref={inputRef}
-                placeholder={placeholder}
-                className={cn(
-                  "font-sans text-sm sm:text-base",
-                  suggestion &&
+        <PromptInput
+          className="relative rounded-2xl border-border shadow-sm pointer-events-auto"
+        >
+          {recordingStream ? (
+            <VoiceWaveform stream={recordingStream} />
+          ) : (
+            <PromptInputTextarea
+              ref={inputRef}
+              placeholder={placeholder}
+              className={cn(
+                "font-sans text-sm sm:text-base",
+                suggestion &&
                   !inputValue &&
                   "placeholder:text-transparent placeholder:md:text-muted-foreground",
-                )}
-                autoFocus
+              )}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
+              autoFocus
+            />
+          )}
+          {suggestion && !inputValue && (
+            <button
+              type="button"
+              onClick={applySuggestion}
+              className="absolute inset-2 bottom-auto h-[44px] pl-3 pt-2 font-sans text-sm text-muted-foreground hover:opacity-80 transition-opacity md:hidden overflow-hidden text-left"
+            >
+              {suggestion}
+            </button>
+          )}
+          <PromptInputActions className="w-full justify-between">
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,.pdf,.txt,.md,.js,.ts,.json,.py"
+                onChange={handleFileInputChange}
+                className="hidden"
               />
-            )}
-            {suggestion && !inputValue && (
-              <button
-                type="button"
-                onClick={applySuggestion}
-                className="absolute inset-2 bottom-auto h-[44px] pl-3 pt-2 font-sans text-sm text-muted-foreground hover:opacity-80 transition-opacity md:hidden overflow-hidden text-left"
-              >
-                {suggestion}
-              </button>
-            )}
-            <PromptInputActions className="w-full justify-between">
-              <div className="flex gap-2">
-                <PromptInputAction tooltip="Attach file">
-                  <ComposerPrimitive.AddAttachment asChild>
-                    <button
-                      type="button"
-                      className="flex h-6 w-6 items-center justify-center text-muted-foreground hover:opacity-70 transition-opacity sm:h-7 sm:w-7"
-                      aria-label="Attach file"
-                    >
-                      <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </button>
-                  </ComposerPrimitive.AddAttachment>
-                </PromptInputAction>
-                <PromptInputAction tooltip="Use voice mode">
-                  <button
-                    type="button"
-                    onClick={
-                      isRecording ? handleStopRecording : handleStartRecording
-                    }
-                    disabled={isRecordingProcessing}
-                    className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] disabled:opacity-50 sm:h-7 sm:w-7",
-                      isRecording
-                        ? "bg-red-500 hover:bg-red-600 text-white"
-                        : "text-muted-foreground hover:opacity-70",
-                    )}
-                    aria-label={
-                      isRecording ? "Stop recording" : "Start recording"
-                    }
-                  >
-                    {isRecording ? (
-                      <Square className="h-3 w-3 sm:h-4 sm:w-4 fill-current" />
-                    ) : (
-                      <AudioLines className="h-4 w-4 sm:h-5 sm:w-5" />
-                    )}
-                  </button>
-                </PromptInputAction>
-              </div>
-              <PromptInputAction tooltip="Send message (Enter)">
+              <PromptInputAction tooltip="Attach file">
                 <button
                   type="button"
-                  onClick={handleSubmit}
-                  disabled={isSendDisabled}
-                  className={cn(
-                    "flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] sm:h-8 sm:w-8",
-                    isSendDisabled
-                      ? "bg-muted text-muted-foreground hover:opacity-70 disabled:opacity-50"
-                      : "bg-foreground text-background hover:opacity-90",
-                  )}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex h-6 w-6 items-center justify-center text-muted-foreground hover:opacity-70 transition-opacity sm:h-7 sm:w-7"
+                  aria-label="Attach file"
                 >
-                  <ArrowUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </PromptInputAction>
-            </PromptInputActions>
-          </PromptInput>
-        </ComposerPrimitive.AttachmentDropzone>
+              <PromptInputAction tooltip="Use voice mode">
+                <button
+                  type="button"
+                  onClick={
+                    isRecording ? handleStopRecording : handleStartRecording
+                  }
+                  disabled={isRecordingProcessing}
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] disabled:opacity-50 sm:h-7 sm:w-7",
+                    isRecording
+                      ? "bg-red-500 hover:bg-red-600 text-white"
+                      : "text-muted-foreground hover:opacity-70",
+                  )}
+                  aria-label={
+                    isRecording ? "Stop recording" : "Start recording"
+                  }
+                >
+                  {isRecording ? (
+                    <Square className="h-3 w-3 sm:h-4 sm:w-4 fill-current" />
+                  ) : (
+                    <AudioLines className="h-4 w-4 sm:h-5 sm:w-5" />
+                  )}
+                </button>
+              </PromptInputAction>
+            </div>
+            <PromptInputAction tooltip="Send message (Enter)">
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSendDisabled}
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] sm:h-8 sm:w-8",
+                  isSendDisabled
+                    ? "bg-muted text-muted-foreground hover:opacity-70 disabled:opacity-50"
+                    : "bg-foreground text-background hover:opacity-90",
+                )}
+              >
+                <ArrowUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </button>
+            </PromptInputAction>
+          </PromptInputActions>
+        </PromptInput>
       </div>
     </div>
   );
@@ -849,44 +890,47 @@ function LoomPageInner({
   onClear: () => void;
   hasActiveArtifact: boolean;
 }) {
-  const api = useAssistantApi();
-
-  const handleClear = useCallback(() => {
-    onClear();
-    api.composer().clearAttachments();
-  }, [onClear, api]);
-
-  return <Navigation isLoomPage={true} onClear={handleClear} hasActiveArtifact={hasActiveArtifact} />;
+  return (
+    <Navigation
+      isLoomPage={true}
+      onClear={onClear}
+      hasActiveArtifact={hasActiveArtifact}
+    />
+  );
 }
 
 export function LoomPageClient({ noNavigation }: { noNavigation?: boolean }) {
   const runtime = useOtherDevRuntime();
-  const [activeArtifact, setActiveArtifact] =
-    useState<ToolCallMessagePart | null>(null);
+  const [activeArtifact, setActiveArtifact] = useState<ArtifactToolCall | null>(
+    null,
+  );
 
   return (
     <>
-      <AssistantRuntimeProvider runtime={runtime}>
-        {noNavigation ? null : <LoomPageInner onClear={runtime.clear} hasActiveArtifact={!!activeArtifact} />}
-        <main className="h-screen">
-          <div className="flex h-full overflow-hidden">
-            <div
-              className={`h-full ${activeArtifact ? "hidden md:block md:w-1/2" : "w-full"}`}
-            >
-              <OtherDevLoomThread setActiveArtifact={setActiveArtifact} />
-            </div>
-            {activeArtifact && (
-              <div className="h-full w-full md:w-1/2">
-                <ArtifactRenderer
-                  toolCall={activeArtifact}
-                  mode="panel"
-                  onClose={() => setActiveArtifact(null)}
-                />
-              </div>
-            )}
+      {noNavigation ? null : (
+        <LoomPageInner
+          onClear={runtime.clear}
+          hasActiveArtifact={!!activeArtifact}
+        />
+      )}
+      <main className="h-screen">
+        <div className="flex h-full overflow-hidden">
+          <div
+            className={`h-full ${activeArtifact ? "hidden md:block md:w-1/2" : "w-full"}`}
+          >
+            <OtherDevLoomThread setActiveArtifact={setActiveArtifact} />
           </div>
-        </main>
-      </AssistantRuntimeProvider>
+          {activeArtifact && (
+            <div className="h-full w-full md:w-1/2">
+              <ArtifactRenderer
+                toolCall={activeArtifact}
+                mode="panel"
+                onClose={() => setActiveArtifact(null)}
+              />
+            </div>
+          )}
+        </div>
+      </main>
     </>
   );
 }
