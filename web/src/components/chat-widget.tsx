@@ -22,288 +22,25 @@ import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { SUGGESTED_PROMPTS, Z_INDEX } from "@/lib/constants";
 import type { WidgetMessage as Message } from "@/lib/content-types";
 import { parseSSEStream } from "@/lib/sse";
-import { cleanSuggestionMarkers, cn } from "@/lib/utils";
+import { LoomPageClient } from "./otherdev-loom-thread";
+import { cn } from "@/lib/utils";
 
 const MAX_INPUT_LENGTH = 500;
 const CHAT_WIDGET_STORAGE_KEY = "otherdev-chat-widget-messages";
 
-function serializeMessages(messages: Message[]): string {
-  return JSON.stringify(
-    messages.map((msg) => ({
-      ...msg,
-      createdAt: msg.createdAt?.toISOString(),
-    })),
-  );
-}
-
-function deserializeMessages(data: string): Message[] {
-  const parsed = JSON.parse(data);
-  return parsed.map((msg: Message & { createdAt?: string }) => ({
-    ...msg,
-    createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
-  }));
-}
-
-async function streamChat(
-  apiMessages: Array<{ role: string; content: string }>,
-  assistantMessageId: string,
-  threadId: string | undefined,
-  {
-    setMessages,
-    setSuggestion,
-    setThreadId,
-    setIsGenerating,
-  }: {
-    setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
-    setSuggestion: React.Dispatch<React.SetStateAction<string>>;
-    setThreadId: React.Dispatch<React.SetStateAction<string | undefined>>;
-    setIsGenerating: React.Dispatch<React.SetStateAction<boolean>>;
-  },
-): Promise<void> {
-  let messageAdded = false;
-
-  try {
-    const response = await fetch("/api/chat/stream", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: apiMessages, threadId }),
-    });
-
-    const newThreadId = response.headers.get("X-Thread-Id");
-    if (newThreadId && !threadId) {
-      setThreadId(newThreadId);
-    }
-
-    if (!response.ok) {
-      throw new Error(`Server error: ${response.status}`);
-    }
-
-    const reader = response.body?.getReader();
-
-    if (!reader) {
-      throw new Error("Response body is not readable");
-    }
-
-    let accumulatedContent = "";
-    let accumulatedReasoning = "";
-
-    await parseSSEStream(reader, (event) => {
-      if (event.type === "suggestion" && typeof event.content === "string") {
-        setSuggestion(event.content);
-      }
-
-      if (event.type === "reasoning" && typeof event.content === "string") {
-        accumulatedReasoning += event.content;
-        if (!messageAdded) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: assistantMessageId,
-              role: "assistant",
-              content: accumulatedContent,
-              reasoning: accumulatedReasoning,
-              createdAt: new Date(),
-            },
-          ]);
-          messageAdded = true;
-        } else {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessageId
-                ? { ...msg, reasoning: accumulatedReasoning }
-                : msg,
-            ),
-          );
-        }
-      }
-
-      if (event.type === "content-final" && typeof event.content === "string") {
-        accumulatedContent = event.content;
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMessageId
-              ? { ...msg, content: accumulatedContent }
-              : msg,
-          ),
-        );
-      }
-
-      if (event.type === "content" && typeof event.content === "string") {
-        accumulatedContent += event.content;
-        if (!messageAdded) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: assistantMessageId,
-              role: "assistant",
-              content: accumulatedContent,
-              reasoning: accumulatedReasoning,
-              createdAt: new Date(),
-            },
-          ]);
-          messageAdded = true;
-        } else {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessageId
-                ? { ...msg, content: accumulatedContent }
-                : msg,
-            ),
-          );
-        }
-      }
-    });
-  } catch (error) {
-    console.error("Chat error:", error);
-
-    if (!messageAdded) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: assistantMessageId,
-          role: "assistant",
-          content: "Failed to get response. Please try again.",
-          createdAt: new Date(),
-        },
-      ]);
-    } else {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === assistantMessageId
-            ? { ...msg, content: "Failed to get response. Please try again." }
-            : msg,
-        ),
-      );
-    }
-  } finally {
-    setIsGenerating(false);
-  }
-}
 
 export function ChatWidget() {
+
+
   const pathname = usePathname();
   const [isOpen, setIsOpen] = React.useState(false);
-  const { messages, setMessages } = useLocalStorageMessages<Message>({
-    key: CHAT_WIDGET_STORAGE_KEY,
-    serialize: serializeMessages,
-    deserialize: deserializeMessages,
-  });
-  const [input, setInput] = React.useState("");
-  const [isGenerating, setIsGenerating] = React.useState(false);
-  const [suggestion, setSuggestion] = React.useState("");
-  const [threadId, setThreadId] = React.useState<string | undefined>();
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
-
-  const applySuggestion = () => {
-    setInput(suggestion);
-    setSuggestion("");
-    textareaRef.current?.focus();
-  };
-
-  const {
-    containerRef,
-    scrollToBottom,
-    handleScroll,
-    shouldAutoScroll,
-    handleTouchStart,
-  } = useAutoScroll(messages.length);
-
-  useAutosizeTextArea({
-    ref: textareaRef,
-    maxHeight: 96,
-    dependencies: [input],
-  });
-
   const handleWheel = (e: React.WheelEvent) => {
     e.stopPropagation();
   };
-
-  useScrollLock(isOpen);
-
-  React.useEffect(() => {
-    if (isOpen) {
-      textareaRef.current?.focus();
-    }
-    if (cardRef.current) {
-      cardRef.current.scrollTop = 0;
-    }
-  }, [isOpen]);
-
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        (e.key === "Tab" || e.key === "ArrowRight") &&
-        suggestion &&
-        textareaRef.current &&
-        !textareaRef.current.value
-      ) {
-        e.preventDefault();
-        setInput(suggestion);
-        setSuggestion("");
-      }
-    };
-
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.addEventListener("keydown", handleKeyDown);
-      return () => textarea.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [suggestion]);
-
   if (pathname?.startsWith("/loom")) {
     return null;
   }
-
-  const sendMessage = (content: string) => {
-    if (isGenerating) return;
-
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content,
-      createdAt: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setSuggestion("");
-    setIsGenerating(true);
-
-    const assistantMessageId = `assistant-${Date.now()}`;
-    const apiMessages = [...messages, userMessage].map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    }));
-
-    streamChat(apiMessages, assistantMessageId, threadId, {
-      setMessages,
-      setSuggestion,
-      setThreadId,
-      setIsGenerating,
-    });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isGenerating) return;
-    const content = input.trim();
-    setInput("");
-    sendMessage(content);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
-
-  const append = (message: { role: "user"; content: string }) => {
-    sendMessage(message.content);
-  };
-
-  const isEmpty = messages.length === 0;
-
   return (
     <>
       {!isOpen && (
@@ -317,8 +54,8 @@ export function ChatWidget() {
             "md:bottom-8 md:right-8",
             "h-14 w-14",
             "md:h-12 md:w-12",
-            "flex items-center justify-center",
-            "rounded-full shadow-lg",
+            "flex border items-center justify-center",
+            "rounded-full shadow-sm",
             "bg-background",
             "hover:opacity-80 hover:scale-110",
             "transition-all focus:outline-none",
@@ -331,7 +68,7 @@ export function ChatWidget() {
             alt="OtherDev AI"
             width={32}
             height={32}
-            className="h-8 w-8"
+            className="h-8 w-8 object-contain"
           />
         </button>
       )}
@@ -340,7 +77,7 @@ export function ChatWidget() {
         <Card
           ref={cardRef}
           className={cn(
-            "fixed flex flex-col",
+            "fixed flex flex-col ",
             "shadow-2xl border overflow-hidden",
             "p-0 gap-0 bg-background",
             "animate-[slideInFromBottom_0.5s_ease-out_forwards]",
@@ -355,13 +92,13 @@ export function ChatWidget() {
         >
           <div
             className={cn(
-              "flex-shrink-0 flex items-center justify-between border-b p-4",
+              "flex-shrink-0 flex items-center justify-between -border-b p-4",
             )}
           >
             <div className="flex items-center gap-2">
-              <h3 className="font-normal text-base md:text-lg text-foreground">
-                OtherDev AI
-              </h3>
+              {/* <h3 className="text-xs md:text-xs text-foreground">
+                Other Dev AI
+              </h3> */}
             </div>
             <button
               type="button"
@@ -373,188 +110,8 @@ export function ChatWidget() {
             </button>
           </div>
 
-          <div className="flex-1 flex flex-col min-h-0">
-            {isEmpty ? (
-              <div className="flex-1 flex items-center justify-center overflow-y-auto p-4">
-                <div className="w-full max-w-2xl space-y-6">
-                  <div className="text-center space-y-3">
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
-                      How can I help you?
-                    </h2>
-                    <p className="text-muted-foreground text-sm">
-                      Ask me anything about OtherDev
-                    </p>
-                  </div>
-                  <PromptSuggestions
-                    label=""
-                    append={append}
-                    suggestions={SUGGESTED_PROMPTS}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1 relative min-h-0 overflow-hidden">
-                <ScrollArea
-                  className="h-full w-full overflow-x-hidden"
-                  viewportRef={containerRef}
-                  onScroll={handleScroll}
-                  onTouchStart={handleTouchStart}
-                >
-                  <div className="px-4 py-6 space-y-6">
-                    {messages.map((message) => (
-                      <div key={message.id} className="space-y-2">
-                        {message.role === "user" ? (
-                          <div className="flex flex-col items-end">
-                            <div
-                              className={cn(
-                                "bg-accent text-foreground rounded-lg p-3 text-sm",
-                                "max-w-xs",
-                                "sm:max-w-sm",
-                                "md:max-w-md",
-                                "break-words",
-                              )}
-                            >
-                              {message.content}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <div className="flex items-start gap-2">
-                              <Image
-                                src="/otherdev-chat-logo.svg"
-                                alt="OtherDev AI"
-                                width={16}
-                                height={16}
-                                className="h-4 w-4 mt-1 flex-shrink-0"
-                              />
-                              <div className="flex-1 min-w-0 overflow-x-auto space-y-2">
-                                {message.reasoning && (
-                                  <Collapsible defaultOpen={false}>
-                                    <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors group">
-                                      <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
-                                      <span>View thinking process</span>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent className="mt-2">
-                                      <div className="text-muted-foreground text-xs leading-relaxed bg-muted/50 rounded-lg p-3 border border-border prose dark:prose-invert prose-sm max-w-none">
-                                        <MarkdownRenderer>
-                                          {message.reasoning}
-                                        </MarkdownRenderer>
-                                      </div>
-                                    </CollapsibleContent>
-                                  </Collapsible>
-                                )}
-                                <div className="text-foreground text-sm leading-relaxed prose dark:prose-invert prose-sm max-w-none">
-                                  <MarkdownRenderer>
-                                    {cleanSuggestionMarkers(message.content)}
-                                  </MarkdownRenderer>
-                                </div>
-                                {!isGenerating && (
-                                  <div className="flex justify-start mt-2">
-                                    <CopyButton
-                                      content={cleanSuggestionMarkers(
-                                        message.content,
-                                      )}
-                                      copyMessage="Copied response to clipboard"
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-
-                    {isGenerating &&
-                      messages[messages.length - 1]?.role === "user" && (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                            <Image
-                              src="/otherdev-chat-logo.svg"
-                              alt="OtherDev AI"
-                              width={16}
-                              height={16}
-                              className="h-4 w-4 animate-spin"
-                            />
-                            <div className="flex gap-1">
-                              <div
-                                className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                                style={{ animationDelay: "0ms" }}
-                              ></div>
-                              <div
-                                className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                                style={{ animationDelay: "150ms" }}
-                              ></div>
-                              <div
-                                className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                                style={{ animationDelay: "300ms" }}
-                              ></div>
-                            </div>
-                            <span>Thinking...</span>
-                          </div>
-                        </div>
-                      )}
-                  </div>
-                </ScrollArea>
-              </div>
-            )}
-
-            {!isEmpty && !shouldAutoScroll && (
-              <div className="absolute bottom-20 right-4 pointer-events-none">
-                <Button
-                  onClick={scrollToBottom}
-                  size="icon"
-                  variant="secondary"
-                  className="pointer-events-auto rounded-full shadow-lg animate-in fade-in-0 slide-in-from-bottom-2"
-                >
-                  <ArrowDown className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-
-            <div className={cn("flex-shrink-0 p-4 border-t")}>
-              <form onSubmit={handleSubmit} className="relative">
-                <div className="flex flex-col gap-2">
-                  <div className="relative flex items-end gap-2 bg-muted border rounded-xl p-3 focus-within:ring-1 focus-within:ring-primary/30 transition-all">
-                    <ScrollArea className="flex-1 min-w-0 max-h-24">
-                      <textarea
-                        ref={textareaRef}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder={suggestion || "Ask anything..."}
-                        disabled={isGenerating}
-                        rows={1}
-                        maxLength={MAX_INPUT_LENGTH}
-                        className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-base outline-none resize-none min-h-[24px] break-words"
-                      />
-                    </ScrollArea>
-                    {suggestion && !input && (
-                      <button
-                        type="button"
-                        onClick={applySuggestion}
-                        className="absolute left-3 top-3 cursor-pointer text-base text-muted-foreground md:hidden"
-                        style={{ pointerEvents: "auto" }}
-                      >
-                        {suggestion}
-                      </button>
-                    )}
-                    <button
-                      type="submit"
-                      disabled={isGenerating || !input.trim()}
-                      className="flex-shrink-0 bg-accent hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed text-foreground rounded-full p-2 transition-opacity self-end"
-                    >
-                      <Send className="h-4 w-4" />
-                    </button>
-                  </div>
-                  {input.length > MAX_INPUT_LENGTH * 0.9 && (
-                    <div className="text-xs text-muted-foreground text-right">
-                      {input.length}/{MAX_INPUT_LENGTH}
-                    </div>
-                  )}
-                </div>
-              </form>
-            </div>
+          <div className="flex-1 flex relative">
+              <LoomPageClient noNavigation={true} />
           </div>
         </Card>
       )}

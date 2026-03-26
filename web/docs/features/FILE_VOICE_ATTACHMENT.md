@@ -86,7 +86,7 @@ The system automatically selects the optimal Groq model based on message content
 
 ### Runtime Integration
 
-#### useOtherDevRuntime (`src/lib/use-otherdev-runtime.tsx`)
+#### useOtherDevRuntime (`src/lib/otherdev-runtime.tsx`)
 - Manages chat state and message history
 - **New method: `appendFileContent(contentBlocks)`**
   - Accepts array of ContentBlock items
@@ -267,7 +267,7 @@ IMAGE_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 ```bash
 bun test src/lib/__tests__/file-processor.test.ts
 bun test src/lib/__tests__/voice-recorder.test.ts
-bun test src/lib/__tests__/use-otherdev-runtime.test.ts
+bun test src/lib/__tests__/otherdev-runtime.test.ts
 bun test src/components/__tests__/otherdev-loom-thread.test.tsx
 bun test src/app/api/chat/stream/__tests__/model-routing.test.ts
 bun test src/components/__tests__/file-voice-integration.test.tsx

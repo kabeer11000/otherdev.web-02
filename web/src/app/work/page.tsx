@@ -49,7 +49,7 @@ export default function WorkPage() {
     <div className="min-h-screen">
       <Navigation />
 
-      <main className="container mx-auto px-3 pr-3 md:pr-[8%] lg:pr-[15%] pt-[60px] pb-12">
+      <main className="container -mx-auto px-3 pr-3 md:pr-[8%] lg:pr-[15%] pt-[60px] pb-12">
         <div className="grid grid-cols-12 mb-8">
           <p className="text-[#686868] text-[11px] leading-[14px] font-normal col-span-7 sm:col-span-8 md:col-span-7 lg:col-span-6">
             We work closely with our collaborators to engineer premium web and

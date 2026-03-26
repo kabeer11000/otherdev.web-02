@@ -116,7 +116,7 @@
   --cursor-arrow-size: 30px;
   --animation-duration: 0.5s;
 
-  --background: oklch(98.78% 0.001 106.42);
+  --background: oklch(100% 0.00011 271.152);
   /*--background: var(--color-stone-100); */
   --foreground: oklch(0.147 0.004 49.25);
   --card: oklch(92.09% 0.002 145.56);
@@ -131,7 +131,7 @@
   --muted-foreground: oklch(0.553 0.013 58.071);
   --accent: oklch(0.97 0.001 106.424);
   --accent-foreground: oklch(0.216 0.006 56.043);
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(52.251% 0.2121 28.056);
   --border: oklch(0.923 0.003 48.717);
   --input: oklch(0.923 0.003 48.717);
   --ring: oklch(0.709 0.01 56.259);

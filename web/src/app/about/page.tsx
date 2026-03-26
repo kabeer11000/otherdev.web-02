@@ -68,7 +68,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-neutral-50">
       <Navigation />
-      <main className="container mx-auto px-3 pt-[72px] pb-12 -max-w-[1440px]">
+      <main className="container -mx-auto px-3 pt-[72px] pb-12 -max-w-[1440px]">
         {/* Hero Image */}
         <div className="grid grid-cols-12 gap-[12px]">
           <div className="col-span-12 sm:col-span-10">

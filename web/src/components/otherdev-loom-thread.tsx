@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArtifactRenderer } from "@/components/artifact-renderer";
 import { Navigation } from "@/components/navigation";
 import { Button } from "@/components/ui/button";
@@ -58,40 +58,13 @@ import {
 import { VoiceWaveform } from "@/components/voice-waveform";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
 import { parseSSEStream } from "@/lib/sse";
-import { useOtherDevRuntime } from "@/lib/use-otherdev-runtime";
+import { useOtherDevRuntime } from "@/lib/otherdev-runtime";
 import { cleanSuggestionMarkers, cn } from "@/lib/utils";
 import { VoiceRecorder } from "@/lib/voice-recorder";
 import { CREATE_ARTIFACT_TOOL_NAME } from "@/server/lib/artifact-tool";
 
-interface ArtifactContextType {
-  activeArtifact: ToolCallMessagePart | null;
-  setActiveArtifact: (artifact: ToolCallMessagePart | null) => void;
-}
-
-const ArtifactContext = createContext<ArtifactContextType | null>(null);
-
-export function useArtifact() {
-  const context = useContext(ArtifactContext);
-  if (!context)
-    throw new Error("useArtifact must be used within ArtifactProvider");
-  return context;
-}
-
-interface RuntimeContextType {
-  suggestion: string;
-  setSuggestion: (suggestion: string) => void;
-}
-
-const RuntimeContext = createContext<RuntimeContextType | null>(null);
-
-export function useRuntimeContext() {
-  const context = useContext(RuntimeContext);
-  if (!context)
-    throw new Error(
-      "useRuntimeContext must be used within RuntimeContextProvider",
-    );
-  return context;
-}
+// Removed ArtifactContext and useArtifact hook
+// Removed RuntimeContext object
 
 const GREETINGS: { range: [number, number]; options: string[] }[] = [
   {
@@ -212,7 +185,7 @@ function SuggestionButton({
       type="button"
       variant="outline"
       onClick={handleClick}
-      className="h-auto justify-start rounded-xl bg-card p-3 text-left font-sans text-xs font-normal text-foreground shadow-sm transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-md active:scale-[0.98] sm:p-4 sm:text-sm whitespace-normal break-words"
+      className="h-auto justify-start rounded-xl bg-card p-4 text-left text-xs transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-md active:scale-[0.98] sm:p-4 sm:text-sm whitespace-normal break-words"
     >
       {display}
     </Button>
@@ -266,20 +239,24 @@ function UserMessage() {
             </MessageContent>
           )}
         </div>
-        <MessageAvatar
+        {/* <MessageAvatar
           src="/loom-avatar.svg"
           alt="User"
           fallback="U"
           className="h-12 w-12"
-        />
+        /> */}
       </Message>
     </div>
   );
 }
 
-function AssistantMessage() {
+// AssistantMessage now accepts setActiveArtifact as a prop instead of using Context
+function AssistantMessage({
+  setActiveArtifact,
+}: {
+  setActiveArtifact: (artifact: ToolCallMessagePart | null) => void;
+}) {
   const message = useMessage();
-  const { setActiveArtifact } = useArtifact();
   const contentRef = useRef<HTMLDivElement>(null);
 
   const textPart = message.content.find((part) => part.type === "text");
@@ -300,13 +277,13 @@ function AssistantMessage() {
       | undefined;
 
     return (
-      <div className="flex justify-start">
+      <div className="flex justify-start mt-12">
         <Message className="w-full max-w-full gap-2 sm:gap-3 lg:max-w-5xl">
-          <MessageAvatar
+          {/* <MessageAvatar
             src="/otherdev-chat-logo.svg"
             alt="OtherDev Loom"
-            className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
-          />
+            className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8 object-contain" 
+          /> */}
           <div className="flex-1 space-y-3 min-w-0">
             {reasoning && <ReasoningCollapsible reasoning={reasoning} />}
             {cleanedText && (
@@ -354,11 +331,11 @@ function AssistantMessage() {
         <AssistantIf
           condition={({ message }) => message.status?.type !== "running"}
         >
-          <MessageAvatar
+          {/* <MessageAvatar
             src="/otherdev-chat-logo.svg"
             alt="OtherDev Loom"
             className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
-          />
+          /> */}
         </AssistantIf>
         <AssistantIf
           condition={({ message }) => message.status?.type === "running"}
@@ -409,34 +386,38 @@ function AttachmentChip() {
   }, [isImage, state]);
 
   return (
-    <div className="relative flex items-center gap-1.5 rounded-xl bg-accent px-2 py-1.5 text-xs text-accent-foreground">
+    <div className="relative flex group items-center gap-1.5 border rounded-t-xl pb-4 mb-[-10px] bg-accent px-2 py-1.5 text-xs text-accent-foreground">
       {isImage && previewUrl ? (
         // biome-ignore lint/performance/noImgElement: object URL preview
-        <img src={previewUrl} alt={state.name} className="h-8 w-8 rounded-lg object-cover" />
+        <img src={previewUrl} alt={state.name} className="h-12 w-12 rounded-lg object-contain bg-background" />
       ) : (
-        <FileText className="h-3.5 w-3.5 shrink-0 opacity-70" />
+        <FileText className="h-6 w-6 shrink-0 opacity-70" />
       )}
-      <span className="max-w-[120px] truncate">{state.name}</span>
+      <span className="truncate">{state.name}</span>
       {isRunning && (
-        <div className="h-3 w-3 animate-spin rounded-full border border-foreground/30 border-t-foreground/80" />
+        <div className="h-4 w-4 ml-auto animate-spin rounded-full border border-foreground/30 border-t-foreground/80" />
       )}
-      {isError && <span className="font-medium text-destructive">!</span>}
+      {isError && <span className="ml-auto font-medium text-destructive">!</span>}
       {!isRunning && (
         <button
           type="button"
           onClick={() => api.attachment().remove()}
-          className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full hover:bg-foreground/10"
+          className="ml-0.5 flex h-8 w-8 ml-auto items-center justify-center rounded-full hover:bg-foreground/10"
           aria-label={`Remove ${state.name}`}
         >
-          <X className="h-3 w-3" />
+          <X className="h-4 w-4" />
         </button>
       )}
     </div>
   );
 }
 
-export function OtherDevLoomThread() {
-  const { suggestion, setSuggestion } = useRuntimeContext();
+// OtherDevLoomThread now accepts setActiveArtifact and manages suggestion state locally
+export function OtherDevLoomThread({
+  setActiveArtifact,
+}: {
+  setActiveArtifact: (artifact: ToolCallMessagePart | null) => void;
+}) {
   const api = useAssistantApi();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recorderRef = useRef<VoiceRecorder | null>(null);
@@ -448,6 +429,8 @@ export function OtherDevLoomThread() {
   );
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingProcessing, setIsRecordingProcessing] = useState(false);
+  // Replaced RuntimeContext.suggestion with local state
+  const [suggestion, setSuggestion] = useState("");
   const greeting = useTimeBasedGreeting();
 
   const handleTranscriptReceived = (text: string) => {
@@ -565,9 +548,14 @@ export function OtherDevLoomThread() {
 
     inputElement.addEventListener("keydown", handleKeyDown);
     return () => inputElement.removeEventListener("keydown", handleKeyDown);
-  }, [suggestion, setSuggestion]);
+  }, [suggestion]);
 
   const placeholder = suggestion || "Type your message...";
+
+  // Define AssistantMessage inside to capture setActiveArtifact via closure without Context
+  const AssistantMessageWithProps = () => (
+    <AssistantMessage setActiveArtifact={setActiveArtifact} />
+  );
 
   return (
     <div
@@ -579,7 +567,7 @@ export function OtherDevLoomThread() {
           suppressHydrationWarning
         >
           <ThreadPrimitive.Empty>
-            <div className="flex h-full items-center justify-center p-4 sm:p-6 md:p-8">
+            <div className="flex h-full items-center justify-center p-4 sm:p-6 md:p-8 mt-40">
               <div className="w-full max-w-2xl space-y-6 sm:space-y-8">
                 <div className="space-y-3 text-center sm:space-y-4">
                   <div className="flex justify-center">
@@ -588,10 +576,10 @@ export function OtherDevLoomThread() {
                       alt="OtherDev Loom"
                       width={32}
                       height={32}
-                      className="h-7 w-7 sm:h-8 sm:w-8"
+                      className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
                     />
                   </div>
-                  <motion.h2
+                  {typeof window !== "undefined" && (<motion.h2
                     key={greeting}
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -600,17 +588,18 @@ export function OtherDevLoomThread() {
                   >
                     {greeting}
                   </motion.h2>
+                  )}
                   <p className="font-sans text-sm text-muted-foreground sm:text-base">
-                    Ask me anything about OtherDev
+                    Ask me anything about Other Dev
                   </p>
                 </div>
 
                 <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-                  {SUGGESTED_PROMPTS.map((suggestion) => (
+                  {SUGGESTED_PROMPTS.map((suggestionItem) => (
                     <SuggestionButton
-                      key={suggestion.label}
-                      display={suggestion.label}
-                      prompt={suggestion.prompt}
+                      key={suggestionItem.label}
+                      display={suggestionItem.label}
+                      prompt={suggestionItem.prompt}
                     />
                   ))}
                 </div>
@@ -618,36 +607,37 @@ export function OtherDevLoomThread() {
             </div>
           </ThreadPrimitive.Empty>
 
-          <div className="space-y-4 px-3 py-6 sm:space-y-6 sm:px-4 sm:py-8 md:px-8">
+          <div className="absolute bottom-0 w-screen h-30 bg-gradient-to-t from-background to-transparent" />
+          <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-4xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-12">
             <ThreadPrimitive.Messages
-              components={{ UserMessage, AssistantMessage }}
+              components={{ UserMessage, AssistantMessage: AssistantMessageWithProps }}
             />
 
             <ThreadPrimitive.If running>
-              <div className="flex items-start gap-2 sm:gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Image
                   src="/otherdev-chat-logo.svg"
                   alt="OtherDev Loom"
                   width={32}
                   height={32}
-                  className="h-7 w-7 flex-shrink-0 animate-spin sm:h-8 sm:w-8"
+                  className="h-6 w-6 flex-shrink-0 animate-spin sm:h-6 sm:w-6"
                 />
                 <div className="flex items-center gap-2 font-sans text-xs text-muted-foreground sm:text-sm">
                   <div className="flex gap-1">
                     <div
-                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
+                      className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
                       style={{ animationDelay: "0ms" }}
                     />
                     <div
-                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
+                      className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
                       style={{ animationDelay: "150ms" }}
                     />
                     <div
-                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground sm:h-2 sm:w-2"
+                      className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
                       style={{ animationDelay: "300ms" }}
                     />
                   </div>
-                  <span>Thinking...</span>
+                  <span className="text-xs">Thinking...</span>
                 </div>
               </div>
             </ThreadPrimitive.If>
@@ -659,25 +649,26 @@ export function OtherDevLoomThread() {
       <div className="absolute bottom-0 left-0 right-0 z-10 p-3 sm:p-4 w-full max-w-3xl mx-auto pointer-events-none">
         <div className="space-y-3 pointer-events-auto">
           {inputError && (
-            <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive flex items-center justify-between">
+            <div className="rounded-t-lg bg-red-100 px-3 py-2 text-sm text-destructive flex items-center justify-between pb-4 mb-[-8px]">
               <span>{inputError}</span>
               <button
                 type="button"
                 onClick={() => setInputError("")}
-                className="text-destructive hover:opacity-70 transition-opacity"
+                className="ml-0.5 flex h-8 w-8 ml-auto items-center justify-center rounded-full hover:bg-foreground/10"
+                aria-label={`Remove error message`}
               >
-                ×
+                <X className="h-4 w-4" />
               </button>
             </div>
           )}
         </div>
 
-        <ComposerPrimitive.AttachmentDropzone className="relative data-[dragging]:ring-2 data-[dragging]:ring-foreground/20 data-[dragging]:rounded-2xl">
+        <ComposerPrimitive.AttachmentDropzone className="relative data-[dragging]:ring-2 pointer-events-auto data-[dragging]:ring-foreground/20 data-[dragging]:rounded-2xl">
           <ComposerPrimitive.Attachments components={{ Attachment: AttachmentChip }} />
           <PromptInput
             className="relative rounded-2xl border-border shadow-sm pointer-events-auto"
             disabled={false}
-            maxHeight={96}
+            maxHeight={142}
             value={inputValue}
             onValueChange={setInputValue}
             onSubmit={handleSubmit}
@@ -691,8 +682,8 @@ export function OtherDevLoomThread() {
                 className={cn(
                   "font-sans text-sm sm:text-base",
                   suggestion &&
-                    !inputValue &&
-                    "placeholder:text-transparent placeholder:md:text-muted-foreground",
+                  !inputValue &&
+                  "placeholder:text-transparent placeholder:md:text-muted-foreground",
                 )}
                 autoFocus
               />
@@ -784,44 +775,35 @@ function LoomPageInner({
   return <Navigation isLoomPage={true} onClear={handleClear} hasActiveArtifact={hasActiveArtifact} />;
 }
 
-export function LoomPageClient() {
+export function LoomPageClient({ noNavigation }: { noNavigation?: boolean }) {
   const runtime = useOtherDevRuntime();
   const [activeArtifact, setActiveArtifact] =
     useState<ToolCallMessagePart | null>(null);
 
   return (
     <>
+      {/* AssistantRuntimeProvider is required by @assistant-ui/react library hooks */}
       <AssistantRuntimeProvider runtime={runtime}>
-        <RuntimeContext.Provider
-          value={{
-            suggestion: runtime.suggestion,
-            setSuggestion: runtime.setSuggestion,
-          }}
-        >
-          <ArtifactContext.Provider
-            value={{ activeArtifact, setActiveArtifact }}
-          >
-            <LoomPageInner onClear={runtime.clear} hasActiveArtifact={!!activeArtifact} />
-            <main className="h-screen">
-              <div className="flex h-full overflow-hidden">
-                <div
-                  className={`h-full ${activeArtifact ? "hidden md:block md:w-1/2" : "w-full"}`}
-                >
-                  <OtherDevLoomThread />
-                </div>
-                {activeArtifact && (
-                  <div className="h-full w-full md:w-1/2">
-                    <ArtifactRenderer
-                      toolCall={activeArtifact}
-                      mode="panel"
-                      onClose={() => setActiveArtifact(null)}
-                    />
-                  </div>
-                )}
+        {/* Removed ArtifactContext.Provider */}
+        {noNavigation ? null : <LoomPageInner onClear={runtime.clear} hasActiveArtifact={!!activeArtifact} />}
+        <main className="h-screen">
+          <div className="flex h-full overflow-hidden">
+            <div
+              className={`h-full ${activeArtifact ? "hidden md:block md:w-1/2" : "w-full"}`}
+            >
+              <OtherDevLoomThread setActiveArtifact={setActiveArtifact} />
+            </div>
+            {activeArtifact && (
+              <div className="h-full w-full md:w-1/2">
+                <ArtifactRenderer
+                  toolCall={activeArtifact}
+                  mode="panel"
+                  onClose={() => setActiveArtifact(null)}
+                />
               </div>
-            </main>
-          </ArtifactContext.Provider>
-        </RuntimeContext.Provider>
+            )}
+          </div>
+        </main>
       </AssistantRuntimeProvider>
     </>
   );

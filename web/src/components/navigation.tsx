@@ -51,7 +51,7 @@ export function Navigation({
       {/* Mobile Navigation (or AI variant) */}
       <div
         className={cn(
-          "flex items-center justify-between gap-[6px] w-full pointer-events-auto relative z-50",
+          "flex items-center justify-between w-full pointer-events-auto relative z-50",
           isAIVariant ? "" : "sm:hidden",
         )}
       >
@@ -64,27 +64,55 @@ export function Navigation({
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.2 }}
             >
-              <Button
-                asChild
-                variant="nav"
-                size="nav-default"
-                className={pathname === "/" ? "text-foreground" : ""}
-              >
-                <Link href="/" data-slot="nav-item">
-                  other dev
-                </Link>
-              </Button>
+              {isLoomPage ? (
+                <Button
+                  variant="nav"
+                  size="icon"
+                  className={cn(
+                    "flex items-center bg-transparent gap-1.5 rounded-full",
+                  )}
+                >
+                  <img src={"/otherdev-chat-logo.svg"} className="h-4 w-4 object-contain" />
+                </Button>
+              ) : (
+                <Button
+                  asChild
+                  variant="nav"
+                  size="nav-default"
+                  className={pathname === "/" ? "text-foreground" : ""}
+                >
+                  <Link href="/" data-slot="nav-item">
+                    other dev
+                  </Link>
+                </Button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
-
+        <div className="flex items-center gap-1.5 ml-auto">
+          {/* Clear Chat Button */}
+          {isLoomPage && onClear && !hasActiveArtifact && (
+            <Button
+              variant="nav"
+              size="nav-default"
+              onClick={onClear}
+              className={cn(
+                "mr-2 bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70 flex items-center",
+                isOpen && "hidden",
+              )}
+            >
+              <Trash2 size={12} strokeWidth={2} />
+              clear
+            </Button>
+          )}
+        </div>
         {/* Hamburger/X Button */}
         <Button
           variant="nav"
           size="nav-icon"
           onClick={() => setIsOpen(!isOpen)}
           data-slot="nav-item"
-          className="text-foreground"
+          className="text-foreground mr-2"
           aria-label="Toggle menu"
         >
           <AnimatePresence mode="wait">
@@ -233,17 +261,36 @@ export function Navigation({
       {/* Tablet/Desktop Navigation */}
       {!isAIVariant && (
         <div className="hidden sm:flex items-center gap-1.5 pointer-events-auto">
-          <Button
-            asChild
-            variant="nav"
-            size="nav-default"
-            className={pathname === "/" ? "text-foreground" : ""}
-          >
-            <Link href="/" data-slot="nav-item">
-              other dev
-            </Link>
-          </Button>
+          {isLoomPage ? (
+            <div
+              className={cn(
+                "group flex items-center bg-transparent gap-1.5 ",
+              )}
+            >
+              <Button
+                variant="nav"
+                size="nav-default" onClick={() => window.location.href = "/"}
+                className={"cursor-pointer group-hover:w-full w-0 opacity-0 group-hover:opacity-100 " + (pathname === "/" ? "text-foreground" : "")}
+              >
+                other dev
+              </Button>
 
+              <Link href="/" data-slot="nav-item">
+                <img src={"/otherdev-chat-logo.svg"} className="h-4 w-4 mr-2 group-hover:opacity-0 object-contain rounded-circle" />
+              </Link>
+            </div>
+          ) : (
+            <Button
+              asChild
+              variant="nav"
+              size="nav-default"
+              className={pathname === "/" ? "text-foreground" : ""}
+            >
+              <Link href="/" data-slot="nav-item">
+                other dev
+              </Link>
+            </Button>
+          )}
           <Button
             asChild
             variant="nav"
@@ -309,23 +356,6 @@ export function Navigation({
           </Button>
         </div>
       )}
-
-      {/* Clear Chat Button */}
-      {isLoomPage && onClear && !hasActiveArtifact && (
-        <Button
-          variant="nav"
-          size="nav-default"
-          onClick={onClear}
-          className={cn(
-            "absolute right-12 sm:right-3 top-0 pointer-events-auto bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70 flex items-center gap-1.5",
-            isOpen && "hidden",
-          )}
-        >
-          <Trash2 size={12} strokeWidth={2} />
-          clear
-        </Button>
-      )}
-
       {/* Backdrop */}
       {isOpen && (
         <div

@@ -41,6 +41,4 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AIPage() {
-  return <LoomPageClient />;
-}
+export default LoomPageClient;
