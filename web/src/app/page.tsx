@@ -10,9 +10,9 @@ import {
 import { projects } from "@/lib/projects";
 
 export const metadata: Metadata = {
-  title: "OtherDev",
+  title: "Other Dev",
   description:
-    "OtherDev produces digital platforms for pioneering creatives. Full-service web development and design studio based in Karachi, specializing in fashion and design fields.",
+    "Other Dev produces digital platforms for pioneering creatives. Full-service web development and design studio based in Karachi, specializing in fashion and design fields.",
   keywords: [
     "web development",
     "web design",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     "fashion design",
     "creative studio",
     "Karachi",
-    "OtherDev",
+    "Other Dev",
   ],
   robots: {
     index: true,
@@ -50,7 +50,7 @@ const data = [...playlistsAndImages, ...projectsWithExtraImages];
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "OtherDev",
+  name: "Other Dev",
   url: "https://otherdev.com",
   logo: "https://otherdev.com/TheOtherDevLogo.svg",
   description: "Digital platforms for pioneering creatives",

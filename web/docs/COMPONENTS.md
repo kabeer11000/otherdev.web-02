@@ -1,6 +1,6 @@
 # Component Library
 
-> Comprehensive documentation for OtherDev UI component library
+> Comprehensive documentation for Other Dev UI component library
 
 ## Table of Contents
 
@@ -25,7 +25,7 @@
 
 ## Overview
 
-The OtherDev component library follows the **shadcn/ui** pattern, wrapping Radix UI primitives with Tailwind CSS styling. All components are fully accessible, keyboard navigable, and theme-aware.
+The Other Dev component library follows the **shadcn/ui** pattern, wrapping Radix UI primitives with Tailwind CSS styling. All components are fully accessible, keyboard navigable, and theme-aware.
 
 ### Key Features
 

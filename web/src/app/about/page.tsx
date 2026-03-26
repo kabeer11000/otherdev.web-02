@@ -6,11 +6,11 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "About | OtherDev",
+  title: "About | Other Dev",
   description:
-    "Learn about OtherDev, a full-service web development and design studio based in Karachi. Discover our team, mission, and the clients we've worked with.",
+    "Learn about Other Dev, a full-service web development and design studio based in Karachi. Discover our team, mission, and the clients we've worked with.",
   keywords: [
-    "about OtherDev",
+    "about Other Dev",
     "web design studio",
     "Karachi web development",
     "creative studio team",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "OtherDev",
+  name: "Other Dev",
   url: "https://otherdev.com",
   logo: "https://otherdev.com/TheOtherDevLogo.svg",
   description: "Digital platforms for pioneering creatives",

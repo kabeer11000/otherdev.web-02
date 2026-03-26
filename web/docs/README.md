@@ -1,10 +1,10 @@
-# OtherDev Documentation
+# Other Dev Documentation
 
-> Complete documentation for the OtherDev Next.js application
+> Complete documentation for the Other Dev Next.js application
 
 ## Overview
 
-This directory contains comprehensive documentation for developers working on the OtherDev portfolio and agency website. The application is built with Next.js 16, React 19, TypeScript, and tRPC for type-safe API communication.
+This directory contains comprehensive documentation for developers working on the Other Dev portfolio and agency website. The application is built with Next.js 16, React 19, TypeScript, and tRPC for type-safe API communication.
 
 ## Documentation Structure
 
@@ -282,9 +282,9 @@ For questions or issues:
 
 ## License
 
-© OtherDev - All Rights Reserved
+© Other Dev - All Rights Reserved
 
-This is proprietary software for OtherDev's portfolio. Unauthorized copying, modification, or distribution is prohibited.
+This is proprietary software for Other Dev's portfolio. Unauthorized copying, modification, or distribution is prohibited.
 
 ---
 

@@ -1,6 +1,6 @@
 # Developer Guide
 
-> Complete guide to developing with the OtherDev Next.js application
+> Complete guide to developing with the Other Dev Next.js application
 
 ## Table of Contents
 
@@ -207,7 +207,7 @@ import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 
 export const metadata: Metadata = {
-  title: "Services | OtherDev",
+  title: "Services | Other Dev",
   description: "Our web development and design services",
 };
 
@@ -432,7 +432,7 @@ export const knowledgeBase: KnowledgeDocument[] = [
   // Add new document
   {
     content: `
-      OtherDev specializes in custom e-commerce development using Next.js,
+      Other Dev specializes in custom e-commerce development using Next.js,
       Shopify, and WooCommerce. We build scalable online stores with
       payment integration, inventory management, and analytics.
     `,

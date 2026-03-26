@@ -33,19 +33,19 @@ export async function generateMetadata({
 
   if (!project) {
     return {
-      title: "Project Not Found | OtherDev",
+      title: "Project Not Found | Other Dev",
     };
   }
 
   return {
-    title: `${project.title} | OtherDev Portfolio`,
+    title: `${project.title} | Other Dev Portfolio`,
     description: project.description,
     keywords: [
       "web design",
       "web development",
       "project",
       project.title,
-      "OtherDev",
+      "Other Dev",
     ],
   };
 }
@@ -72,7 +72,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     url: `https://otherdev.com/work/${slug}`,
     creator: {
       "@type": "Organization",
-      name: "OtherDev",
+      name: "Other Dev",
       url: "https://otherdev.com",
     },
   };

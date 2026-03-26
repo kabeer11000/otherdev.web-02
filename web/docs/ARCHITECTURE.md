@@ -1,6 +1,6 @@
 # System Architecture
 
-> Comprehensive architecture documentation for OtherDev Next.js application
+> Comprehensive architecture documentation for Other Dev Next.js application
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@
 
 ## Overview
 
-OtherDev is a modern, full-stack web application built with Next.js 16, leveraging the App Router for file-based routing and React Server Components for optimal performance. The architecture is designed for scalability, type safety, and excellent developer experience.
+Other Dev is a modern, full-stack web application built with Next.js 16, leveraging the App Router for file-based routing and React Server Components for optimal performance. The architecture is designed for scalability, type safety, and excellent developer experience.
 
 ### Core Principles
 
@@ -582,7 +582,7 @@ graph TB
 
 **Location:** `src/lib/knowledge-base.ts`
 
-Structured documents about OtherDev's projects, services, and expertise.
+Structured documents about Other Dev's projects, services, and expertise.
 
 ```typescript
 export interface KnowledgeDocument {
@@ -600,7 +600,7 @@ export const knowledgeBase: KnowledgeDocument[] = [
     content: "...",
     metadata: {
       source: "website",
-      title: "About OtherDev",
+      title: "About Other Dev",
       type: "team",
     },
   },

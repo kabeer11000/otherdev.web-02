@@ -6,7 +6,7 @@ import { projects } from "@/lib/projects";
 import { ProjectCard } from "@/components/project-card";
 
 export const metadata: Metadata = {
-  title: "Work | OtherDev",
+  title: "Work | Other Dev",
   description:
     "Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.",
   keywords: [
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     "portfolio",
     "project showcase",
     "digital solutions",
-    "OtherDev",
+    "Other Dev",
   ],
 };
 
@@ -24,7 +24,7 @@ export default function WorkPage() {
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "Other Dev",
+    name: "Other Dev - We engineer digital solutions for pioneering brands.",
     url: "https://otherdev.com",
     logo: "https://otherdev.com/TheOtherDevLogo.svg",
     description: "Digital platforms for pioneering creatives",
@@ -40,7 +40,7 @@ export default function WorkPage() {
       "Explore our premium web design and development projects. We engineer digital solutions for pioneering brands.",
     creator: {
       "@type": "Organization",
-      name: "OtherDev",
+      name: "Other Dev",
       url: "https://otherdev.com",
     },
   };

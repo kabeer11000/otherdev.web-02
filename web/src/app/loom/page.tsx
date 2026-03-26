@@ -2,21 +2,21 @@ import type { Metadata } from "next";
 import { LoomPageClient } from "@/components/otherdev-loom-thread";
 
 export const metadata: Metadata = {
-  title: "Loom | OtherDev",
+  title: "Loom - Chat with Other Dev's AI Assistant",
   description:
-    "Chat with Loom, OtherDev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
+    "Chat with Loom, Other Dev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
   keywords: [
-    "OtherDev Loom",
+    "Other Dev Loom",
     "AI chat",
-    "OtherDev assistant",
+    "Other Dev assistant",
     "project information",
     "web development chat",
-    "OtherDev",
+    "Other Dev",
   ],
   openGraph: {
-    title: "OtherDev Loom",
+    title: "Other Dev Loom",
     description:
-      "Chat with Loom, OtherDev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
+      "Chat with Loom, Other Dev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
     type: "website",
     url: "https://otherdev.com/loom",
     images: [
@@ -24,15 +24,15 @@ export const metadata: Metadata = {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "OtherDev Loom",
+        alt: "Other Dev Loom",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "OtherDev Loom",
+    title: "Other Dev Loom",
     description:
-      "Chat with Loom, OtherDev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
+      "Chat with Loom, Other Dev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
     images: ["/og-image.jpg"],
   },
   robots: {

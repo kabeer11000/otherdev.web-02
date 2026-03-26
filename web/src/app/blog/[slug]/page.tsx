@@ -17,12 +17,12 @@ export async function generateMetadata({ params }: PageProps) {
 
   if (!post) {
     return {
-      title: "Blog Post Not Found | OtherDev",
+      title: "Blog Post Not Found | Other Dev",
     };
   }
 
   return {
-    title: `${post.title} | OtherDev Blog`,
+    title: `${post.title} | Other Dev Blog`,
     description: post.content.replace(/<[^>]*>/g, "").substring(0, 160),
   };
 }

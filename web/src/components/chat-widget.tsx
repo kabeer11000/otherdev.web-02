@@ -65,7 +65,7 @@ export function ChatWidget() {
         >
           <Image
             src="/otherdev-chat-logo.svg"
-            alt="OtherDev AI"
+            alt="Other Dev AI"
             width={32}
             height={32}
             className="h-8 w-8 object-contain"

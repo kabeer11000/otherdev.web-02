@@ -3,7 +3,7 @@ import { CanvasClient } from "@od-canvas/sdk";
 
 export const runtime = "edge";
 
-export const alt = "Blog post preview | OtherDev";
+export const alt = "Blog post preview | Other Dev";
 export const size = {
   width: 1200,
   height: 630,

@@ -7,7 +7,7 @@ async function testSearch() {
   console.log("========================================\n");
 
   const testQueries = [
-    "Who founded OtherDev?",
+    "Who founded Other Dev?",
     "Tell me about Ossaid",
     "Who are the founders?",
     "Ossaid Qadri",

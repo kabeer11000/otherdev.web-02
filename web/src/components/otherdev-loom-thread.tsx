@@ -634,7 +634,7 @@ export function OtherDevLoomThread({
                   <div className="flex justify-center">
                     <Image
                       src="/otherdev-chat-logo.svg"
-                      alt="OtherDev Loom"
+                      alt="Other Dev Loom"
                       width={32}
                       height={32}
                       className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
@@ -679,12 +679,13 @@ export function OtherDevLoomThread({
               <div className="flex items-center gap-2 sm:gap-3">
                 <Image
                   src="/otherdev-chat-logo.svg"
-                  alt="OtherDev Loom"
+                  alt="Other Dev Loom"
                   width={32}
                   height={32}
                   className="h-6 w-6 flex-shrink-0 animate-spin sm:h-6 sm:w-6"
                 />
                 <div className="flex items-center gap-2 font-sans text-xs text-muted-foreground sm:text-sm">
+
                   <span className="text-sm">Thinking </span>
                   <div className="flex gap-1">
                     <div

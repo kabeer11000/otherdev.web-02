@@ -2,7 +2,7 @@
 
 ## Overview
 
-The File & Voice Attachment feature enables users to enhance their chat messages with file attachments and voice input on the OtherDev Loom chat page. Files (images, documents, code) are processed client-side and sent as base64-encoded content blocks, while voice messages are transcribed using Whisper v3 Turbo. The system automatically routes requests to the appropriate Groq model based on content type.
+The File & Voice Attachment feature enables users to enhance their chat messages with file attachments and voice input on the Other Dev Loom chat page. Files (images, documents, code) are processed client-side and sent as base64-encoded content blocks, while voice messages are transcribed using Whisper v3 Turbo. The system automatically routes requests to the appropriate Groq model based on content type.
 
 ## Features
 

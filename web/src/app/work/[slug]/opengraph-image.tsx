@@ -3,7 +3,7 @@ import { projects } from "@/lib/projects";
 
 export const runtime = "edge";
 
-export const alt = "Project preview | OtherDev";
+export const alt = "Project preview | Other Dev";
 export const size = {
   width: 1200,
   height: 630,

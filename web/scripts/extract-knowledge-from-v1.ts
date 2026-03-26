@@ -257,7 +257,7 @@ function extractCompanyInfo(): KnowledgeDocument[] {
 
     return [
       {
-        content: `${seoData.name || "OtherDev"} is a ${
+        content: `${seoData.name || "Other Dev"} is a ${
           seoData.business?.type || "creative software agency"
         } based in ${seoData.business?.address || "Karachi, Pakistan"}. Contact: ${
           seoData.business?.phone || "+92 315 6893331"

@@ -1,6 +1,6 @@
 # API Reference
 
-> Comprehensive API documentation for OtherDev Next.js application
+> Comprehensive API documentation for Other Dev Next.js application
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@
 
 ## Overview
 
-The OtherDev application uses **tRPC** for type-safe API communication between client and server. All API endpoints are automatically type-checked and provide full TypeScript IntelliSense support.
+The Other Dev application uses **tRPC** for type-safe API communication between client and server. All API endpoints are automatically type-checked and provide full TypeScript IntelliSense support.
 
 ### Tech Stack
 

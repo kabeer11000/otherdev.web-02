@@ -8,7 +8,7 @@ import Script from "next/script";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://otherdev.com"),
-  title: "OtherDev",
+  title: "Other Dev",
   description: "Digital platforms for pioneering creatives",
   robots: {
     index: true,
