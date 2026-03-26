@@ -63,9 +63,6 @@ import { cleanSuggestionMarkers, cn } from "@/lib/utils";
 import { VoiceRecorder } from "@/lib/voice-recorder";
 import { CREATE_ARTIFACT_TOOL_NAME } from "@/server/lib/artifact-tool";
 
-// Removed ArtifactContext and useArtifact hook
-// Removed RuntimeContext object
-
 const GREETINGS: { range: [number, number]; options: string[] }[] = [
   {
     range: [0, 5],
@@ -147,6 +144,25 @@ function useTimeBasedGreeting() {
   }, []);
 
   return greeting;
+}
+
+// ✅ Hook to subscribe to composer state changes reactively
+function useComposerState(api: ReturnType<typeof useAssistantApi>) {
+  const [state, setState] = useState(() => api.composer().getState());
+
+  useEffect(() => {
+    // Initial state
+    setState(api.composer().getState());
+
+    // Subscribe to future changes
+    const unsubscribe = api.composer().subscribe?.((newState) => {
+      setState(newState);
+    });
+
+    return () => unsubscribe?.();
+  }, [api]);
+
+  return state;
 }
 
 function ReasoningCollapsible({ reasoning }: { reasoning: string }) {
@@ -239,18 +255,11 @@ function UserMessage() {
             </MessageContent>
           )}
         </div>
-        {/* <MessageAvatar
-          src="/loom-avatar.svg"
-          alt="User"
-          fallback="U"
-          className="h-12 w-12"
-        /> */}
       </Message>
     </div>
   );
 }
 
-// AssistantMessage now accepts setActiveArtifact as a prop instead of using Context
 function AssistantMessage({
   setActiveArtifact,
 }: {
@@ -279,11 +288,6 @@ function AssistantMessage({
     return (
       <div className="flex justify-start mt-12">
         <Message className="w-full max-w-full gap-2 sm:gap-3 lg:max-w-5xl">
-          {/* <MessageAvatar
-            src="/otherdev-chat-logo.svg"
-            alt="OtherDev Loom"
-            className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8 object-contain" 
-          /> */}
           <div className="flex-1 space-y-3 min-w-0">
             {reasoning && <ReasoningCollapsible reasoning={reasoning} />}
             {cleanedText && (
@@ -331,11 +335,6 @@ function AssistantMessage({
         <AssistantIf
           condition={({ message }) => message.status?.type !== "running"}
         >
-          {/* <MessageAvatar
-            src="/otherdev-chat-logo.svg"
-            alt="OtherDev Loom"
-            className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
-          /> */}
         </AssistantIf>
         <AssistantIf
           condition={({ message }) => message.status?.type === "running"}
@@ -412,7 +411,6 @@ function AttachmentChip() {
   );
 }
 
-// OtherDevLoomThread now accepts setActiveArtifact and manages suggestion state locally
 export function OtherDevLoomThread({
   setActiveArtifact,
 }: {
@@ -429,9 +427,15 @@ export function OtherDevLoomThread({
   );
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingProcessing, setIsRecordingProcessing] = useState(false);
-  // Replaced RuntimeContext.suggestion with local state
   const [suggestion, setSuggestion] = useState("");
   const greeting = useTimeBasedGreeting();
+
+  // ✅ Subscribe to composer state reactively
+  const composerState = useComposerState(api);
+  const attachments = composerState.attachments;
+  const hasUploadingAttachment = attachments.some(
+    (a) => (a as any).status?.type === "running"
+  );
 
   const handleTranscriptReceived = (text: string) => {
     setInputValue(text);
@@ -510,9 +514,12 @@ export function OtherDevLoomThread({
   };
 
   const handleSubmit = () => {
+    if (isRecording || isRecordingProcessing || hasUploadingAttachment) return;
+
     const value = inputValue.trim();
-    const hasAttachments = api.composer().getState().attachments.length > 0;
-    if (!value && !hasAttachments) return;
+    const hasValidAttachments = attachments.length > 0 && !hasUploadingAttachment;
+    
+    if (!value && !hasValidAttachments) return;
 
     api.thread().append({
       role: "user",
@@ -550,9 +557,16 @@ export function OtherDevLoomThread({
     return () => inputElement.removeEventListener("keydown", handleKeyDown);
   }, [suggestion]);
 
+  // ✅ Centralized, clean disabled logic
+  const isSendDisabled = useMemo(() => {
+    const hasText = inputValue.trim().length > 0;
+    const hasValidAttachments = attachments.length > 0 && !hasUploadingAttachment;
+    const isBlocked = isRecording || isRecordingProcessing || hasUploadingAttachment;
+    return (!hasText && !hasValidAttachments) || isBlocked;
+  }, [inputValue, attachments, hasUploadingAttachment, isRecording, isRecordingProcessing]);
+
   const placeholder = suggestion || "Type your message...";
 
-  // Define AssistantMessage inside to capture setActiveArtifact via closure without Context
   const AssistantMessageWithProps = () => (
     <AssistantMessage setActiveArtifact={setActiveArtifact} />
   );
@@ -739,12 +753,12 @@ export function OtherDevLoomThread({
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={!inputValue.trim() && api.composer().getState().attachments.length === 0}
+                  disabled={isSendDisabled}
                   className={cn(
                     "flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] sm:h-8 sm:w-8",
-                    inputValue.trim() || api.composer().getState().attachments.length > 0
-                      ? "bg-foreground text-background hover:opacity-90"
-                      : "bg-muted text-muted-foreground hover:opacity-70 disabled:opacity-50",
+                    isSendDisabled
+                      ? "bg-muted text-muted-foreground hover:opacity-70 disabled:opacity-50"
+                      : "bg-foreground text-background hover:opacity-90",
                   )}
                 >
                   <ArrowUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -782,9 +796,7 @@ export function LoomPageClient({ noNavigation }: { noNavigation?: boolean }) {
 
   return (
     <>
-      {/* AssistantRuntimeProvider is required by @assistant-ui/react library hooks */}
       <AssistantRuntimeProvider runtime={runtime}>
-        {/* Removed ArtifactContext.Provider */}
         {noNavigation ? null : <LoomPageInner onClear={runtime.clear} hasActiveArtifact={!!activeArtifact} />}
         <main className="h-screen">
           <div className="flex h-full overflow-hidden">
