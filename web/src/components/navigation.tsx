@@ -354,8 +354,22 @@ export function Navigation({
               whatsapp
             </Link>
           </Button>
+                {isLoomPage && onClear && !hasActiveArtifact && (
+            <Button
+              variant="nav"
+              size="nav-default"
+              onClick={onClear}
+              className={cn(
+                "ml-auto mr-2 bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70 flex items-center",
+                isOpen && "hidden",
+              )}
+            >
+              <Trash2 size={12} strokeWidth={2} />
+              clear
+            </Button>)}
         </div>
       )}
+
       {/* Backdrop */}
       {isOpen && (
         <div

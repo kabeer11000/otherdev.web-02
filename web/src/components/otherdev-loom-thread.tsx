@@ -14,6 +14,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowUp,
   AudioLines,
+  ChevronDown,
   ChevronRight,
   FileCode2,
   FileText,
@@ -151,18 +152,44 @@ function useComposerState(api: ReturnType<typeof useAssistantApi>) {
   const [state, setState] = useState(() => api.composer().getState());
 
   useEffect(() => {
-    // Initial state
     setState(api.composer().getState());
-
-    // Subscribe to future changes
     const unsubscribe = api.composer().subscribe?.((newState) => {
       setState(newState);
     });
-
     return () => unsubscribe?.();
   }, [api]);
 
   return state;
+}
+
+// ✅ Hook for scroll-to-bottom button visibility
+function useScrollToBottom(containerRef: React.RefObject<HTMLElement>) {
+  const [showButton, setShowButton] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // Show button when scrolled up more than 100px from bottom
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShowButton(!isNearBottom);
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll(); // initial check
+
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [containerRef]);
+
+  const scrollToBottom = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+  }, [containerRef]);
+
+  return { showButton, scrollToBottom };
 }
 
 function ReasoningCollapsible({ reasoning }: { reasoning: string }) {
@@ -226,7 +253,7 @@ function UserMessage() {
           {images.length > 0 && (
             <div className="flex flex-wrap gap-2 justify-end">
               {images.map((img, i) => (
-                // biome-ignore lint/performance/noImgElement: base64 data URL, next/image doesn't optimize these
+                // biome-ignore lint/performance/noImgElement: base64 data URL
                 <img
                   key={i}
                   src={img.url}
@@ -334,8 +361,7 @@ function AssistantMessage({
       <Message className="w-full max-w-full gap-2 sm:gap-3 lg:max-w-5xl">
         <AssistantIf
           condition={({ message }) => message.status?.type !== "running"}
-        >
-        </AssistantIf>
+        />
         <AssistantIf
           condition={({ message }) => message.status?.type === "running"}
         >
@@ -387,8 +413,23 @@ function AttachmentChip() {
   return (
     <div className="relative flex group items-center gap-1.5 border rounded-t-xl pb-4 mb-[-10px] bg-accent px-2 py-1.5 text-xs text-accent-foreground">
       {isImage && previewUrl ? (
-        // biome-ignore lint/performance/noImgElement: object URL preview
-        <img src={previewUrl} alt={state.name} className="h-12 w-12 rounded-lg object-contain bg-background" />
+        <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-background">
+          {/* biome-ignore lint/performance/noImgElement: object URL preview */}
+          <img
+            src={previewUrl}
+            alt={state.name}
+            className={cn(
+              "h-full w-full object-contain transition-opacity",
+              isRunning && "opacity-40"
+            )}
+          />
+          {/* ✅ Grey overlay during upload */}
+          {isRunning && (
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-t-white" />
+            </div>
+          )}
+        </div>
       ) : (
         <FileText className="h-6 w-6 shrink-0 opacity-70" />
       )}
@@ -419,6 +460,7 @@ export function OtherDevLoomThread({
   const api = useAssistantApi();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recorderRef = useRef<VoiceRecorder | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const [inputValue, setInputValue] = useState("");
   const [inputError, setInputError] = useState("");
@@ -430,12 +472,14 @@ export function OtherDevLoomThread({
   const [suggestion, setSuggestion] = useState("");
   const greeting = useTimeBasedGreeting();
 
-  // ✅ Subscribe to composer state reactively
   const composerState = useComposerState(api);
   const attachments = composerState.attachments;
   const hasUploadingAttachment = attachments.some(
     (a) => (a as any).status?.type === "running"
   );
+
+  // ✅ Scroll-to-bottom logic
+  const { showButton, scrollToBottom } = useScrollToBottom(contentRef);
 
   const handleTranscriptReceived = (text: string) => {
     setInputValue(text);
@@ -557,7 +601,11 @@ export function OtherDevLoomThread({
     return () => inputElement.removeEventListener("keydown", handleKeyDown);
   }, [suggestion]);
 
-  // ✅ Centralized, clean disabled logic
+  // ✅ Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    scrollToBottom();
+  }, [composerState.messages?.length, scrollToBottom]);
+
   const isSendDisabled = useMemo(() => {
     const hasText = inputValue.trim().length > 0;
     const hasValidAttachments = attachments.length > 0 && !hasUploadingAttachment;
@@ -572,11 +620,10 @@ export function OtherDevLoomThread({
   );
 
   return (
-    <div
-      className="relative h-full flex flex-col bg-background"
-    >
+    <div className="relative h-full flex flex-col bg-background">
       <ChatContainerRoot className="flex-1 w-full">
         <ChatContainerContent
+          ref={contentRef as any}
           className="flex-1 scroll-smooth pb-32 sm:pb-40"
           suppressHydrationWarning
         >
@@ -593,15 +640,16 @@ export function OtherDevLoomThread({
                       className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
                     />
                   </div>
-                  {typeof window !== "undefined" && (<motion.h2
-                    key={greeting}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl"
-                  >
-                    {greeting}
-                  </motion.h2>
+                  {typeof window !== "undefined" && (
+                    <motion.h2
+                      key={greeting}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl"
+                    >
+                      {greeting}
+                    </motion.h2>
                   )}
                   <p className="font-sans text-sm text-muted-foreground sm:text-base">
                     Ask me anything about Other Dev
@@ -621,7 +669,7 @@ export function OtherDevLoomThread({
             </div>
           </ThreadPrimitive.Empty>
 
-          <div className="absolute bottom-0 w-screen h-30 bg-gradient-to-t from-background to-transparent" />
+          <div className="absolute bottom-0 w-screen h-30 bg-gradient-to-t from-background to-transparent pointer-events-none" />
           <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-4xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-12">
             <ThreadPrimitive.Messages
               components={{ UserMessage, AssistantMessage: AssistantMessageWithProps }}
@@ -637,6 +685,7 @@ export function OtherDevLoomThread({
                   className="h-6 w-6 flex-shrink-0 animate-spin sm:h-6 sm:w-6"
                 />
                 <div className="flex items-center gap-2 font-sans text-xs text-muted-foreground sm:text-sm">
+                  <span className="text-sm">Thinking </span>
                   <div className="flex gap-1">
                     <div
                       className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
@@ -651,7 +700,6 @@ export function OtherDevLoomThread({
                       style={{ animationDelay: "300ms" }}
                     />
                   </div>
-                  <span className="text-xs">Thinking...</span>
                 </div>
               </div>
             </ThreadPrimitive.If>
@@ -659,6 +707,23 @@ export function OtherDevLoomThread({
           <ChatContainerScrollAnchor />
         </ChatContainerContent>
       </ChatContainerRoot>
+
+      {/* ✅ Scroll-to-bottom floating button */}
+      <AnimatePresence>
+        {showButton && (
+          <motion.button
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            onClick={scrollToBottom}
+            className="absolute bottom-28 sm:bottom-32 right-4 sm:right-6 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background shadow-lg hover:opacity-90 active:scale-95 transition-all"
+            aria-label="Scroll to bottom"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       <div className="absolute bottom-0 left-0 right-0 z-10 p-3 sm:p-4 w-full max-w-3xl mx-auto pointer-events-none">
         <div className="space-y-3 pointer-events-auto">
@@ -669,7 +734,7 @@ export function OtherDevLoomThread({
                 type="button"
                 onClick={() => setInputError("")}
                 className="ml-0.5 flex h-8 w-8 ml-auto items-center justify-center rounded-full hover:bg-foreground/10"
-                aria-label={`Remove error message`}
+                aria-label="Remove error message"
               >
                 <X className="h-4 w-4" />
               </button>
