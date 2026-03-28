@@ -1,4 +1,4 @@
-import { streamText, tool } from "ai";
+import { streamText, tool, stepCountIs, createUIMessageStream, createUIMessageStreamResponse } from "ai";
 import { createGroq } from "@ai-sdk/groq";
 import { z } from "zod";
 
@@ -85,6 +85,13 @@ CRITICAL RULES
 4. Always provide value in your response, even for brief or unclear queries.
 5. ALWAYS end your response with a contextual follow-up suggestion.
 
+ARTIFACT CAPABILITY
+- When the user asks you to BUILD, CREATE, MAKE, or GENERATE any interactive web content (websites, apps, games, calculators, dashboards, visualizations, forms, landing pages, etc.), you MUST use the createArtifact tool.
+- The createArtifact tool allows you to generate complete, self-contained HTML/CSS/JS applications that will be displayed in a live preview panel.
+- Always use modern frameworks via CDN when appropriate: React (unpkg.com/react), Tailwind CSS (cdn.tailwindcss.com), Vue, etc.
+- Make artifacts visually polished, responsive, and production-ready.
+- For building/creating requests, focus on delivering a working interactive artifact rather than just code snippets.
+
 GUIDELINES
 1. Use the context provided in the user message to answer questions accurately and factually.
 2. When specific details aren't in the context, provide general helpful information about Other Dev and invite them to connect for specifics.
@@ -104,6 +111,19 @@ Be professional, friendly, and focused on helping potential clients learn about 
 
 function sanitizeInput(text: string): string {
   return text.replace(INJECTION_PATTERN, "").slice(0, RAG_MAX_MESSAGE_LENGTH);
+}
+
+// Extract suggestion from text and return clean text + suggestion
+function extractSuggestion(text: string): { cleanText: string; suggestion: string | null } {
+  const suggestionMatch = text.match(/\n?\s*SUGGESTION:\s*(.+)$/i);
+  if (!suggestionMatch) {
+    return { cleanText: text, suggestion: null };
+  }
+  
+  const cleanText = text.replace(/\n?\s*SUGGESTION:[\s\S]*$/i, "").trim();
+  const suggestion = suggestionMatch[1]?.trim() || null;
+  
+  return { cleanText, suggestion };
 }
 
 interface QueryQuality {
@@ -371,33 +391,71 @@ export async function POST(request: Request): Promise<Response> {
 
     const enableArtifacts = supportsArtifacts && queryQuality.needsArtifact;
 
-    const result = streamText({
-      model: groqAI(hasImageContent ? VISION_MODEL : CHAT_MODEL),
-      system: SYSTEM_PROMPT,
-      messages: sanitized,
-      temperature: 0.7,
-      maxOutputTokens: 1024,
-      tools: enableArtifacts
-        ? {
-            createArtifact: tool({
-              description: "Create an interactive web artifact",
-              inputSchema: z.object({
-                title: z.string(),
-                code: z.string(),
-                description: z.string(),
-              }),
-              execute: async ({ title, code, description }) => {
-                return { success: true, title, code, description };
+    // Use createUIMessageStream to properly handle data parts
+    const stream = createUIMessageStream({
+      execute: async ({ writer }) => {
+        let accumulatedText = "";
+
+        const result = streamText({
+          model: groqAI(hasImageContent ? VISION_MODEL : CHAT_MODEL),
+          system: SYSTEM_PROMPT,
+          messages: sanitized,
+          temperature: 0.7,
+          maxOutputTokens: 1024,
+          stopWhen: stepCountIs(5),
+          toolChoice: "auto",
+          tools: enableArtifacts
+            ? {
+                createArtifact: tool({
+                  description: "Create an interactive web artifact",
+                  inputSchema: z.object({
+                    title: z.string(),
+                    code: z.string(),
+                    description: z.string(),
+                  }),
+                  execute: async ({ title, code, description }) => {
+                    console.log("[TOOL] createArtifact called:", { title, description, codeLength: code?.length });
+                    return { success: true, title, code, description };
+                  },
+                }),
+              }
+            : {},
+          // Transform stream to accumulate text and detect suggestion
+          experimental_transform: () =>
+            new TransformStream({
+              transform(chunk, controller) {
+                controller.enqueue(chunk);
+
+                // Accumulate text to detect suggestion at the end
+                if (chunk.type === "text-delta") {
+                  accumulatedText += chunk.text;
+                }
               },
             }),
+        });
+
+        // Pipe the streamText output to the UI message writer
+        for await (const chunk of result.toUIMessageStream()) {
+          writer.write(chunk);
+        }
+
+        // Extract suggestion after stream completes and write as data part
+        const suggestionMatch = accumulatedText.match(/\n?\s*SUGGESTION:\s*(.+)$/i);
+        if (suggestionMatch) {
+          const suggestion = suggestionMatch[1].trim();
+          if (suggestion) {
+            writer.write({
+              type: "data-suggestion",
+              data: { suggestion },
+            });
           }
-        : {},
-      onFinish: ({ text }) => {
-        // Suggestion extraction handled by AI SDK stream format
+        }
       },
+      onError: () => "An error occurred while processing your request.",
     });
 
-    return result.toUIMessageStreamResponse({
+    return createUIMessageStreamResponse({
+      stream,
       headers: {
         "X-RateLimit-Limit": REQUESTS_PER_WINDOW.toString(),
         "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),

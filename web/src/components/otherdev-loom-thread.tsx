@@ -1,7 +1,14 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import {
+  DefaultChatTransport,
+  isToolUIPart,
+  lastAssistantMessageIsCompleteWithToolCalls,
+  type UIMessage,
+  type InferUIDataParts,
+} from "ai";
+import { z } from "zod";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowUp,
@@ -15,9 +22,19 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ArtifactToolCall } from "@/components/artifact-renderer";
-import { ArtifactRenderer } from "@/components/artifact-renderer";
+const ArtifactRenderer = dynamic(
+  () => import("@/components/artifact-renderer"),
+  {
+    loading: () => (
+      <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+        Loading artifact...
+      </div>
+    ),
+  },
+);
 import { Navigation } from "@/components/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,7 +67,27 @@ import { processAttachment } from "@/lib/ai-sdk-attachments";
 import { parseSSEStream } from "@/lib/sse";
 import { cleanSuggestionMarkers, cn } from "@/lib/utils";
 import { VoiceRecorder } from "@/lib/voice-recorder";
-import { CREATE_ARTIFACT_TOOL_NAME } from "@/server/lib/artifact-tool";
+
+// Lazy-load VoiceWaveform as it's only used during voice recording sessions
+const LazyVoiceWaveform = dynamic(() => import("@/components/voice-waveform"), {
+  loading: () => (
+    <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+      Loading voice interface...
+    </div>
+  ),
+});
+
+// Define custom data parts for the chat stream
+const suggestionDataSchema = z.object({
+  suggestion: z.string(),
+});
+
+type ChatDataParts = {
+  suggestion: z.infer<typeof suggestionDataSchema>;
+};
+
+// Custom UIMessage type with our data parts
+type ChatUIMessage = UIMessage<unknown, ChatDataParts>;
 
 const GREETINGS: { range: [number, number]; options: string[] }[] = [
   {
@@ -119,10 +156,13 @@ function pickGreeting() {
 }
 
 function useTimeBasedGreeting() {
-  const [greeting, setGreeting] = useState(pickGreeting);
+  const [greeting, setGreeting] = useState<string | null>(null);
   const lastHourRef = useRef(new Date().getHours());
 
   useEffect(() => {
+    // Set initial greeting on mount (client-side only)
+    setGreeting(pickGreeting());
+    
     const interval = setInterval(() => {
       const hour = new Date().getHours();
       if (hour === lastHourRef.current) return;
@@ -298,14 +338,19 @@ function AssistantMessage({
       ?.filter((p) => p.type === "text")
       .map((p) => p.text)
       .join("") || "";
-  const toolCallPart = message.parts?.find(
-    (part) => part.type === "tool-invocation",
-  ) as
-    | {
-        type: "tool-invocation";
-        toolInvocation: { toolName: string; args: unknown };
-      }
+
+  // Find artifact tool invocation by checking for tool-createArtifact type
+  const artifactToolCall = message.parts?.find((part) =>
+    part.type === "tool-createArtifact" &&
+    (part.state === "output-available" || part.state === "input-available"),
+  ) as 
+    | { type: "tool-createArtifact"; toolCallId: string; state: "output-available"; output: { title: string; code: string; description: string; success?: boolean }; input?: undefined }
+    | { type: "tool-createArtifact"; toolCallId: string; state: "input-available"; input: { title: string; code: string; description: string }; output?: undefined }
     | undefined;
+
+  console.log("[AssistantMessage] artifactToolCall:", artifactToolCall);
+  console.log("[AssistantMessage] all parts:", JSON.stringify(message.parts, null, 2));
+
   const reasoningPart = message.parts?.find(
     (part) => part.type === "reasoning",
   ) as
@@ -315,19 +360,19 @@ function AssistantMessage({
       }
     | undefined;
   const reasoning = reasoningPart?.text;
-  const hasToolCall = Boolean(toolCallPart);
+  const hasArtifact = Boolean(artifactToolCall);
 
   const cleanedText = cleanSuggestionMarkers(textPart);
 
   const getHtmlContent = () => contentRef.current?.innerHTML;
 
-  if (
-    hasToolCall &&
-    toolCallPart?.toolInvocation.toolName === CREATE_ARTIFACT_TOOL_NAME
-  ) {
-    const artifactArgs = toolCallPart.toolInvocation.args as
-      | { title: string; description: string }
+  if (hasArtifact && artifactToolCall) {
+    // Get data from output (preferred) or input (fallback during streaming)
+    const artifactData = (artifactToolCall.state === "output-available" ? artifactToolCall.output : artifactToolCall.input) as 
+      | { title: string; code: string; description: string; success?: boolean }
       | undefined;
+    const title = artifactData?.title;
+    const description = artifactData?.description;
 
     return (
       <div className="flex justify-start items-start gap-2 mt-12">
@@ -348,12 +393,17 @@ function AssistantMessage({
                 </div>
               </div>
             )}
-            {toolCallPart.toolInvocation.toolName ===
-              CREATE_ARTIFACT_TOOL_NAME && (
+            {artifactToolCall && (
               <Card
-                onClick={() =>
-                  setActiveArtifact(toolCallPart.toolInvocation as any)
-                }
+                onClick={() => {
+                  const result = artifactToolCall.state === "output-available" ? artifactToolCall.output : artifactToolCall.input;
+                  setActiveArtifact({
+                    toolCallId: artifactToolCall.toolCallId,
+                    toolName: "createArtifact",
+                    state: "output-available",
+                    result: (result as any) || { title: "", code: "", description: "", success: false },
+                  });
+                }}
                 className="w-full max-w-md cursor-pointer border-border/60 bg-card/50 transition-all duration-200 hover:border-foreground/20 hover:bg-card/80 hover:shadow-sm active:scale-[0.99]"
               >
                 <CardHeader className="flex-row items-center justify-between gap-4 p-3.5">
@@ -363,7 +413,7 @@ function AssistantMessage({
                     </div>
                     <div className="min-w-0 flex-1">
                       <CardTitle className="truncate text-sm font-medium leading-tight">
-                        {(artifactArgs as any)?.title || "View Artifact"}
+                        {title || "View Artifact"}
                       </CardTitle>
                       <CardDescription className="mt-1 text-xs">
                         Artifact · HTML
@@ -461,11 +511,49 @@ export function OtherDevLoomThread({
   setActiveArtifact: (artifact: ArtifactToolCall | null) => void;
   onClear?: () => void;
 }) {
-  const { messages, sendMessage, status, setMessages } = useChat({
+  const { messages, sendMessage, status, setMessages, addToolOutput } = useChat<ChatUIMessage>({
+    // Register data part schemas for type-safe data handling
+    dataPartSchemas: {
+      suggestion: suggestionDataSchema,
+    },
     transport: new DefaultChatTransport({
       api: "/api/chat/stream",
+      body: {
+        supportsArtifacts: true,
+      },
     }),
     experimental_throttle: 100,
+
+    // Automatically submit when all tool results are available
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
+    // Handle artifact tool calls on client side
+    async onToolCall({ toolCall }) {
+      // Check if it's a dynamic tool first for proper type narrowing
+      if (toolCall.dynamic) {
+        return;
+      }
+
+      if (toolCall.toolName === "createArtifact") {
+        // Tool already executed on server, just acknowledge
+        // The result is already in the message stream
+        addToolOutput({
+          tool: "createArtifact",
+          toolCallId: toolCall.toolCallId,
+          output: { success: true },
+        });
+      }
+    },
+
+    // Handle suggestion data parts from the stream
+    onData(dataPart) {
+      if (dataPart.type === "data-suggestion") {
+        const suggestionText = dataPart.data.suggestion;
+        if (suggestionText) {
+          setSuggestion(suggestionText);
+        }
+      }
+    },
   });
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recorderRef = useRef<VoiceRecorder | null>(null);
@@ -631,20 +719,43 @@ export function OtherDevLoomThread({
     if (!inputElement) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      const shouldApplySuggestion =
-        (e.key === "Tab" || e.key === "ArrowRight") &&
-        suggestion &&
-        !inputElement.value;
-      if (shouldApplySuggestion) {
+      if (!suggestion) return;
+      
+      const isTabKey = e.key === "Tab";
+      const isArrowRightKey = e.key === "ArrowRight";
+      
+      if (isTabKey || isArrowRightKey) {
         e.preventDefault();
-        setInputValue(suggestion);
+        
+        // Insert suggestion at cursor position
+        const start = inputElement.selectionStart || 0;
+        const end = inputElement.selectionEnd || 0;
+        const currentValue = inputValue;
+        
+        // Insert suggestion with a space if there's text before it
+        const textBefore = currentValue.slice(0, start);
+        const textAfter = currentValue.slice(end);
+        const needsSpaceBefore = textBefore.length > 0 && !textBefore.endsWith(" ");
+        const needsSpaceAfter = textAfter.length > 0 && !textAfter.startsWith(" ");
+        
+        const insertText = `${needsSpaceBefore ? " " : ""}${suggestion}${needsSpaceAfter ? " " : ""}`;
+        const newValue = textBefore + insertText + textAfter;
+        const newCursorPos = start + insertText.length;
+        
+        setInputValue(newValue);
         setSuggestion("");
+        
+        // Restore cursor position after React re-renders
+        requestAnimationFrame(() => {
+          inputElement.focus();
+          inputElement.setSelectionRange(newCursorPos, newCursorPos);
+        });
       }
     };
 
     inputElement.addEventListener("keydown", handleKeyDown);
     return () => inputElement.removeEventListener("keydown", handleKeyDown);
-  }, [suggestion]);
+  }, [suggestion, inputValue]);
 
   useEffect(() => {
     scrollToBottom();
@@ -680,7 +791,7 @@ export function OtherDevLoomThread({
                         className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
                       />
                     </div>
-                    {typeof window !== "undefined" && (
+                    {greeting ? (
                       <motion.h2
                         key={greeting}
                         initial={{ opacity: 0, y: 4 }}
@@ -691,6 +802,8 @@ export function OtherDevLoomThread({
                       >
                         {greeting}
                       </motion.h2>
+                    ) : (
+                      <div className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl" />
                     )}
                     <p className="font-sans text-sm text-muted-foreground sm:text-base">
                       Ask me anything about Other Dev
@@ -803,7 +916,7 @@ export function OtherDevLoomThread({
           className="relative rounded-2xl border-border shadow-sm pointer-events-auto"
         >
           {recordingStream ? (
-            <VoiceWaveform stream={recordingStream} />
+            <LazyVoiceWaveform stream={recordingStream} />
           ) : (
             <PromptInputTextarea
               ref={inputRef}
