@@ -110,7 +110,7 @@ export const contactRouter = router({
     .input(contactFormSchema)
     .mutation(async ({ input, ctx }) => {
       const identifier = getClientIdentifier(ctx.req);
-      const { allowed, resetTime } = checkRateLimit(`contact:${identifier}`);
+      const { allowed, resetTime } = await checkRateLimit(`contact:${identifier}`);
       if (!allowed) {
         throw new TRPCError({
           code: "TOO_MANY_REQUESTS",

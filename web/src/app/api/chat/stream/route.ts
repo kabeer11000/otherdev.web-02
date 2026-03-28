@@ -257,7 +257,7 @@ function buildContext(
 export async function POST(request: Request): Promise<Response> {
   try {
     const clientId = getClientIdentifier(request);
-    const rateLimitResult = checkRateLimit(clientId);
+    const rateLimitResult = await checkRateLimit(clientId);
 
     if (!rateLimitResult.allowed) {
       const retryAfter = Math.ceil(
