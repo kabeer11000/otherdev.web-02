@@ -14,7 +14,9 @@ export function Footer() {
           Instagram
         </Link>
         <Link
-          href="http://linkedin.com/company/theotherdev/"
+          href="https://linkedin.com/company/theotherdev/"
+          target="_blank"
+          rel="noopener noreferrer"
           className="h-[21px] px-1.5 bg-neutral-200 rounded-md flex items-center justify-center text-[#686868] text-[10px] font-twk font-normal leading-[14px] tracking-[-0.24px] hover:bg-neutral-300 transition-colors"
         >
           LinkedIn

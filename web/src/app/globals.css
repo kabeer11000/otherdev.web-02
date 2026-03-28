@@ -2,51 +2,17 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
-@font-face {
-  font-family: "QueensCompressed";
-  src: url("/fonts/QueensCompressed/QueensCompressed_W-Light.woff2") format("woff2");
-  font-weight: 300;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "QueensCompressed";
-  src: url("/fonts/QueensCompressed/QueensCompressed_W-Thin.woff2") format("woff2");
-  font-weight: 100;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "TWKLausanne";
-  src: url("/fonts/TWKLausanne/TWKLausanne-400.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "TWKLausanne";
-  src: url("/fonts/TWKLausanne/TWKLausanne-300-1.woff2") format("woff2");
-  font-weight: 300;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "TWKLausanne";
-  src: url("/fonts/TWKLausanne/TWKLausanne-200 (1).woff2") format("woff2");
-  font-weight: 200;
-  font-display: swap;
-}
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "TWKLausanne", sans-serif;
-  --font-serif: "QueensCompressed", serif;
+  --font-sans: var(--twk-lausanne), sans-serif;
+  --font-serif: var(--queens-compressed), serif;
   --font-mono: var(--font-geist-mono);
-  --font-twk: "TWKLausanne", sans-serif;
-  --font-queens: "QueensCompressed", serif;
+  --font-twk: var(--twk-lausanne), sans-serif;
+  --font-queens: var(--queens-compressed), serif;
   --font-ai:
     ui-sans-serif, -apple-system, "system-ui", "Segoe UI", Helvetica,
     "Apple Color Emoji", Arial, "sans-serif", "Segoe UI Emoji",

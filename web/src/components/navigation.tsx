@@ -2,8 +2,9 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Trash2, X } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ContactDialog } from "@/components/contact-dialog";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export function Navigation({
   const [isOpen, setIsOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const isAIVariant = variant === "ai";
 
   useEffect(() => {
@@ -72,7 +74,7 @@ export function Navigation({
                     "flex items-center bg-transparent gap-1.5 rounded-full",
                   )}
                 >
-                  <img src={"/otherdev-chat-logo.svg"} className="h-4 w-4 object-contain" />
+                  <Image src="/otherdev-chat-logo.svg" alt="Other Dev" width={16} height={16} className="object-contain" />
                 </Button>
               ) : (
                 <Button
@@ -269,14 +271,15 @@ export function Navigation({
             >
               <Button
                 variant="nav"
-                size="nav-default" onClick={() => window.location.href = "/"}
+                size="nav-default"
+                onClick={() => router.push("/")}
                 className={"cursor-pointer group-hover:w-full w-0 opacity-0 group-hover:opacity-100 " + (pathname === "/" ? "text-foreground" : "")}
               >
                 other dev
               </Button>
 
               <Link href="/" data-slot="nav-item">
-                <img src={"/otherdev-chat-logo.svg"} className="h-4 w-4 mr-2 group-hover:opacity-0 object-contain rounded-circle" />
+                <Image src="/otherdev-chat-logo.svg" alt="Other Dev" width={16} height={16} className="mr-2 group-hover:opacity-0 object-contain rounded-circle" />
               </Link>
             </div>
           ) : (

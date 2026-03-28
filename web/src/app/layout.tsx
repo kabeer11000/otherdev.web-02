@@ -4,11 +4,47 @@ import { TRPCProvider } from "@/components/providers";
 import { TenantProvider } from "@/lib/tenant-context";
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
-import Script from "next/script";
+import localFont from "next/font/local";
+import { GoogleAnalytics } from "@next/third-parties/google";
+import { headers } from "next/headers";
 
 // Lazy load ChatWidget - client-only component
 const ChatWidget = dynamic(() => import("@/components/chat-widget").then((mod) => mod.ChatWidget), {
   loading: () => null,
+});
+
+const twkLausanne = localFont({
+  src: [
+    {
+      path: "../../public/fonts/TWKLausanne/TWKLausanne-200 (1).woff2",
+      weight: "200",
+    },
+    {
+      path: "../../public/fonts/TWKLausanne/TWKLausanne-300-1.woff2",
+      weight: "300",
+    },
+    {
+      path: "../../public/fonts/TWKLausanne/TWKLausanne-400.woff2",
+      weight: "400",
+    },
+  ],
+  variable: "--twk-lausanne",
+  display: "swap",
+});
+
+const queensCompressed = localFont({
+  src: [
+    {
+      path: "../../public/fonts/QueensCompressed/QueensCompressed_W-Thin.woff2",
+      weight: "100",
+    },
+    {
+      path: "../../public/fonts/QueensCompressed/QueensCompressed_W-Light.woff2",
+      weight: "300",
+    },
+  ],
+  variable: "--queens-compressed",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -39,13 +75,21 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const host = headersList.get("host") ?? "otherdev.com";
+  const domain = host.split(":")[0];
+
   return (
-    <html lang="en" style={{ colorScheme: "light dark" }}>
+    <html
+      lang="en"
+      className={`${twkLausanne.variable} ${queensCompressed.variable}`}
+      style={{ colorScheme: "light dark" }}
+    >
       <head>
         {/* Favicon - Multiple sizes for optimal display */}
         <link rel="icon" href="/favicon-48x48.png" sizes="48x48" type="image/png" />
@@ -56,24 +100,13 @@ export default function RootLayout({
         <meta name="view-transition" content="same-origin" />
       </head>
       <body className="antialiased bg-background">
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-YXVG798Y18"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-YXVG798Y18');
-          `}
-        </Script>
-        <TenantProvider>
+        <TenantProvider initialDomain={domain}>
           <TRPCProvider>
             <Suspense fallback={null}>{children}</Suspense>
             <ChatWidget />
           </TRPCProvider>
         </TenantProvider>
+        <GoogleAnalytics gaId="G-YXVG798Y18" />
       </body>
     </html>
   );

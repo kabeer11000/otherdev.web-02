@@ -24,7 +24,7 @@ export function ChatWidget() {
 
   return (
     <>
-      {!isOpen && (
+      {!isOpen ? (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
@@ -52,9 +52,9 @@ export function ChatWidget() {
             className="h-8 w-8 object-contain"
           />
         </button>
-      )}
+      ) : null}
 
-      {isOpen && (
+      {isOpen ? (
         <Card
           ref={cardRef}
           className={cn(
@@ -105,7 +105,7 @@ export function ChatWidget() {
             />
           </div>
         </Card>
-      )}
+      ) : null}
     </>
   );
 }

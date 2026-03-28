@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, type ReactNode } from "react";
 
 interface TenantContextType {
   domain: string;
@@ -14,21 +8,15 @@ interface TenantContextType {
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
-export function TenantProvider({ children }: { children: ReactNode }) {
-  const [domain, setDomain] = useState("otherdev.com");
-
-  useEffect(() => {
-    // Get domain from window.location on client-side
-    if (typeof window !== "undefined") {
-      const hostname = window.location.hostname;
-      // Remove port if present (e.g., localhost:3000 -> localhost)
-      const cleanDomain = hostname.split(":")[0];
-      setDomain(cleanDomain);
-    }
-  }, []);
-
+export function TenantProvider({
+  children,
+  initialDomain = "otherdev.com",
+}: {
+  children: ReactNode;
+  initialDomain?: string;
+}) {
   return (
-    <TenantContext.Provider value={{ domain }}>
+    <TenantContext.Provider value={{ domain: initialDomain }}>
       {children}
     </TenantContext.Provider>
   );

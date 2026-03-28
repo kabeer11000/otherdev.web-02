@@ -19,31 +19,31 @@ export const metadata: Metadata = {
   ],
 };
 
-export default function WorkPage() {
-  // JSON-LD Structured Data for the portfolio page
-  const organizationSchema = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "Other Dev - We engineer digital solutions for pioneering brands.",
-    url: "https://otherdev.com",
-    logo: "https://otherdev.com/TheOtherDevLogo.svg",
-    description: "Digital platforms for pioneering creatives",
-    sameAs: ["https://otherdev.com"],
-  };
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Other Dev - We engineer digital solutions for pioneering brands.",
+  url: "https://otherdev.com",
+  logo: "https://otherdev.com/TheOtherDevLogo.svg",
+  description: "Digital platforms for pioneering creatives",
+  sameAs: ["https://otherdev.com"],
+};
 
-  const portfolioSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    name: "Our Work",
-    url: "https://otherdev.com/work",
-    description:
-      "Explore our premium web design and development projects. We engineer digital solutions for pioneering brands.",
-    creator: {
-      "@type": "Organization",
-      name: "Other Dev",
-      url: "https://otherdev.com",
-    },
-  };
+const portfolioSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Our Work",
+  url: "https://otherdev.com/work",
+  description:
+    "Explore our premium web design and development projects. We engineer digital solutions for pioneering brands.",
+  creator: {
+    "@type": "Organization",
+    name: "Other Dev",
+    url: "https://otherdev.com",
+  },
+};
+
+export default function WorkPage() {
 
   return (
     <div className="min-h-screen">
@@ -60,7 +60,7 @@ export default function WorkPage() {
 
         <div className="mt-[30px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[13px] gap-y-10">
           {projects
-            .sort((a, b) => {
+            .toSorted((a, b) => {
               if (b.year !== a.year) {
                 return b.year - a.year;
               }
