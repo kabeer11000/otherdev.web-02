@@ -1,6 +1,12 @@
-import { streamText, tool, convertToModelMessages } from "ai";
+import { streamText, tool } from "ai";
 import { createGroq } from "@ai-sdk/groq";
 import { z } from "zod";
+
+// Helper to extract raw base64 from data URI
+// Groq provider expects raw base64, not "data:image/jpeg;base64,..." format
+function extractBase64(dataUri: string): string {
+  return dataUri.includes(",") ? dataUri.split(",")[1] : dataUri;
+}
 import { createArtifactTool } from "@/server/lib/artifact-tool";
 import { generateEmbedding } from "@/server/lib/rag/embeddings";
 import { searchSimilarDocuments } from "@/server/lib/rag/vector-search";
@@ -245,63 +251,67 @@ export async function POST(request: Request): Promise<Response> {
     console.log("[API] hasImageContent:", hasImageContent);
     console.log("[API] uiMessages count:", uiMessages.length);
 
-    // Convert AI SDK UIMessage[] to ModelMessage[]
-    const modelMessages = await convertToModelMessages(uiMessages);
+    // Manually convert UIMessage[] to ModelMessage[] format for Groq
+    // convertToModelMessages has issues with file parts and data URIs
+    const modelMessages = uiMessages.map((msg: any) => {
+      const content: any[] = [];
 
-    // Temporary — log the raw content of each user message
-    modelMessages.forEach((msg, i) => {
-      if (msg.role === "user") {
-        console.log(`[MSG ${i}] content:`, JSON.stringify(msg.content, null, 2));
+      // Process text parts
+      const textParts = msg.parts?.filter((p: any) => p.type === "text") || [];
+      for (const part of textParts) {
+        if (part.text && part.text.trim()) {
+          content.push({ type: "text" as const, text: part.text });
+        }
       }
-    });
+
+      // Process file/image parts - convert to Groq-compatible format
+      const fileParts = msg.parts?.filter((p: any) => p.type === "file" || p.type === "image") || [];
+      for (const part of fileParts) {
+        if (part.mediaType?.startsWith("image/")) {
+          const dataUri = part.url || part.data;
+          
+          if (dataUri && typeof dataUri === "string") {
+            content.push({ 
+              type: "image" as const, 
+              image: extractBase64(dataUri) // Strip "data:...;base64," prefix
+            });
+          }
+        }
+      }
+
+      if (content.length === 0) return null;
+
+      return {
+        role: msg.role as "user" | "assistant" | "system",
+        content,
+      };
+    }).filter(Boolean);
 
     console.log("[API] modelMessages count:", modelMessages.length);
     console.log("[API] Using model:", hasImageContent ? VISION_MODEL : CHAT_MODEL);
 
-    // Sanitize and remap messages for Groq compatibility
+    // Sanitize messages for Groq compatibility
     const sanitized = modelMessages.map((msg) => {
       if (msg.role !== "user" || !Array.isArray(msg.content)) return msg;
 
-      // 1. Remap image file parts → ImagePart so Groq vision actually fires
-      const remapped = msg.content.map((part: any) => {
-        if (
-          part.type === "file" &&
-          typeof part.mediaType === "string" &&
-          part.mediaType.startsWith("image/")
-        ) {
-          const url = "url" in part ? part.url : null;
-          const data = "data" in part ? part.data : null;
-
-          if (url && typeof url === "string") {
-            // data URI or https URL — both work directly in the image field
-            return { type: "image" as const, image: url, mediaType: part.mediaType };
-          }
-          if (data) {
-            return {
-              type: "image" as const,
-              image: `data:${part.mediaType};base64,${data}`,
-              mediaType: part.mediaType,
-            };
-          }
-          // history replay — no data
-          return {
-            type: "text" as const,
-            text: `[Image: ${part.filename || part.mediaType}]`,
-          };
+      const sanitizedContent = msg.content.map((part: any) => {
+        // Sanitize text parts
+        if (part.type === "text" && typeof part.text === "string") {
+          return { ...part, text: sanitizeInput(part.text) };
         }
         return part;
       });
 
-      // 2. Ensure there's always a non-empty text part (Groq rejects image-only messages)
-      const hasText = remapped.some(
+      // Ensure there's always text content (Groq rejects image-only messages)
+      const hasText = sanitizedContent.some(
         (p: any) => p.type === "text" && p.text && p.text.trim(),
       );
 
       if (!hasText) {
-        remapped.push({ type: "text" as const, text: " " });
+        sanitizedContent.push({ type: "text" as const, text: " " });
       }
 
-      return { ...msg, content: remapped };
+      return { ...msg, content: sanitizedContent };
     });
 
     // Extract text from the last user message for RAG
