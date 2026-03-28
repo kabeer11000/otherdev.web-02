@@ -1,7 +1,6 @@
-import Groq from "groq-sdk";
-import type { ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
+import { streamText, tool, convertToModelMessages } from "ai";
+import { createGroq } from "@ai-sdk/groq";
 import { z } from "zod";
-import { stripMarkdown } from "@/lib/utils";
 import { createArtifactTool } from "@/server/lib/artifact-tool";
 import { generateEmbedding } from "@/server/lib/rag/embeddings";
 import { searchSimilarDocuments } from "@/server/lib/rag/vector-search";
@@ -14,37 +13,13 @@ import { createJsonResponse } from "@/server/lib/api-helpers";
 import {
   CHAT_MODEL,
   VISION_MODEL,
-  type Message,
-  warnOnImageContentMismatch,
 } from "./helpers";
 
-// Zod schemas for validating content blocks (matching shared ContentBlock types)
-const TextBlockSchema = z.object({
-  type: z.literal("text"),
-  text: z.string(),
-});
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
-const ImageBlockSchema = z.object({
-  type: z.literal("image_url"),
-  image_url: z.object({
-    url: z.string().url(),
-  }),
-});
-
-const ContentBlockSchema = z.union([TextBlockSchema, ImageBlockSchema]);
-
-const MessageSchema = z.object({
-  role: z.enum(["user", "assistant"]),
-  content: z.union([z.string(), z.array(ContentBlockSchema)]),
-});
-
-const RequestSchema = z.object({
-  messages: z.array(MessageSchema).min(1),
-  hasImageContent: z.boolean().optional(),
-  supportsArtifacts: z.boolean().optional(),
-});
-
-const groq = new Groq({
+// AI SDK Groq instance for streamText()
+const groqAI = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
@@ -191,6 +166,13 @@ function buildContext(
 }
 
 
+/**
+ * POST handler for chat streaming endpoint.
+ *
+ * Implementation (Phase 3): Uses AI SDK's streamText() with Groq provider.
+ * Provides unified streaming interface, built-in tool calling, and standardized
+ * response format compatible with AI SDK frontend hooks.
+ */
 export async function POST(request: Request): Promise<Response> {
   try {
     const clientId = getClientIdentifier(request);
@@ -213,39 +195,123 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const body = await request.json();
-    const validation = RequestSchema.safeParse(body);
+    let { messages: uiMessages, supportsArtifacts } = body;
 
-    if (!validation.success) {
+    // Validate that messages array exists and has content
+    if (!uiMessages || !Array.isArray(uiMessages) || uiMessages.length === 0) {
       return createJsonResponse(
-        { error: "Invalid request format", details: validation.error.issues },
+        { error: "No messages provided" },
         400,
       );
     }
 
-    const { messages, hasImageContent, supportsArtifacts } = validation.data;
-    const lastUserMessage = messages.filter((m) => m.role === "user").pop();
+    // Filter out messages without content (can happen with incomplete tool calls)
+    uiMessages = uiMessages.filter((m: any) => {
+      // User messages must have parts with actual content
+      if (m.role === "user") {
+        if (!m.parts || m.parts.length === 0) {
+          return false;
+        }
+        // Check that at least one part has valid content
+        const hasValidContent = m.parts.some((p: any) => {
+          if (p.type === "text") {
+            return p.text && p.text.trim().length > 0;
+          }
+          if (p.type === "image" || p.type === "file") {
+            return true; // Image/file attachments are valid content
+          }
+          return false;
+        });
+        return hasValidContent;
+      }
+      // Assistant messages must have content or parts
+      return m.content || (m.parts && m.parts.length > 0);
+    });
 
-    if (!lastUserMessage) {
-      return createJsonResponse({ error: "No user message found" }, 400);
+    // Ensure we still have at least one user message after filtering
+    if (uiMessages.length === 0 || !uiMessages.some((m: any) => m.role === "user")) {
+      return createJsonResponse(
+        { error: "No valid messages provided" },
+        400,
+      );
     }
 
-    const typedMessages: Message[] = messages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
+    // Detect if user sent images
+    const hasImageContent = uiMessages.some((m: any) =>
+      m.parts?.some((p: any) => p.type === "image") ||
+      m.parts?.some((p: any) => p.type === "file" && p.mediaType?.startsWith("image/"))
+    );
 
-    warnOnImageContentMismatch(typedMessages, hasImageContent);
+    console.log("[API] hasImageContent:", hasImageContent);
+    console.log("[API] uiMessages count:", uiMessages.length);
 
-    const lastUserContent =
-      typeof lastUserMessage.content === "string"
-        ? lastUserMessage.content
-        : lastUserMessage.content
-            .map((block) =>
-              block.type === "text" ? block.text : "[Image content]",
-            )
-            .join(" ");
+    // Convert AI SDK UIMessage[] to ModelMessage[]
+    const modelMessages = await convertToModelMessages(uiMessages);
 
-    const sanitizedQuery = sanitizeInput(lastUserContent);
+    // Temporary — log the raw content of each user message
+    modelMessages.forEach((msg, i) => {
+      if (msg.role === "user") {
+        console.log(`[MSG ${i}] content:`, JSON.stringify(msg.content, null, 2));
+      }
+    });
+
+    console.log("[API] modelMessages count:", modelMessages.length);
+    console.log("[API] Using model:", hasImageContent ? VISION_MODEL : CHAT_MODEL);
+
+    // Sanitize and remap messages for Groq compatibility
+    const sanitized = modelMessages.map((msg) => {
+      if (msg.role !== "user" || !Array.isArray(msg.content)) return msg;
+
+      // 1. Remap image file parts → ImagePart so Groq vision actually fires
+      const remapped = msg.content.map((part: any) => {
+        if (
+          part.type === "file" &&
+          typeof part.mediaType === "string" &&
+          part.mediaType.startsWith("image/")
+        ) {
+          const url = "url" in part ? part.url : null;
+          const data = "data" in part ? part.data : null;
+
+          if (url && typeof url === "string") {
+            // data URI or https URL — both work directly in the image field
+            return { type: "image" as const, image: url, mediaType: part.mediaType };
+          }
+          if (data) {
+            return {
+              type: "image" as const,
+              image: `data:${part.mediaType};base64,${data}`,
+              mediaType: part.mediaType,
+            };
+          }
+          // history replay — no data
+          return {
+            type: "text" as const,
+            text: `[Image: ${part.filename || part.mediaType}]`,
+          };
+        }
+        return part;
+      });
+
+      // 2. Ensure there's always a non-empty text part (Groq rejects image-only messages)
+      const hasText = remapped.some(
+        (p: any) => p.type === "text" && p.text && p.text.trim(),
+      );
+
+      if (!hasText) {
+        remapped.push({ type: "text" as const, text: " " });
+      }
+
+      return { ...msg, content: remapped };
+    });
+
+    // Extract text from the last user message for RAG
+    const lastUserMessage = uiMessages.filter((m: any) => m.role === "user").pop();
+    const lastUserText = lastUserMessage?.parts
+      ?.filter((p: any) => p.type === "text")
+      .map((p: any) => p.text)
+      .join(" ") || "";
+
+    const sanitizedQuery = sanitizeInput(lastUserText);
     const normalizedQuery = sanitizedQuery.replace(/otherdev/gi, "Other Dev");
 
     const queryQuality = detectQueryQuality(normalizedQuery);
@@ -266,166 +332,54 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    // Pass history as-is — only the latest user message needs injection sanitization
-    const formattedMessages = typedMessages.map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    }));
-
-    const lastUserIdx = formattedMessages.findLastIndex(
-      (m) => m.role === "user",
-    );
-    if (lastUserIdx !== -1) {
-      const msg = formattedMessages[lastUserIdx];
-      formattedMessages[lastUserIdx] = {
-        ...msg,
-        content:
-          typeof msg.content === "string"
-            ? sanitizeInput(msg.content)
-            : msg.content.map((block) =>
-                block.type === "text"
-                  ? { type: "text" as const, text: sanitizeInput(block.text) }
-                  : block,
-              ),
-      };
+    // Inject RAG context into the last user message as a text part (not plain string)
+    if (context && sanitized.length > 0) {
+      const lastMsg = sanitized[sanitized.length - 1];
+      if (lastMsg.role === "user" && Array.isArray(lastMsg.content)) {
+        // Find existing text parts and prepend context to the first one
+        const textPartIndex = lastMsg.content.findIndex((p: any) => p.type === "text");
+        if (textPartIndex >= 0) {
+          lastMsg.content[textPartIndex].text = `=== CONTEXT ===\n${context}\n=== END CONTEXT ===\n\n${lastMsg.content[textPartIndex].text}`;
+        } else {
+          // No text part exists — add one at the beginning
+          lastMsg.content = [
+            { type: "text" as const, text: `=== CONTEXT ===\n${context}\n=== END CONTEXT ===\n\n${sanitizedQuery}` },
+            ...lastMsg.content,
+          ];
+        }
+      }
     }
-
-    // Inject RAG context into the last user message so the system prompt stays
-    // fully static and benefits from Groq's automatic prompt caching.
-    if (context && lastUserIdx !== -1) {
-      const msg = formattedMessages[lastUserIdx];
-      formattedMessages[lastUserIdx] = {
-        ...msg,
-        content: `=== CONTEXT ===\n${context}\n=== END CONTEXT ===\n\n${sanitizedQuery}`,
-      };
-    }
-
-    const chatMessages: ChatCompletionMessageParam[] = [
-      { role: "system", content: SYSTEM_PROMPT },
-      ...(formattedMessages as ChatCompletionMessageParam[]),
-    ];
 
     const enableArtifacts = supportsArtifacts && queryQuality.needsArtifact;
 
-    const completion = await groq.chat.completions.create({
-      model: hasImageContent ? VISION_MODEL : CHAT_MODEL,
-      messages: chatMessages,
+    const result = streamText({
+      model: groqAI(hasImageContent ? VISION_MODEL : CHAT_MODEL),
+      system: SYSTEM_PROMPT,
+      messages: sanitized,
       temperature: 0.7,
-      max_tokens: 1024,
-      stream: true,
-      tools: enableArtifacts ? [createArtifactTool] : undefined,
-      tool_choice: enableArtifacts ? "auto" : undefined,
-    });
-
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          const toolCallsMap = new Map<
-            number,
-            {
-              id: string;
-              name: string;
-              arguments: string;
-            }
-          >();
-          let fullContent = "";
-          let contentBeforeSuggestion = "";
-          let suggestionDetected = false;
-
-          for await (const chunk of completion) {
-            const delta = chunk.choices[0]?.delta;
-
-            if (delta?.reasoning) {
-              const data = JSON.stringify({
-                type: "reasoning",
-                content: delta.reasoning,
-              });
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-            }
-
-            if (delta?.content) {
-              fullContent += delta.content;
-
-              if (fullContent.includes("SUGGESTION:")) {
-                if (!suggestionDetected) {
-                  contentBeforeSuggestion = fullContent
-                    .split(/SUGGESTION:/i)[0]
-                    .trim();
-                  suggestionDetected = true;
-                }
-              } else {
-                const data = JSON.stringify({
-                  type: "content",
-                  content: delta.content,
-                });
-                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-              }
-            }
-
-            if (delta?.tool_calls) {
-              for (const toolCall of delta.tool_calls) {
-                const index = toolCall.index;
-                const existing = toolCallsMap.get(index);
-
-                if (!existing) {
-                  toolCallsMap.set(index, {
-                    id: toolCall.id || "",
-                    name: toolCall.function?.name || "",
-                    arguments: toolCall.function?.arguments || "",
-                  });
-                } else {
-                  existing.arguments += toolCall.function?.arguments || "";
-                }
-              }
-            }
+      maxOutputTokens: 1024,
+      tools: enableArtifacts
+        ? {
+            createArtifact: tool({
+              description: "Create an interactive web artifact",
+              inputSchema: z.object({
+                title: z.string(),
+                code: z.string(),
+                description: z.string(),
+              }),
+              execute: async ({ title, code, description }) => {
+                return { success: true, title, code, description };
+              },
+            }),
           }
-
-          for (const toolCall of toolCallsMap.values()) {
-            const data = JSON.stringify({
-              type: "tool-call",
-              toolCallId: toolCall.id,
-              toolName: toolCall.name,
-              args: toolCall.arguments,
-            });
-            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-          }
-
-          if (suggestionDetected) {
-            const suggestionMatch = fullContent.match(/SUGGESTION:\s*(.+?)$/i);
-            if (suggestionMatch) {
-              const suggestion = stripMarkdown(suggestionMatch[1].trim())
-                .replace(/^[*_-]+|[*_-]+$/g, "")
-                .trim();
-
-              const finalData = JSON.stringify({
-                type: "content-final",
-                content: contentBeforeSuggestion,
-              });
-              controller.enqueue(encoder.encode(`data: ${finalData}\n\n`));
-
-              const suggestionData = JSON.stringify({
-                type: "suggestion",
-                content: suggestion,
-              });
-              controller.enqueue(encoder.encode(`data: ${suggestionData}\n\n`));
-            }
-          }
-
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-          controller.close();
-        } catch (error) {
-          console.error("Streaming error:", error);
-          controller.error(error);
-        }
+        : {},
+      onFinish: ({ text }) => {
+        // Suggestion extraction handled by AI SDK stream format
       },
     });
 
-    return new Response(stream, {
+    return result.toUIMessageStreamResponse({
       headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
         "X-RateLimit-Limit": REQUESTS_PER_WINDOW.toString(),
         "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
         "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),

@@ -1,12 +1,24 @@
 "use client";
 
-import type { ToolCallMessagePart } from "@assistant-ui/react";
 import { Check, ChevronLeft, Code2, Copy, Eye, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { type BundledLanguage, codeToHtml } from "shiki";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SHIKI_THEMES } from "@/lib/shiki-config";
+
+// Local type for artifact tool calls (AI SDK compatible)
+export interface ArtifactToolCall {
+  type: "tool-call";
+  toolCallId: string;
+  toolName: string;
+  args: {
+    title: string;
+    code: string;
+    description: string;
+  };
+  argsText?: string;
+}
 
 function ArtifactHeader({
   mode,
@@ -111,7 +123,7 @@ function ArtifactHeader({
 }
 
 interface ArtifactRendererProps {
-  toolCall: ToolCallMessagePart;
+  toolCall: ArtifactToolCall;
   mode?: "panel" | "inline";
   onClose?: () => void;
 }

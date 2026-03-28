@@ -66,7 +66,7 @@ export default function RootLayout({
         <TenantProvider>
           <TRPCProvider>
             <Suspense fallback={null}>{children}</Suspense>
-            {/* <ChatWidget /> */}
+            <ChatWidget />
           </TRPCProvider>
         </TenantProvider>
       </body>

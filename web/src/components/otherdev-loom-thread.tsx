@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/prompt-input";
 import { VoiceWaveform } from "@/components/voice-waveform";
 import { SUGGESTED_PROMPTS } from "@/lib/constants";
-import { useOtherDevRuntime } from "@/lib/otherdev-runtime";
+import { processAttachment } from "@/lib/ai-sdk-attachments";
 import { parseSSEStream } from "@/lib/sse";
 import { cleanSuggestionMarkers, cn } from "@/lib/utils";
 import { VoiceRecorder } from "@/lib/voice-recorder";
@@ -222,15 +222,15 @@ function UserMessage({ message }: { message: UIMessage }) {
       .join("") || "";
 
   const imageParts =
-    (message.parts?.filter((p) => p.type === "image") as Array<{
-      type: "image";
+    (message.parts?.filter((p) => p.type === "file" && p.mediaType?.startsWith("image/")) as Array<{
+      type: "file";
       mediaType: string;
       url: string;
       filename?: string;
     }>) || [];
 
   const fileParts =
-    (message.parts?.filter((p) => p.type === "file") as Array<{
+    (message.parts?.filter((p) => p.type === "file" && !p.mediaType?.startsWith("image/")) as Array<{
       type: "file";
       mediaType: string;
       url: string;
@@ -456,10 +456,12 @@ function AttachmentChip({
 
 export function OtherDevLoomThread({
   setActiveArtifact,
+  onClear,
 }: {
   setActiveArtifact: (artifact: ArtifactToolCall | null) => void;
+  onClear?: () => void;
 }) {
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat/stream",
     }),
@@ -469,6 +471,7 @@ export function OtherDevLoomThread({
   const recorderRef = useRef<VoiceRecorder | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [inputValue, setInputValue] = useState("");
   const [inputError, setInputError] = useState("");
@@ -480,6 +483,17 @@ export function OtherDevLoomThread({
   const [isRecordingProcessing, setIsRecordingProcessing] = useState(false);
   const [suggestion, setSuggestion] = useState("");
   const greeting = useTimeBasedGreeting();
+
+  const handleClear = useCallback(() => {
+    setMessages([]);
+    setSuggestion("");
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    if (onClear) {
+      onClear();
+    }
+  }, [setMessages, onClear]);
 
   const { showButton, scrollToBottom } = useScrollToBottom(contentRef);
 
@@ -569,7 +583,7 @@ export function OtherDevLoomThread({
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (isRecording || isRecordingProcessing) return;
 
     const value = inputValue.trim();
@@ -579,18 +593,22 @@ export function OtherDevLoomThread({
       // Simple text-only message
       sendMessage({ text: value });
     } else {
-      // Message with attachments - use text + files format
-      const files = attachments.map((file) => {
-        const isImage = file.type.startsWith("image/");
-        return {
-          type: isImage ? "image" as const : "file" as const,
-          mediaType: file.type || "application/octet-stream",
-          url: URL.createObjectURL(file),
-          filename: file.name,
-        };
-      });
+      // Convert to base64 and build parts array (AI SDK v6 format)
+      const processed = await Promise.all(attachments.map(processAttachment));
+      const fileParts = processed.map((a) => ({
+        type: "file" as const,
+        mediaType: a.contentType,
+        url: a.url,       // Full data URI "data:image/jpeg;base64,..."
+        filename: a.name,
+      }));
 
-      sendMessage({ text: value, files });
+      sendMessage({
+        role: "user",
+        parts: [
+          ...fileParts,
+          { type: "text" as const, text: value },
+        ],
+      });
     }
 
     setSuggestion("");
@@ -707,7 +725,7 @@ export function OtherDevLoomThread({
                 ),
               )}
 
-              {status === "streaming" && (
+              {status === "streaming" && messages[messages.length - 1]?.role !== "assistant" && (
                 <div className="flex items-center gap-2 sm:gap-3">
                   <Image
                     src="/otherdev-chat-logo.svg"
@@ -900,16 +918,20 @@ function LoomPageInner({
 }
 
 export function LoomPageClient({ noNavigation }: { noNavigation?: boolean }) {
-  const runtime = useOtherDevRuntime();
   const [activeArtifact, setActiveArtifact] = useState<ArtifactToolCall | null>(
     null,
   );
+  const [suggestion, setSuggestion] = useState("");
+
+  const handleClear = useCallback(() => {
+    setSuggestion("");
+  }, []);
 
   return (
     <>
       {noNavigation ? null : (
         <LoomPageInner
-          onClear={runtime.clear}
+          onClear={handleClear}
           hasActiveArtifact={!!activeArtifact}
         />
       )}
@@ -918,7 +940,7 @@ export function LoomPageClient({ noNavigation }: { noNavigation?: boolean }) {
           <div
             className={`h-full ${activeArtifact ? "hidden md:block md:w-1/2" : "w-full"}`}
           >
-            <OtherDevLoomThread setActiveArtifact={setActiveArtifact} />
+            <OtherDevLoomThread setActiveArtifact={setActiveArtifact} onClear={handleClear} />
           </div>
           {activeArtifact && (
             <div className="h-full w-full md:w-1/2">
