@@ -6,8 +6,8 @@ A modern agency website showcasing otherdev's work - a full-service web developm
 
 
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.1-black)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.2-blue)](https://reactjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.2.1-black)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2.4-blue)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
 
@@ -18,19 +18,20 @@ otherdev produces digital platforms for pioneering creatives across fashion, des
 ### Key Highlights
 
 - **13+ Portfolio Projects** - Showcasing work for clients like Wish Apparels, Lexa, and Groovy
-- **Modern Stack** - Built with Next.js 16, React 19, and Tailwind CSS 4
-- **AI-Powered Features** - Custom assistant with artifact rendering and RAG capabilities
+- **Modern Stack** - Built with Next.js 16.2.1, React 19.2.4, and Tailwind CSS 4
+- **AI-Powered Features** - Vercel AI SDK assistant with artifact rendering, RAG capabilities, and multi-model support
 - **Rich Interactions** - Smooth animations with Framer Motion
-- **Responsive Design** - Optimized for all devices
+- **Responsive Design** - Optimized for all devices with automatic image sizing
 - **Accessibility First** - Built with Radix UI primitives
 - **End-to-End Type Safety** - tRPC API layer with full TypeScript coverage and Zod validation
+- **Performance Optimized** - Vercel best practices applied, App Router sitemap generation, and optimized image delivery
 
 ## Tech Stack
 
 ### Core
 
-- **[Next.js 16](https://nextjs.org/)** - React framework with App Router
-- **[React 19](https://react.dev/)** - UI library with Server Components
+- **[Next.js 16.2.1](https://nextjs.org/)** - React framework with App Router, optimized sitemap generation, and Vercel best practices
+- **[React 19.2.4](https://react.dev/)** - UI library with Server Components
 - **[TypeScript 5.9](https://www.typescriptlang.org/)** - Type safety
 - **[Tailwind CSS 4](https://tailwindcss.com/)** - Utility-first CSS
 - **[Bun](https://bun.sh/)** - Fast JavaScript runtime and package manager
@@ -44,9 +45,9 @@ otherdev produces digital platforms for pioneering creatives across fashion, des
 
 ### AI & Assistant
 
-- **[@assistant-ui/react](https://www.assistant-ui.com/)** - Custom AI assistant interface
+- **[Vercel AI SDK (@ai-sdk/react)](https://sdk.vercel.ai/)** - Unified AI SDK for building AI applications
 - **[@ai-sdk/groq](https://sdk.vercel.ai/)** - Groq AI integration
-- **[@huggingface/inference](https://huggingface.co/)** - HF model inference
+- **[@ai-sdk/mistral](https://sdk.vercel.ai/)** - Mistral AI integration for OCR and other features
 - **Shiki** - Syntax highlighting for code artifacts
 
 ### API & Data Fetching
@@ -219,10 +220,11 @@ Run these commands from the `web/` directory:
 
 ### AI Assistant (Loom)
 
-- **Custom Chat Interface** - Built with @assistant-ui/react
+- **Vercel AI SDK** - Built with Vercel's unified AI SDK for streamlined development
 - **Artifact Rendering** - Inline code display with syntax highlighting
-- **RAG-Powered** - Context-aware responses from ingested documents
-- **Multi-Model Support** - Groq and HuggingFace integrations
+- **RAG-Powered** - Context-aware responses from ingested documents with pre-fetched context to prevent hallucinations
+- **Accuracy First** - Fetches relevant context before LLM generation for grounded responses
+- **Multi-Model Support** - Groq and Mistral integrations
 
 ### About Section
 
@@ -241,12 +243,15 @@ Run these commands from the `web/` directory:
 ### Technical Features
 
 - **Server Components** - Leveraging React Server Components for performance
+- **App Router Sitemap** - Optimized sitemap generation using Next.js App Router conventions
 - **tRPC API Layer** - End-to-end type-safe APIs with automatic validation
 - **React Query + Zustand** - Optimized data fetching and state management
-- **Image Optimization** - Next.js Image component with WebP format
+- **Image Optimization** - Next.js Image component with WebP format and responsive sizing
+- **RAG-Powered AI** - Fetches context before LLM generation to prevent hallucinations
 - **Route Transitions** - Smooth navigation with App Router
 - **Type Safety** - Full TypeScript coverage from database to UI
 - **Code Quality** - Enforced via Biome linter and formatter
+- **Vercel Best Practices** - Follows Vercel/Next.js audit recommendations for optimal performance
 
 ## Notable Projects
 
@@ -329,8 +334,10 @@ This project uses [Biome](https://biomejs.dev/) for consistent code formatting a
 
 - **Lighthouse Score**: 95+ across all metrics
 - **Core Web Vitals**: Optimized for LCP, FID, and CLS
-- **Image Optimization**: WebP format with Next.js Image
+- **Image Optimization**: WebP format with Next.js Image component and responsive sizing props
 - **Code Splitting**: Automatic with Next.js App Router
+- **Vercel Optimized**: Implements Vercel/Next.js best practices for production performance
+- **Responsive Images**: Automatic sizing based on viewport for optimal delivery
 
 ## Contributing
 
