@@ -77,6 +77,7 @@ export default function AboutPage() {
                 src="/images/about-page/about-team-combined.webp"
                 alt="The members of otherdev"
                 fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 83vw, 69vw"
                 className="sm:hidden object-cover object-center bg-stone-200"
                 priority
               />
@@ -84,6 +85,7 @@ export default function AboutPage() {
                 src="/images/about-page/about-team-combined-desktop.webp"
                 alt="The members of otherdev"
                 fill
+                sizes="(max-width: 640px) 0vw, (max-width: 1024px) 0vw, 69vw"
                 className="hidden sm:block object-cover object-center bg-stone-200"
                 priority
               />
