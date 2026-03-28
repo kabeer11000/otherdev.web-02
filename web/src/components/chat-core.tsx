@@ -3,6 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import {
   DefaultChatTransport,
+  getToolName,
   isToolUIPart,
   lastAssistantMessageIsCompleteWithToolCalls,
   type UIMessage,
@@ -318,13 +319,16 @@ function AssistantMessage({
       .join("") || "";
 
   // Find artifact tool invocation using proper type narrowing
-  const artifactToolCall = message.parts?.find((part) =>
-    isToolUIPart(part) &&
-    part.toolName === "createArtifact" &&
-    (part.state === "output-available" || part.state === "input-available"),
-  ) as
-    | { toolName: "createArtifact"; toolCallId: string; state: "output-available"; output: { title: string; code: string; description: string; success?: boolean }; input?: undefined }
-    | { toolName: "createArtifact"; toolCallId: string; state: "input-available"; input: { title: string; code: string; description: string }; output?: undefined }
+  const artifactToolCall = message.parts?.find((part) => {
+    if (!isToolUIPart(part)) return false;
+    const toolName = getToolName(part);
+    return (
+      toolName === "createArtifact" &&
+      (part.state === "output-available" || part.state === "input-available")
+    );
+  }) as
+    | { type: `tool-createArtifact`; toolCallId: string; state: "output-available"; output: { title: string; code: string; description: string; success?: boolean }; input?: undefined }
+    | { type: `tool-createArtifact`; toolCallId: string; state: "input-available"; input: { title: string; code: string; description: string }; output?: undefined }
     | undefined;
 
   const reasoningPart = message.parts?.find(

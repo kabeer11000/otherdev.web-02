@@ -16,7 +16,6 @@ interface ModelMessage {
     | { type: "image"; image: string }
   >;
 }
-import { createArtifactTool } from "@/server/lib/artifact-tool";
 import { generateEmbedding } from "@/server/lib/rag/embeddings";
 import { searchSimilarDocuments } from "@/server/lib/rag/vector-search";
 import {
@@ -37,6 +36,53 @@ export const maxDuration = 30;
 const groqAI = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 });
+
+/**
+ * Repairs malformed tool calls from Groq models.
+ * Groq sometimes returns tool arguments with formatting issues.
+ */
+async function repairToolCall({
+  toolCall,
+  error,
+}: {
+  toolCall: any;
+  error: any;
+  system?: any;
+  messages?: any[];
+  tools?: any;
+  inputSchema?: any;
+}): Promise<any> {
+  console.log("[TOOL] Attempting to repair tool call:", {
+    toolName: toolCall.toolName,
+    errorType: error?.constructor?.name,
+    error: error?.message || String(error),
+    rawInput: toolCall.input,
+  });
+
+  try {
+    // Try to fix common JSON issues
+    let fixedInput = toolCall.input;
+
+    // Remove markdown code blocks if present
+    fixedInput = fixedInput.replace(/^```json\s*/i, "").replace(/\s*```$/, "");
+    fixedInput = fixedInput.replace(/^```\s*/i, "").replace(/\s*```$/, "");
+
+    // Trim whitespace
+    fixedInput = fixedInput.trim();
+
+    // Try to parse the fixed input
+    const parsed = JSON.parse(fixedInput);
+    console.log("[TOOL] Tool call repaired successfully");
+    return {
+      ...toolCall,
+      input: JSON.stringify(parsed),
+    };
+  } catch (parseError) {
+    // If repair fails, return null to let AI SDK handle the error
+    console.log("[TOOL] Tool call repair failed:", parseError);
+    return null;
+  }
+}
 
 const RAG_MAX_MESSAGE_LENGTH = Number.parseInt(
   process.env.RAG_MAX_MESSAGE_LENGTH || "500",
@@ -356,98 +402,93 @@ export async function POST(request: Request): Promise<Response> {
     const queryQuality = detectQueryQuality(normalizedQuery);
     const enableArtifacts = supportsArtifacts && queryQuality.needsArtifact;
 
-    // Start RAG fetch in background (don't block stream start)
-    let ragContextPromise: Promise<string | null> = null;
+    // Fetch RAG context BEFORE starting stream (must complete before streamText is called)
+    let ragContext: string | null = null;
     if (!queryQuality.isConversational) {
-      ragContextPromise = (async () => {
-        try {
-          const queryEmbedding = await generateEmbedding(normalizedQuery);
-          const adaptiveThreshold = getAdaptiveThreshold(queryQuality);
-          const similarDocs = await searchSimilarDocuments(
-            queryEmbedding,
-            adaptiveThreshold,
-            RAG_MATCH_COUNT,
-          );
-          return buildContext(similarDocs, queryQuality);
-        } catch {
-          return null;
+      try {
+        console.log("[RAG] Starting embedding generation for:", normalizedQuery.slice(0, 50));
+        const queryEmbedding = await generateEmbedding(normalizedQuery);
+        console.log("[RAG] Embedding generated, starting vector search...");
+        const adaptiveThreshold = getAdaptiveThreshold(queryQuality);
+        const similarDocs = await searchSimilarDocuments(
+          queryEmbedding,
+          adaptiveThreshold,
+          RAG_MATCH_COUNT,
+        );
+        console.log("[RAG] Found", similarDocs.length, "documents");
+        ragContext = buildContext(similarDocs, queryQuality);
+        console.log("[RAG] Context built, length:", ragContext.length);
+      } catch (error) {
+        console.error("[RAG] Error during RAG pipeline:", error instanceof Error ? error.message : error);
+        // Embedding service unavailable — proceed without RAG context
+      }
+    }
+
+    // Inject RAG context into the last user message
+    if (ragContext && sanitized.length > 0) {
+      const lastMsg = sanitized[sanitized.length - 1];
+      if (lastMsg.role === "user" && Array.isArray(lastMsg.content)) {
+        const textPartIndex = lastMsg.content.findIndex((p: any) => p.type === "text");
+        if (textPartIndex >= 0) {
+          lastMsg.content[textPartIndex].text = `=== CONTEXT ===\n${ragContext}\n=== END CONTEXT ===\n\n${lastMsg.content[textPartIndex].text}`;
         }
-      })();
+      }
     }
 
     // Use createUIMessageStream to properly handle data parts
     const stream = createUIMessageStream({
       execute: async ({ writer }) => {
         let accumulatedText = "";
-        let ragContext: string | null = null;
-
-        // Wait for RAG context (with timeout to avoid blocking stream)
-        if (ragContextPromise) {
-          try {
-            ragContext = await Promise.race([
-              ragContextPromise,
-              new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
-            ]);
-            if (ragContext) {
-              console.log("[RAG] Context fetched successfully");
-            } else {
-              console.log("[RAG] Timeout after 1.5s, streaming without context");
-            }
-          } catch (error) {
-            console.error("[RAG] Error fetching context:", error instanceof Error ? error.message : error);
-            ragContext = null;
-          }
-        }
-
-        // Inject RAG context if available before sending to LLM
-        let finalMessages = sanitized;
-        if (ragContext && sanitized.length > 0) {
-          const lastMsg = sanitized[sanitized.length - 1];
-          if (lastMsg.role === "user" && Array.isArray(lastMsg.content)) {
-            const textPartIndex = lastMsg.content.findIndex((p: any) => p.type === "text");
-            if (textPartIndex >= 0) {
-              finalMessages = [...sanitized];
-              finalMessages[sanitized.length - 1] = {
-                ...lastMsg,
-                content: [...lastMsg.content],
-              };
-              finalMessages[sanitized.length - 1].content[textPartIndex] = {
-                type: "text" as const,
-                text: `=== CONTEXT ===\n${ragContext}\n=== END CONTEXT ===\n\n${lastMsg.content[textPartIndex].text}`,
-              };
-            }
-          }
-        }
+        let suggestionExtracted = false;
 
         const result = streamText({
           model: groqAI(hasImageContent ? VISION_MODEL : CHAT_MODEL),
           system: SYSTEM_PROMPT,
-          messages: finalMessages,
+          messages: sanitized,
           temperature: 0.7,
           maxOutputTokens: 1024,
           stopWhen: stepCountIs(5),
           toolChoice: "auto",
+          experimental_repairToolCall: enableArtifacts
+            ? repairToolCall
+            : undefined,
           tools: enableArtifacts
             ? {
                 createArtifact: tool({
-                  description: "Create an interactive web artifact",
+                  description:
+                    "Create an interactive web artifact that will be displayed in a live preview panel. Supports vanilla HTML/CSS/JS or modern frameworks (React, Vue, Tailwind CSS) via CDN. Use this when the user asks to create, build, make, or generate interactive content like websites, apps, games, visualizations, calculators, forms, dashboards, or any web-based UI. The artifact should be complete, self-contained, and visually polished.",
                   inputSchema: z.object({
-                    title: z.string(),
-                    code: z.string(),
-                    description: z.string(),
+                    title: z
+                      .string()
+                      .max(100)
+                      .describe("A short, descriptive title for the artifact"),
+                    code: z
+                      .string()
+                      .max(51200)
+                      .describe(
+                        "Complete HTML code. Can use modern frameworks via CDN: React, Tailwind CSS, Vue, etc. Include CSS in <style> tags and JavaScript in <script> tags. Must be self-contained and work in a sandboxed iframe."
+                      ),
+                    description: z
+                      .string()
+                      .max(500)
+                      .describe("A brief explanation of what this artifact does and how to use it"),
                   }),
                   execute: async ({ title, code, description }) => {
-                    console.log("[TOOL] createArtifact called:", { title, description, codeLength: code?.length });
+                    console.log("[TOOL] createArtifact called:", {
+                      title,
+                      description,
+                      codeLength: code?.length,
+                    });
                     return { success: true, title, code, description };
                   },
                 }),
               }
             : {},
-          // AI SDK built-in timeout for LLM response
+          // AI SDK timeout configuration (total timeout for entire operation)
           timeout: {
-            completion: 30000, // 30s for full response
+            totalMs: 30000, // 30s for full response
           },
-          // Transform stream to accumulate text and detect suggestion
+          // Transform stream to accumulate text for suggestion extraction
           experimental_transform: () =>
             new TransformStream({
               transform(chunk, controller) {
@@ -459,6 +500,14 @@ export async function POST(request: Request): Promise<Response> {
                 }
               },
             }),
+          // AI SDK onFinish callback for usage tracking and logging
+          onFinish: async (event) => {
+            console.log("[STREAM] Finished:", {
+              finishReason: event.finishReason,
+              usage: event.usage,
+              steps: event.steps?.length,
+            });
+          },
         });
 
         // Pipe the streamText output to the UI message writer
@@ -467,18 +516,25 @@ export async function POST(request: Request): Promise<Response> {
         }
 
         // Extract suggestion after stream completes and write as data part
-        const suggestionMatch = accumulatedText.match(/\n?\s*SUGGESTION:\s*(.+)$/i);
-        if (suggestionMatch) {
-          const suggestion = suggestionMatch[1].trim();
-          if (suggestion) {
-            writer.write({
-              type: "data-suggestion",
-              data: { suggestion },
-            });
+        // Only extract if not already done (prevents duplicates)
+        if (!suggestionExtracted) {
+          const suggestionMatch = accumulatedText.match(/\n?\s*SUGGESTION:\s*(.+)$/i);
+          if (suggestionMatch) {
+            const suggestion = suggestionMatch[1].trim();
+            if (suggestion) {
+              writer.write({
+                type: "data-suggestion",
+                data: { suggestion },
+              });
+            }
+            suggestionExtracted = true;
           }
         }
       },
-      onError: () => "An error occurred while processing your request.",
+      onError: (error) => {
+        console.error("[STREAM] Error:", error instanceof Error ? error.message : error);
+        return "An error occurred while processing your request.";
+      },
     });
 
     return createUIMessageStreamResponse({
