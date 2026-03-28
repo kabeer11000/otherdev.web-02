@@ -1,46 +1,27 @@
 "use client";
 
-import { ArrowDown, ChevronDown, ChevronRight, Send } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import * as React from "react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { CopyButton } from "@/components/ui/copy-button";
-import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
-import { PromptSuggestions } from "@/components/ui/prompt-suggestions";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAutoScroll } from "@/hooks/use-auto-scroll";
-import { useAutosizeTextArea } from "@/hooks/use-autosize-textarea";
-import { useLocalStorageMessages } from "@/hooks/use-local-storage-messages";
-import { useScrollLock } from "@/hooks/use-scroll-lock";
-import { SUGGESTED_PROMPTS, Z_INDEX } from "@/lib/constants";
-import type { WidgetMessage as Message } from "@/lib/content-types";
-import { parseSSEStream } from "@/lib/sse";
-import { LoomPageClient } from "./otherdev-loom-thread";
+import { ChatCore } from "@/components/chat-core";
 import { cn } from "@/lib/utils";
-
-const MAX_INPUT_LENGTH = 500;
-const CHAT_WIDGET_STORAGE_KEY = "otherdev-chat-widget-messages";
-
+import { Z_INDEX } from "@/lib/constants";
 
 export function ChatWidget() {
-
-
   const pathname = usePathname();
   const [isOpen, setIsOpen] = React.useState(false);
   const cardRef = React.useRef<HTMLDivElement>(null);
+
   const handleWheel = (e: React.WheelEvent) => {
     e.stopPropagation();
   };
+
   if (pathname?.startsWith("/loom")) {
     return null;
   }
+
   return (
     <>
       {!isOpen && (
@@ -77,7 +58,7 @@ export function ChatWidget() {
         <Card
           ref={cardRef}
           className={cn(
-            "fixed flex flex-col ",
+            "fixed flex flex-col",
             "shadow-2xl border overflow-hidden",
             "p-0 gap-0 bg-background",
             "animate-[slideInFromBottom_0.5s_ease-out_forwards]",
@@ -92,13 +73,20 @@ export function ChatWidget() {
         >
           <div
             className={cn(
-              "flex-shrink-0 flex items-center justify-between -border-b p-4",
+              "flex-shrink-0 flex items-center justify-between border-b p-4",
             )}
           >
             <div className="flex items-center gap-2">
-              {/* <h3 className="text-xs md:text-xs text-foreground">
+              <Image
+                src="/otherdev-chat-logo.svg"
+                alt="Other Dev AI"
+                width={24}
+                height={24}
+                className="h-6 w-6 object-contain"
+              />
+              <h3 className="text-sm font-medium text-foreground">
                 Other Dev AI
-              </h3> */}
+              </h3>
             </div>
             <button
               type="button"
@@ -110,8 +98,11 @@ export function ChatWidget() {
             </button>
           </div>
 
-          <div className="flex-1 flex relative">
-              <LoomPageClient noNavigation={true} />
+          <div className="flex-1 flex relative overflow-hidden">
+            <ChatCore
+              showGreeting={true}
+              className="w-full"
+            />
           </div>
         </Card>
       )}

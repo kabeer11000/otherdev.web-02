@@ -41,4 +41,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default LoomPageClient;
+/**
+ * Server Component wrapper for the Loom page.
+ * Keeps the page boundary as a Server Component for optimal streaming,
+ * SEO, and the ability to add server-side data fetching in the future.
+ */
+export default function LoomPage() {
+  return <LoomPageClient />;
+}

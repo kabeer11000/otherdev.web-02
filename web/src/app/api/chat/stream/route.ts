@@ -354,52 +354,75 @@ export async function POST(request: Request): Promise<Response> {
     const normalizedQuery = sanitizedQuery.replace(/otherdev/gi, "Other Dev");
 
     const queryQuality = detectQueryQuality(normalizedQuery);
-
-    let context = "";
-    if (!queryQuality.isConversational) {
-      try {
-        const queryEmbedding = await generateEmbedding(normalizedQuery);
-        const adaptiveThreshold = getAdaptiveThreshold(queryQuality);
-        const similarDocs = await searchSimilarDocuments(
-          queryEmbedding,
-          adaptiveThreshold,
-          RAG_MATCH_COUNT,
-        );
-        context = buildContext(similarDocs, queryQuality);
-      } catch {
-        // Embedding service unavailable — proceed without RAG context
-      }
-    }
-
-    // Inject RAG context into the last user message as a text part (not plain string)
-    if (context && sanitized.length > 0) {
-      const lastMsg = sanitized[sanitized.length - 1];
-      if (lastMsg.role === "user" && Array.isArray(lastMsg.content)) {
-        // Find existing text parts and prepend context to the first one
-        const textPartIndex = lastMsg.content.findIndex((p: any) => p.type === "text");
-        if (textPartIndex >= 0) {
-          lastMsg.content[textPartIndex].text = `=== CONTEXT ===\n${context}\n=== END CONTEXT ===\n\n${lastMsg.content[textPartIndex].text}`;
-        } else {
-          // No text part exists — add one at the beginning
-          lastMsg.content = [
-            { type: "text" as const, text: `=== CONTEXT ===\n${context}\n=== END CONTEXT ===\n\n${sanitizedQuery}` },
-            ...lastMsg.content,
-          ];
-        }
-      }
-    }
-
     const enableArtifacts = supportsArtifacts && queryQuality.needsArtifact;
+
+    // Start RAG fetch in background (don't block stream start)
+    let ragContextPromise: Promise<string | null> = null;
+    if (!queryQuality.isConversational) {
+      ragContextPromise = (async () => {
+        try {
+          const queryEmbedding = await generateEmbedding(normalizedQuery);
+          const adaptiveThreshold = getAdaptiveThreshold(queryQuality);
+          const similarDocs = await searchSimilarDocuments(
+            queryEmbedding,
+            adaptiveThreshold,
+            RAG_MATCH_COUNT,
+          );
+          return buildContext(similarDocs, queryQuality);
+        } catch {
+          return null;
+        }
+      })();
+    }
 
     // Use createUIMessageStream to properly handle data parts
     const stream = createUIMessageStream({
       execute: async ({ writer }) => {
         let accumulatedText = "";
+        let ragContext: string | null = null;
+
+        // Wait for RAG context (with timeout to avoid blocking stream)
+        if (ragContextPromise) {
+          try {
+            ragContext = await Promise.race([
+              ragContextPromise,
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+            ]);
+            if (ragContext) {
+              console.log("[RAG] Context fetched successfully");
+            } else {
+              console.log("[RAG] Timeout after 1.5s, streaming without context");
+            }
+          } catch (error) {
+            console.error("[RAG] Error fetching context:", error instanceof Error ? error.message : error);
+            ragContext = null;
+          }
+        }
+
+        // Inject RAG context if available before sending to LLM
+        let finalMessages = sanitized;
+        if (ragContext && sanitized.length > 0) {
+          const lastMsg = sanitized[sanitized.length - 1];
+          if (lastMsg.role === "user" && Array.isArray(lastMsg.content)) {
+            const textPartIndex = lastMsg.content.findIndex((p: any) => p.type === "text");
+            if (textPartIndex >= 0) {
+              finalMessages = [...sanitized];
+              finalMessages[sanitized.length - 1] = {
+                ...lastMsg,
+                content: [...lastMsg.content],
+              };
+              finalMessages[sanitized.length - 1].content[textPartIndex] = {
+                type: "text" as const,
+                text: `=== CONTEXT ===\n${ragContext}\n=== END CONTEXT ===\n\n${lastMsg.content[textPartIndex].text}`,
+              };
+            }
+          }
+        }
 
         const result = streamText({
           model: groqAI(hasImageContent ? VISION_MODEL : CHAT_MODEL),
           system: SYSTEM_PROMPT,
-          messages: sanitized,
+          messages: finalMessages,
           temperature: 0.7,
           maxOutputTokens: 1024,
           stopWhen: stepCountIs(5),
@@ -420,6 +443,10 @@ export async function POST(request: Request): Promise<Response> {
                 }),
               }
             : {},
+          // AI SDK built-in timeout for LLM response
+          timeout: {
+            completion: 30000, // 30s for full response
+          },
           // Transform stream to accumulate text and detect suggestion
           experimental_transform: () =>
             new TransformStream({

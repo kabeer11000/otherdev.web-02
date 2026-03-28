@@ -2,9 +2,14 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TRPCProvider } from "@/components/providers";
 import { TenantProvider } from "@/lib/tenant-context";
-import { ChatWidget } from "@/components/chat-widget";
+import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import Script from "next/script";
+
+// Lazy load ChatWidget - client-only component
+const ChatWidget = dynamic(() => import("@/components/chat-widget").then((mod) => mod.ChatWidget), {
+  loading: () => null,
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://otherdev.com"),

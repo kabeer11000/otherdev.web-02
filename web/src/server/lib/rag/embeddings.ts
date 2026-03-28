@@ -1,6 +1,12 @@
+import { cache } from "react";
+
 const MODEL = "mistral-embed";
 
-export async function generateEmbedding(text: string): Promise<number[]> {
+// Cache embedding generation per-request to avoid duplicate API calls
+// for the same text within a single request (e.g., retry logic)
+export const generateEmbedding = cache(async function generateEmbedding(
+  text: string,
+): Promise<number[]> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
@@ -26,4 +32,4 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   } finally {
     clearTimeout(timeoutId);
   }
-}
+});

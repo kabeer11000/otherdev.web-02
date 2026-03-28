@@ -1,5 +1,6 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { cache } from "react";
 
 function getDb() {
   if (!getApps().length) {
@@ -44,7 +45,9 @@ export interface MatchedDocument {
   similarity: number;
 }
 
-export async function searchSimilarDocuments(
+// Cache document search per-request to avoid duplicate Firestore queries
+// for the same embedding within a single request
+export const searchSimilarDocuments = cache(async function searchSimilarDocuments(
   queryEmbedding: number[],
   matchThreshold: number = 0.1,
   matchCount: number = 5,
@@ -81,7 +84,7 @@ export async function searchSimilarDocuments(
       similarity: 1 - distance,
     };
   });
-}
+});
 
 export async function deleteAllDocuments(): Promise<void> {
   const db = getDb();

@@ -7,17 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SHIKI_THEMES } from "@/lib/shiki-config";
 
-// Local type for artifact tool calls (AI SDK compatible)
+// Local type for artifact tool calls (AI SDK v6 compatible)
+// Matches AI SDK's ToolInvocation pattern for tool-invocation parts
 export interface ArtifactToolCall {
-  type: "tool-call";
   toolCallId: string;
-  toolName: string;
-  args: {
+  toolName: "createArtifact";
+  state: "output-available";
+  result: {
     title: string;
     code: string;
     description: string;
+    success: boolean;
   };
-  argsText?: string;
 }
 
 function ArtifactHeader({
@@ -145,11 +146,7 @@ export function ArtifactRenderer({
     };
   }, []);
 
-  const { title, code, description } = toolCall.args as {
-    title: string;
-    code: string;
-    description: string;
-  };
+  const { title, code, description } = toolCall.result;
 
   useEffect(() => {
     if (iframeRef.current) {
