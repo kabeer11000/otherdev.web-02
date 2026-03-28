@@ -7,6 +7,15 @@ import { z } from "zod";
 function extractBase64(dataUri: string): string {
   return dataUri.includes(",") ? dataUri.split(",")[1] : dataUri;
 }
+
+// Type for manually converted model messages
+interface ModelMessage {
+  role: "user" | "assistant" | "system";
+  content: Array<
+    | { type: "text"; text: string }
+    | { type: "image"; image: string }
+  >;
+}
 import { createArtifactTool } from "@/server/lib/artifact-tool";
 import { generateEmbedding } from "@/server/lib/rag/embeddings";
 import { searchSimilarDocuments } from "@/server/lib/rag/vector-search";
@@ -291,10 +300,10 @@ export async function POST(request: Request): Promise<Response> {
     console.log("[API] Using model:", hasImageContent ? VISION_MODEL : CHAT_MODEL);
 
     // Sanitize messages for Groq compatibility
-    const sanitized = modelMessages.map((msg) => {
+    const sanitized = modelMessages.map((msg: ModelMessage) => {
       if (msg.role !== "user" || !Array.isArray(msg.content)) return msg;
 
-      const sanitizedContent = msg.content.map((part: any) => {
+      const sanitizedContent = msg.content.map((part) => {
         // Sanitize text parts
         if (part.type === "text" && typeof part.text === "string") {
           return { ...part, text: sanitizeInput(part.text) };
@@ -304,7 +313,7 @@ export async function POST(request: Request): Promise<Response> {
 
       // Ensure there's always text content (Groq rejects image-only messages)
       const hasText = sanitizedContent.some(
-        (p: any) => p.type === "text" && p.text && p.text.trim(),
+        (p) => p.type === "text" && p.text && p.text.trim(),
       );
 
       if (!hasText) {
