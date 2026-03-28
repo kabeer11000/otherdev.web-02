@@ -386,7 +386,7 @@ data: [DONE]
 
 ### Features
 
-- **Vector Search:** Semantic search in Supabase pgvector
+- **Vector Search:** Semantic search in Firebase Firestore
 - **RAG Context:** Retrieves relevant knowledge base documents
 - **Streaming:** Real-time response streaming
 - **Rate Limiting:** 10 requests/minute per IP
@@ -431,9 +431,9 @@ async function chat(messages: Message[]) {
 
 ```bash
 GROQ_API_KEY=your-groq-api-key
-HUGGINGFACE_API_KEY=your-hf-api-key
-PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 
 # Optional configuration
 RAG_SIMILARITY_THRESHOLD=0.1          # Vector search threshold (0-1)

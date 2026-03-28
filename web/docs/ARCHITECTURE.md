@@ -17,7 +17,7 @@
 
 ## Overview
 
-Other Dev is a modern, full-stack web application built with Next.js 16, leveraging the App Router for file-based routing and React Server Components for optimal performance. The architecture is designed for scalability, type safety, and excellent developer experience.
+Other Dev is a modern, full-stack web application built with Next.js 16.2.1, leveraging the App Router for file-based routing and React Server Components for optimal performance. The architecture is designed for scalability, type safety, and excellent developer experience.
 
 ### Core Principles
 
@@ -47,14 +47,14 @@ graph TB
 
     subgraph "Data Layer"
         Payload[Payload CMS Canvas]
-        Supabase[Supabase PostgreSQL + pgvector]
+        Firebase[Firebase Firestore with Vector Search]
         Sheets[Google Sheets]
         Gmail[Gmail SMTP]
     end
 
     subgraph "External Services"
         Groq[Groq LLM API]
-        HF[HuggingFace Embeddings]
+        Mistral[Mistral AI API]
     end
 
     Browser --> NextJS
@@ -70,8 +70,8 @@ graph TB
     tRPC --> Gmail
 
     RAG --> Groq
-    RAG --> Supabase
-    RAG --> HF
+    RAG --> Mistral
+    RAG --> Firebase
 
     NextJS -.Dynamic Data.-> tRPC
     NextJS -.Static Data.-> RSC
@@ -80,7 +80,7 @@ graph TB
     style NextJS fill:#fff4e1
     style tRPC fill:#ffe1f5
     style RAG fill:#e1ffe4
-    style Supabase fill:#f5e1ff
+    style Firebase fill:#f5e1ff
 ```
 
 ---
@@ -162,8 +162,7 @@ src/server/
 └── lib/
     ├── rate-limit.ts           # In-memory rate limiting
     └── rag/
-        ├── embeddings.ts       # HuggingFace embedding generation
-        └── vector-search.ts    # Supabase pgvector search
+        └── vector-search.ts    # Firebase Firestore vector search
 ```
 
 **Key Features:**
@@ -227,53 +226,32 @@ graph LR
     Success -->|No| Error[Error Response]
 ```
 
-#### 3.3 Vector Database (Supabase)
+#### 3.3 Vector Database (Firebase Firestore)
 
-**Technology:** PostgreSQL with pgvector extension
+**Technology:** Firebase Firestore with native vector search
 
-**Schema:**
+**Document Schema:**
 
-```sql
-CREATE TABLE documents (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  content TEXT NOT NULL,
-  metadata JSONB,
-  embedding vector(384),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX ON documents USING ivfflat (embedding vector_cosine_ops);
+```typescript
+interface Document {
+  content: string;
+  metadata: {
+    source: string;
+    title: string;
+    type: string;
+    category?: string;
+    subtype?: string;
+    project?: string;
+    year?: string;
+  };
+  embedding: FieldValue.vector(number[]); // Vector field
+  createdAt: FieldValue.serverTimestamp();
+}
 ```
 
-**RPC Function:**
+**Vector Search:**
 
-```sql
-CREATE OR REPLACE FUNCTION match_documents(
-  query_embedding vector(384),
-  match_threshold float,
-  match_count int
-)
-RETURNS TABLE (
-  id uuid,
-  content text,
-  metadata jsonb,
-  similarity float
-)
-AS $$
-BEGIN
-  RETURN QUERY
-  SELECT
-    documents.id,
-    documents.content,
-    documents.metadata,
-    1 - (documents.embedding <=> query_embedding) AS similarity
-  FROM documents
-  WHERE 1 - (documents.embedding <=> query_embedding) > match_threshold
-  ORDER BY similarity DESC
-  LIMIT match_count;
-END;
-$$ LANGUAGE plpgsql;
-```
+Uses Firebase Firestore's native `findNearest()` API for similarity matching with cosine distance.
 
 ---
 
@@ -338,8 +316,7 @@ sequenceDiagram
     participant Widget as Chat Widget
     participant API as /api/chat/stream
     participant RL as Rate Limiter
-    participant HF as HuggingFace
-    participant SB as Supabase
+    participant FB as Firebase Firestore
     participant Groq
 
     User->>Widget: Type message & send
@@ -347,12 +324,9 @@ sequenceDiagram
     API->>RL: Check rate limit
     RL-->>API: Allowed
 
-    API->>API: Sanitize input
-    API->>HF: Generate embedding
-    HF-->>API: Vector (384-dim)
-
-    API->>SB: match_documents(vector, 0.1, 5)
-    SB-->>API: Similar docs with scores
+    API->>API: Sanitize input & fetch context
+    API->>FB: findNearest(vector, cosine distance)
+    FB-->>API: Similar docs with scores
 
     API->>API: Build system prompt with context
     API->>Groq: Stream chat completion
@@ -540,38 +514,32 @@ graph TB
         Ingest[Ingestion Script<br/>scripts/ingest-documents.ts]
     end
 
-    subgraph "Vector Processing"
-        HF[HuggingFace API<br/>sentence-transformers]
-        Embed[Embedding Generator<br/>384-dimensional vectors]
-    end
-
     subgraph "Vector Database"
-        Supabase[Supabase PostgreSQL]
-        PGVector[pgvector Extension]
-        RPC[match_documents RPC]
+        Firebase[Firebase Firestore]
+        VectorSearch[Native Vector Search]
     end
 
     subgraph "Chat Runtime"
         API[Chat Stream API]
         RL[Rate Limiter]
         Sanitize[Input Sanitizer]
+        ContextFetch[Context Fetcher<br/>Pre-fetch before LLM]
         Groq[Groq LLM<br/>llama-3.3-70b]
     end
 
     Docs --> Ingest
-    Ingest --> HF
-    HF --> Embed
-    Embed --> Supabase
+    Ingest --> Firebase
 
     API --> RL
     API --> Sanitize
-    API --> HF
-    HF --> RPC
-    RPC --> API
+    API --> ContextFetch
+    ContextFetch --> VectorSearch
+    VectorSearch --> Firebase
+    Firebase --> API
     API --> Groq
 
     style Docs fill:#e1ffe4
-    style Supabase fill:#f5e1ff
+    style Firebase fill:#f5e1ff
     style API fill:#fff4e1
     style Groq fill:#ffe1f5
 ```
@@ -608,25 +576,9 @@ export const knowledgeBase: KnowledgeDocument[] = [
 ];
 ```
 
-#### 2. Embedding Generation
+#### 2. Vector Search
 
-**Model:** `sentence-transformers/all-MiniLM-L6-v2`
-**Dimensions:** 384
-
-```typescript
-// src/server/lib/rag/embeddings.ts
-export async function generateEmbedding(text: string): Promise<number[]> {
-  const response = await hf.featureExtraction({
-    model: 'sentence-transformers/all-MiniLM-L6-v2',
-    inputs: text,
-  });
-  return response as number[];
-}
-```
-
-#### 3. Vector Search
-
-**Similarity:** Cosine similarity (1 - cosine distance)
+**Similarity:** Cosine similarity with native vector search
 
 ```typescript
 // src/server/lib/rag/vector-search.ts
@@ -635,13 +587,19 @@ export async function searchSimilarDocuments(
   matchThreshold: number = 0.1,
   matchCount: number = 5
 ) {
-  const { data, error } = await supabase.rpc('match_documents', {
-    query_embedding: queryEmbedding,
-    match_threshold: matchThreshold,
-    match_count: matchCount,
+  const db = getFirestore();
+  const collection = db.collection('documents');
+
+  const vectorQuery = collection.findNearest({
+    vectorField: 'embedding',
+    queryVector: FieldValue.vector(queryEmbedding),
+    limit: matchCount,
+    distanceMeasure: 'COSINE',
+    distanceThreshold: 1 - matchThreshold,
   });
 
-  return data;
+  const snapshot = await vectorQuery.get();
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 ```
 
@@ -793,7 +751,7 @@ graph TB
 
     subgraph "External Services"
         CMS[Payload CMS<br/>VPS/Cloud]
-        Vector[Supabase<br/>Managed PostgreSQL]
+        Vector[Firebase Firestore<br/>Vector Search]
         LLM[Groq API]
     end
 

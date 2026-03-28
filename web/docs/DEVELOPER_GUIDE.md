@@ -53,9 +53,9 @@ GMAIL_RECIPIENTS=recipient1@example.com,recipient2@example.com
 
 # RAG Chat System (Required for AI chat widget)
 GROQ_API_KEY=your-groq-api-key
-HUGGINGFACE_API_KEY=your-huggingface-api-key
-PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 
 # Payload CMS Integration (Optional - for blog features)
 PAYLOAD_API_URL=http://localhost:3000
@@ -454,7 +454,7 @@ bun ingest
 
 This will:
 - Generate embeddings for new documents
-- Insert into Supabase PostgreSQL with pgvector
+- Insert into Firebase Firestore
 - Make them available for RAG chat
 
 ---
@@ -805,8 +805,8 @@ Error: No documents found
 **Solution:**
 
 1. Ensure knowledge base is ingested: `bun ingest`
-2. Check Supabase credentials in `.env.local`
-3. Verify `match_documents` RPC function exists in Supabase
+2. Check Firebase credentials in `.env.local`
+3. Verify Firebase Firestore is initialized and has documents
 4. Check similarity threshold (lower = more results)
 
 ---

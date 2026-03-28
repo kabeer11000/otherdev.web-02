@@ -4,7 +4,7 @@
 
 ## Overview
 
-This directory contains comprehensive documentation for developers working on the Other Dev portfolio and agency website. The application is built with Next.js 16, React 19, TypeScript, and tRPC for type-safe API communication.
+This directory contains comprehensive documentation for developers working on the Other Dev portfolio and agency website. The application is built with Next.js 16.2.1, React 19.2.4, TypeScript, and tRPC for type-safe API communication.
 
 ## Documentation Structure
 
@@ -48,8 +48,8 @@ This directory contains comprehensive documentation for developers working on th
 
 ### Core Technologies
 
-- **Next.js 16** - React framework with App Router
-- **React 19** - UI library with Server Components
+- **Next.js 16.2.1** - React framework with App Router
+- **React 19.2.4** - UI library with Server Components
 - **TypeScript 5.9** - Type safety
 - **Tailwind CSS 4** - Utility-first CSS
 - **Bun** - JavaScript runtime and package manager
@@ -71,9 +71,10 @@ This directory contains comprehensive documentation for developers working on th
 
 ### RAG Chat System
 
+- **Vercel AI SDK** - Unified AI SDK for LLM integration
 - **Groq** - LLM API (llama-3.3-70b)
-- **HuggingFace** - Embedding generation
-- **Supabase** - PostgreSQL + pgvector
+- **Mistral** - OCR and additional AI features
+- **Firebase Firestore** - Vector search with native similarity matching
 - **Shiki** - Code syntax highlighting
 
 ### Development Tools
@@ -110,7 +111,7 @@ This directory contains comprehensive documentation for developers working on th
 ┌─────────────────────────────────────────┐
 │          External Services              │
 │  ┌──────────┐  ┌──────────┐            │
-│  │ Payload  │  │ Supabase │            │
+│  │ Payload  │  │ Firebase │            │
 │  │   CMS    │  │   DB     │            │
 │  └──────────┘  └──────────┘            │
 └─────────────────────────────────────────┘
@@ -184,9 +185,9 @@ GMAIL_APP_PASSWORD=your-app-password
 
 ```bash
 GROQ_API_KEY=your-groq-api-key
-HUGGINGFACE_API_KEY=your-hf-api-key
-PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
 ### Optional
