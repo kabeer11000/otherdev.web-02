@@ -17,6 +17,22 @@ export const metadata: Metadata = {
     "digital agency",
     "design studio",
   ],
+  alternates: {
+    canonical: "https://otherdev.com/about",
+  },
+  openGraph: {
+    title: "About | Other Dev",
+    description:
+      "Learn about Other Dev, a full-service web development and design studio based in Karachi. Discover our team, mission, and the clients we've worked with.",
+    type: "website",
+    url: "https://otherdev.com/about",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "About | Other Dev",
+    description:
+      "Learn about Other Dev, a full-service web development and design studio based in Karachi. Discover our team, mission, and the clients we've worked with.",
+  },
 };
 
 // JSON-LD Structured Data

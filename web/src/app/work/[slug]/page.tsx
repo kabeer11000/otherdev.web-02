@@ -47,6 +47,20 @@ export async function generateMetadata({
       project.title,
       "Other Dev",
     ],
+    alternates: {
+      canonical: `https://otherdev.com/work/${slug}`,
+    },
+    openGraph: {
+      title: `${project.title} | Other Dev Portfolio`,
+      description: project.description,
+      type: "website",
+      url: `https://otherdev.com/work/${slug}`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${project.title} | Other Dev Portfolio`,
+      description: project.description,
+    },
   };
 }
 

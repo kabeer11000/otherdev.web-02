@@ -1,5 +1,28 @@
+import type { Metadata } from "next";
 import { CanvasClient } from "@od-canvas/sdk";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Blog | Other Dev",
+  description:
+    "Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.",
+  alternates: {
+    canonical: "https://otherdev.com/blog",
+  },
+  openGraph: {
+    title: "Blog | Other Dev",
+    description:
+      "Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.",
+    type: "website",
+    url: "https://otherdev.com/blog",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Blog | Other Dev",
+    description:
+      "Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.",
+  },
+};
 
 interface CanvasDocument {
   id: number;

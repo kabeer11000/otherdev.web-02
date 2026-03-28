@@ -810,7 +810,8 @@ export function ChatCore({
                 ),
               )}
 
-              {status === "streaming" && messages[messages.length - 1]?.role !== "assistant" && (
+              {(status === "submitted" ||
+                (status === "streaming" && messages.at(-1)?.role !== "assistant")) && (
                 <div className="flex items-center gap-2 sm:gap-3">
                   <Image
                     src="/otherdev-chat-logo.svg"

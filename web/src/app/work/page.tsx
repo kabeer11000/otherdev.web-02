@@ -17,6 +17,22 @@ export const metadata: Metadata = {
     "digital solutions",
     "Other Dev",
   ],
+  alternates: {
+    canonical: "https://otherdev.com/work",
+  },
+  openGraph: {
+    title: "Work | Other Dev",
+    description:
+      "Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.",
+    type: "website",
+    url: "https://otherdev.com/work",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Work | Other Dev",
+    description:
+      "Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.",
+  },
 };
 
 const organizationSchema = {
