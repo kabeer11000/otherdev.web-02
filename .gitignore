@@ -9,6 +9,7 @@ docs
 # testing
 coverage
 *.lcov
+.playwright-mcp
 
 # next.js
 .next/
