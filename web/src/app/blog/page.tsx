@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CanvasClient } from "@od-canvas/sdk";
+import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -31,26 +32,32 @@ interface CanvasDocument {
   content: string;
 }
 
-const canvas = new CanvasClient({
-  baseUrl: process.env.CANVAS_API_URL,
-  apiKey: process.env.CANVAS_API_KEY,
-});
+async function getBlogPosts(): Promise<CanvasDocument[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("blog-posts");
 
-export default async function BlogPage() {
-  // Fetch published documents (blog posts) using public endpoint
-  let posts: CanvasDocument[] = [];
+  const canvas = new CanvasClient({
+    baseUrl: process.env.CANVAS_API_URL,
+    apiKey: process.env.CANVAS_API_KEY,
+  });
+
   try {
     const documents =
       (await canvas.getPublicDocuments(
-        parseInt(process.env.CANVAS_PROJECT_ID || "4"),
+        parseInt(process.env.CANVAS_PROJECT_ID || "4", 10),
       )) ?? [];
-    posts = documents.sort(
+    return documents.sort(
       (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
-  } catch (error) {
-    console.error("Failed to fetch posts:", error);
+  } catch {
+    return [];
   }
+}
+
+export default async function BlogPage() {
+  const posts = await getBlogPosts();
 
   if (!posts || posts.length === 0) {
     return (

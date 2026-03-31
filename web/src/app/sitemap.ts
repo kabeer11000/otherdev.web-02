@@ -1,6 +1,30 @@
 import type { MetadataRoute } from "next";
 import { projects } from "@/lib/projects";
 import { CanvasClient } from "@od-canvas/sdk";
+import { cacheLife, cacheTag } from "next/cache";
+
+async function getSitemapBlogRoutes(): Promise<MetadataRoute.Sitemap> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("blog-posts");
+
+  const canvas = new CanvasClient({
+    baseUrl: process.env.CANVAS_API_URL,
+    apiKey: process.env.CANVAS_API_KEY,
+  });
+
+  const posts =
+    (await canvas.getPublicDocuments(
+      parseInt(process.env.CANVAS_PROJECT_ID || "4", 10),
+    )) ?? [];
+
+  return posts.map((post) => ({
+    url: `https://otherdev.com/blog/${post.id}`,
+    lastModified: new Date(post.updated_at || post.created_at),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -45,22 +69,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let blogRoutes: MetadataRoute.Sitemap = [];
   try {
-    const canvas = new CanvasClient({
-      baseUrl: process.env.CANVAS_API_URL,
-      apiKey: process.env.CANVAS_API_KEY,
-    });
-
-    const posts =
-      (await canvas.getPublicDocuments(
-        parseInt(process.env.CANVAS_PROJECT_ID || "4"),
-      )) ?? [];
-
-    blogRoutes = posts.map((post) => ({
-      url: `https://otherdev.com/blog/${post.id}`,
-      lastModified: new Date(post.updated_at || post.created_at),
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    }));
+    blogRoutes = await getSitemapBlogRoutes();
   } catch (error) {
     console.error("Failed to fetch blog posts for sitemap:", error);
   }

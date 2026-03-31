@@ -5,7 +5,6 @@ import { TenantProvider } from "@/lib/tenant-context";
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import localFont from "next/font/local";
-import { headers } from "next/headers";
 
 import { GoogleAnalytics } from "@next/third-parties/google";
 
@@ -76,15 +75,11 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = await headers();
-  const host = headersList.get("host") ?? "otherdev.com";
-  const domain = host.split(":")[0];
-
   return (
     <html
       lang="en"
@@ -101,7 +96,7 @@ export default async function RootLayout({
         <meta name="view-transition" content="same-origin" />
       </head>
       <body className="antialiased bg-background">
-        <TenantProvider initialDomain={domain}>
+        <TenantProvider initialDomain="otherdev.com">
           <TRPCProvider>
             <Suspense fallback={null}>{children}</Suspense>
             <ChatWidget />

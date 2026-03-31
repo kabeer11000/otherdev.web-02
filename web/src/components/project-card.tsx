@@ -1,10 +1,7 @@
-"use client";
-
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
 import { cva, type VariantProps } from "class-variance-authority";
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { ProjectCardHover } from "./project-card-hover";
 
 const cardVariants = cva(
   "relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center",
@@ -68,66 +65,35 @@ export function ProjectCard({
   priority = false,
   sizes = "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw",
 }: ProjectCardProps) {
-  const showHoverTitle = variant === "home" || variant === "broll";
-  const [isHovered, setIsHovered] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    setMousePosition({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-  };
+  const useHover = variant === "home" || variant === "broll";
 
   return (
     <div className="flex flex-col gap-[13px]">
-      <Link
-        href={variant === "broll" ? (slug ?? "#") : `/work/${slug}`}
-        className="block group"
-        onMouseMove={showHoverTitle ? handleMouseMove : undefined}
-        onMouseEnter={showHoverTitle ? handleMouseEnter : undefined}
-        onMouseLeave={showHoverTitle ? handleMouseLeave : undefined}
-      >
-        <div className={cardVariants({ variant })}>
-          <div className={imageContainerVariants({ variant })}>
-            <Image
-              src={image}
-              alt={title}
-              fill
-              sizes={sizes}
-              className={imageVariants({ variant })}
-              priority={priority}
-            />
-          </div>
-        </div>
-      </Link>
-
-      <AnimatePresence>
-        {showHoverTitle && isHovered && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="fixed pointer-events-none z-50"
-            style={{
-              left: `${mousePosition.x + 15}px`,
-              top: `${mousePosition.y + 15}px`,
-            }}
-          >
-            <div className="rounded-md backdrop-blur-sm bg-stone-200/70 px-3 py-1.5">
-              <p className="text-[#686868] text-[11px] font-normal leading-[14px] whitespace-nowrap">
-                {title}
-              </p>
+      {useHover ? (
+        <ProjectCardHover
+          title={title}
+          slug={slug}
+          image={image}
+          variant={variant}
+          priority={priority}
+          sizes={sizes}
+        />
+      ) : (
+        <Link href={`/work/${slug}`} className="block group">
+          <div className={cardVariants({ variant })}>
+            <div className={imageContainerVariants({ variant })}>
+              <Image
+                src={image}
+                alt={title}
+                fill
+                sizes={sizes}
+                className={imageVariants({ variant })}
+                priority={priority}
+              />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </Link>
+      )}
 
       {showText && (
         <Link

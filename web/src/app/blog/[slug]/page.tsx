@@ -1,19 +1,30 @@
+import { CanvasClient } from "@od-canvas/sdk";
+import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import sanitizeHtml from "sanitize-html";
-import { CanvasClient } from "@od-canvas/sdk";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
-export async function generateMetadata({ params }: PageProps) {
-  const { slug } = await params;
+async function getBlogPost(id: number) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("blog-posts", `blog-post-${id}`);
+
   const canvas = new CanvasClient({
     baseUrl: process.env.CANVAS_API_URL,
     apiKey: process.env.CANVAS_API_KEY,
   });
-  let post = null;
+
   try {
-    post = await canvas.getPublicDocument(parseInt(slug));
-  } catch (e) {}
+    return await canvas.getPublicDocument(id);
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata({ params }: PageProps) {
+  const { slug } = await params;
+  const post = await getBlogPost(parseInt(slug, 10));
 
   if (!post) {
     return {
@@ -29,15 +40,7 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function BlogPostPage({ params }: PageProps) {
   const { slug } = await params;
-  const canvas = new CanvasClient({
-    baseUrl: process.env.CANVAS_API_URL,
-    apiKey: process.env.CANVAS_API_KEY,
-  });
-  let post = null;
-  try {
-    post = await canvas.getPublicDocument(parseInt(slug));
-  } catch (e) {}
-  console.log(post);
+  const post = await getBlogPost(parseInt(slug, 10));
 
   if (!post) {
     return (
