@@ -4,6 +4,18 @@ import {
   insertDocument,
   deleteAllDocuments,
 } from "../src/server/lib/rag/vector-search";
+import { createHash } from "node:crypto";
+
+function computeKbVersion(): string {
+  const payload = JSON.stringify(
+    knowledgeBase.map((doc) => ({
+      content: doc.content,
+      metadata: doc.metadata,
+    })),
+  );
+  const hash = createHash("sha256").update(payload).digest("hex").slice(0, 12);
+  return `kb-${hash}`;
+}
 
 async function main() {
   console.log("========================================");
@@ -69,6 +81,12 @@ async function main() {
   if (errorCount > 0) {
     process.exit(1);
   }
+
+  const kbVersion = computeKbVersion();
+  console.log(`Computed KB version: ${kbVersion}`);
+  console.log(
+    "Runtime caches use this hash automatically unless RAG_KB_VERSION is explicitly set.",
+  );
 }
 
 main().catch((error) => {

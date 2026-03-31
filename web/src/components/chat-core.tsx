@@ -544,6 +544,15 @@ export function ChatCore({
       body: {
         supportsArtifacts: true,
       },
+      prepareSendMessagesRequest({ id, messages }) {
+        return {
+          body: {
+            id,
+            message: messages[messages.length - 1],
+            supportsArtifacts: true,
+          },
+        };
+      },
     }),
     experimental_throttle: 100,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
@@ -561,9 +570,9 @@ export function ChatCore({
     },
     onData(dataPart) {
       if (dataPart.type === "data-suggestion") {
-        const suggestionText = dataPart.data.suggestion;
-        if (suggestionText) {
-          setSuggestion(suggestionText);
+        const parsed = suggestionDataSchema.safeParse(dataPart.data);
+        if (parsed.success && parsed.data.suggestion) {
+          setSuggestion(parsed.data.suggestion);
         }
       }
     },

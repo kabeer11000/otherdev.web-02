@@ -1,4 +1,13 @@
-import { streamText, tool, stepCountIs, createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  stepCountIs,
+  streamText,
+  tool,
+  TypeValidationError,
+  validateUIMessages,
+  type UIMessage,
+} from "ai";
 import { createGroq } from "@ai-sdk/groq";
 import { z } from "zod";
 
@@ -8,14 +17,6 @@ function extractBase64(dataUri: string): string {
   return dataUri.includes(",") ? dataUri.split(",")[1] : dataUri;
 }
 
-// Type for manually converted model messages
-interface ModelMessage {
-  role: "user" | "assistant" | "system";
-  content: Array<
-    | { type: "text"; text: string }
-    | { type: "image"; image: string }
-  >;
-}
 import { generateEmbedding } from "@/server/lib/rag/embeddings";
 import { searchSimilarDocuments } from "@/server/lib/rag/vector-search";
 import {
@@ -28,6 +29,14 @@ import {
   CHAT_MODEL,
   VISION_MODEL,
 } from "./helpers";
+import {
+  getCachedResponse,
+  getCachedRetrievalContext,
+  loadChatMessages,
+  saveChatMessages,
+  setCachedResponse,
+  setCachedRetrievalContext,
+} from "@/server/lib/chat-cache-store";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -119,6 +128,13 @@ const CONVERSATIONAL_PHRASES = new Set([
   "hello",
   "hey",
 ]);
+
+const suggestionDataSchema = z.object({
+  suggestion: z.string(),
+});
+
+const OTHERDEV_DOMAIN_PATTERN =
+  /\b(other\s*dev|otherdev|founder|founders|ossaid|kabeer|karachi|portfolio|project|projects|service|services|case study|contact|website|agency|studio)\b/i;
 
 const SYSTEM_PROMPT = `You are a helpful assistant representing Other Dev, a web development and design studio based in Karachi, Pakistan.
 
@@ -216,6 +232,44 @@ function getAdaptiveThreshold(queryQuality: QueryQuality): number {
   return RAG_SIMILARITY_THRESHOLD;
 }
 
+function shouldUseRag(query: string, queryQuality: QueryQuality): boolean {
+  if (queryQuality.isConversational) return false;
+  return OTHERDEV_DOMAIN_PATTERN.test(query);
+}
+
+function createArtifactTool() {
+  return tool({
+    description:
+      "Create an interactive web artifact that will be displayed in a live preview panel. Supports vanilla HTML/CSS/JS or modern frameworks (React, Vue, Tailwind CSS) via CDN. Use this when the user asks to create, build, make, or generate interactive content like websites, apps, games, visualizations, calculators, forms, dashboards, or any web-based UI. The artifact should be complete, self-contained, and visually polished.",
+    inputSchema: z.object({
+      title: z
+        .string()
+        .max(100)
+        .describe("A short, descriptive title for the artifact"),
+      code: z
+        .string()
+        .max(51200)
+        .describe(
+          "Complete HTML code. Can use modern frameworks via CDN: React, Tailwind CSS, Vue, etc. Include CSS in <style> tags and JavaScript in <script> tags. Must be self-contained and work in a sandboxed iframe.",
+        ),
+      description: z
+        .string()
+        .max(500)
+        .describe(
+          "A brief explanation of what this artifact does and how to use it",
+        ),
+    }),
+    execute: async ({ title, code, description }) => {
+      console.log("[TOOL] createArtifact called:", {
+        title,
+        description,
+        codeLength: code?.length,
+      });
+      return { success: true, title, code, description };
+    },
+  });
+}
+
 interface SimilarDocument {
   similarity: number;
   metadata: { title: string };
@@ -275,46 +329,69 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    const body = await request.json();
-    let { messages: uiMessages, supportsArtifacts } = body;
+    const body = (await request.json()) as {
+      id?: string;
+      message?: UIMessage;
+      messages?: UIMessage[];
+      supportsArtifacts?: boolean;
+    };
 
-    // Validate that messages array exists and has content
-    if (!uiMessages || !Array.isArray(uiMessages) || uiMessages.length === 0) {
-      return createJsonResponse(
-        { error: "No messages provided" },
-        400,
-      );
+    const chatId =
+      typeof body.id === "string" && body.id.trim().length > 0
+        ? body.id
+        : crypto.randomUUID();
+    const supportsArtifacts = body.supportsArtifacts === true;
+
+    let candidateMessages: UIMessage[] = [];
+
+    if (body.message) {
+      const previousMessages = await loadChatMessages(chatId);
+      candidateMessages = [...previousMessages, body.message];
+    } else if (Array.isArray(body.messages)) {
+      candidateMessages = body.messages;
     }
 
-    // Filter out messages without content (can happen with incomplete tool calls)
-    uiMessages = uiMessages.filter((m: any) => {
-      // User messages must have parts with actual content
+    if (candidateMessages.length === 0) {
+      return createJsonResponse({ error: "No messages provided" }, 400);
+    }
+
+    // Filter out malformed empty messages before strict schema validation.
+    candidateMessages = candidateMessages.filter((m) => {
       if (m.role === "user") {
         if (!m.parts || m.parts.length === 0) {
           return false;
         }
-        // Check that at least one part has valid content
-        const hasValidContent = m.parts.some((p: any) => {
-          if (p.type === "text") {
-            return p.text && p.text.trim().length > 0;
-          }
-          if (p.type === "image" || p.type === "file") {
-            return true; // Image/file attachments are valid content
-          }
+        return m.parts.some((p: any) => {
+          if (p.type === "text") return Boolean(p.text?.trim());
+          if (p.type === "image" || p.type === "file") return true;
           return false;
         });
-        return hasValidContent;
       }
-      // Assistant messages must have content or parts
-      return m.content || (m.parts && m.parts.length > 0);
+
+      return Boolean(m.parts && m.parts.length > 0);
     });
 
-    // Ensure we still have at least one user message after filtering
-    if (uiMessages.length === 0 || !uiMessages.some((m: any) => m.role === "user")) {
-      return createJsonResponse(
-        { error: "No valid messages provided" },
-        400,
-      );
+    if (candidateMessages.length === 0) {
+      return createJsonResponse({ error: "No valid messages provided" }, 400);
+    }
+
+    let uiMessages: UIMessage[];
+    try {
+      uiMessages = await validateUIMessages({
+        messages: candidateMessages,
+        dataSchemas: {
+          suggestion: suggestionDataSchema,
+        },
+        tools: {
+          createArtifact: createArtifactTool() as any,
+        },
+      }) as UIMessage[];
+    } catch (error) {
+      if (error instanceof TypeValidationError) {
+        console.error("[VALIDATION] Invalid chat messages:", error.message);
+        return createJsonResponse({ error: "Invalid message payload" }, 400);
+      }
+      throw error;
     }
 
     // Detect if user sent images
@@ -328,7 +405,7 @@ export async function POST(request: Request): Promise<Response> {
 
     // Manually convert UIMessage[] to ModelMessage[] format for Groq
     // convertToModelMessages has issues with file parts and data URIs
-    const modelMessages = uiMessages.map((msg: any) => {
+    const modelMessages: any[] = uiMessages.map((msg: any) => {
       const content: any[] = [];
 
       // Process text parts
@@ -366,10 +443,10 @@ export async function POST(request: Request): Promise<Response> {
     console.log("[API] Using model:", hasImageContent ? VISION_MODEL : CHAT_MODEL);
 
     // Sanitize messages for Groq compatibility
-    const sanitized = modelMessages.map((msg: ModelMessage) => {
+    const sanitized: any[] = modelMessages.map((msg: any) => {
       if (msg.role !== "user" || !Array.isArray(msg.content)) return msg;
 
-      const sanitizedContent = msg.content.map((part) => {
+      const sanitizedContent = msg.content.map((part: any) => {
         // Sanitize text parts
         if (part.type === "text" && typeof part.text === "string") {
           return { ...part, text: sanitizeInput(part.text) };
@@ -379,7 +456,7 @@ export async function POST(request: Request): Promise<Response> {
 
       // Ensure there's always text content (Groq rejects image-only messages)
       const hasText = sanitizedContent.some(
-        (p) => p.type === "text" && p.text && p.text.trim(),
+        (p: any) => p.type === "text" && p.text && p.text.trim(),
       );
 
       if (!hasText) {
@@ -400,26 +477,43 @@ export async function POST(request: Request): Promise<Response> {
     const normalizedQuery = sanitizedQuery.replace(/otherdev/gi, "Other Dev");
 
     const queryQuality = detectQueryQuality(normalizedQuery);
+    const ragEnabled = shouldUseRag(normalizedQuery, queryQuality);
     const enableArtifacts = supportsArtifacts && queryQuality.needsArtifact;
+    const selectedModel = hasImageContent ? VISION_MODEL : CHAT_MODEL;
+    const enableResponseCache =
+      ragEnabled && !hasImageContent && !enableArtifacts;
 
     // Fetch RAG context BEFORE starting stream (must complete before streamText is called)
     let ragContext: string | null = null;
-    if (!queryQuality.isConversational) {
+    if (ragEnabled) {
       try {
-        console.log("[RAG] Starting embedding generation for:", normalizedQuery.slice(0, 50));
-        const queryEmbedding = await generateEmbedding(normalizedQuery);
-        console.log("[RAG] Embedding generated, starting vector search...");
-        const adaptiveThreshold = getAdaptiveThreshold(queryQuality);
-        const similarDocs = await searchSimilarDocuments(
-          queryEmbedding,
-          adaptiveThreshold,
-          RAG_MATCH_COUNT,
-        );
-        console.log("[RAG] Found", similarDocs.length, "documents");
-        ragContext = buildContext(similarDocs, queryQuality);
-        console.log("[RAG] Context built, length:", ragContext.length);
+        const cachedContext = await getCachedRetrievalContext(normalizedQuery);
+        if (cachedContext) {
+          ragContext = cachedContext;
+          console.log("[RAG] Retrieval cache hit");
+        } else {
+          console.log(
+            "[RAG] Starting embedding generation for:",
+            normalizedQuery.slice(0, 50),
+          );
+          const queryEmbedding = await generateEmbedding(normalizedQuery);
+          console.log("[RAG] Embedding generated, starting vector search...");
+          const adaptiveThreshold = getAdaptiveThreshold(queryQuality);
+          const similarDocs = await searchSimilarDocuments(
+            queryEmbedding,
+            adaptiveThreshold,
+            RAG_MATCH_COUNT,
+          );
+          console.log("[RAG] Found", similarDocs.length, "documents");
+          ragContext = buildContext(similarDocs, queryQuality);
+          await setCachedRetrievalContext(normalizedQuery, ragContext);
+          console.log("[RAG] Context built, length:", ragContext.length);
+        }
       } catch (error) {
-        console.error("[RAG] Error during RAG pipeline:", error instanceof Error ? error.message : error);
+        console.error(
+          "[RAG] Error during RAG pipeline:",
+          error instanceof Error ? error.message : error,
+        );
         // Embedding service unavailable — proceed without RAG context
       }
     }
@@ -428,23 +522,66 @@ export async function POST(request: Request): Promise<Response> {
     if (ragContext && sanitized.length > 0) {
       const lastMsg = sanitized[sanitized.length - 1];
       if (lastMsg.role === "user" && Array.isArray(lastMsg.content)) {
-        const textPartIndex = lastMsg.content.findIndex((p: any) => p.type === "text");
+        const textPartIndex = lastMsg.content.findIndex(
+          (p: any) => p.type === "text",
+        );
         if (textPartIndex >= 0) {
-          lastMsg.content[textPartIndex].text = `=== CONTEXT ===\n${ragContext}\n=== END CONTEXT ===\n\n${lastMsg.content[textPartIndex].text}`;
+          const originalText =
+            typeof lastMsg.content[textPartIndex]?.text === "string"
+              ? lastMsg.content[textPartIndex].text
+              : "";
+          lastMsg.content[textPartIndex].text = `=== CONTEXT ===\n${ragContext}\n=== END CONTEXT ===\n\n${originalText}`;
         }
       }
     }
 
-    // Use createUIMessageStream to properly handle data parts
+    let responseTextForCache = "";
+    let responseSuggestionForCache: string | null = null;
+
+    // Use createUIMessageStream to properly handle data parts and persistence mode.
     const stream = createUIMessageStream({
+      originalMessages: uiMessages,
+      onFinish: async ({ messages }) => {
+        await saveChatMessages(chatId, messages as UIMessage[]);
+
+        if (enableResponseCache && responseTextForCache.trim().length > 0) {
+          await setCachedResponse(
+            normalizedQuery,
+            selectedModel,
+            responseTextForCache,
+            responseSuggestionForCache,
+          );
+        }
+      },
       execute: async ({ writer }) => {
+        if (enableResponseCache) {
+          const cached = await getCachedResponse(normalizedQuery, selectedModel);
+          if (cached) {
+            const textId = crypto.randomUUID();
+            writer.write({ type: "start" });
+            writer.write({ type: "text-start", id: textId });
+            writer.write({ type: "text-delta", id: textId, delta: cached.text });
+            writer.write({ type: "text-end", id: textId });
+            if (cached.suggestion) {
+              writer.write({
+                type: "data-suggestion",
+                data: { suggestion: cached.suggestion },
+              });
+            }
+            writer.write({ type: "finish", finishReason: "stop" });
+            responseTextForCache = cached.text;
+            responseSuggestionForCache = cached.suggestion;
+            console.log("[CACHE] Response cache hit");
+            return;
+          }
+        }
+
         let accumulatedText = "";
-        let suggestionExtracted = false;
 
         const result = streamText({
-          model: groqAI(hasImageContent ? VISION_MODEL : CHAT_MODEL),
+          model: groqAI(selectedModel),
           system: SYSTEM_PROMPT,
-          messages: sanitized,
+          messages: sanitized as any,
           temperature: 0.7,
           maxOutputTokens: 1024,
           stopWhen: stepCountIs(5),
@@ -454,53 +591,21 @@ export async function POST(request: Request): Promise<Response> {
             : undefined,
           tools: enableArtifacts
             ? {
-                createArtifact: tool({
-                  description:
-                    "Create an interactive web artifact that will be displayed in a live preview panel. Supports vanilla HTML/CSS/JS or modern frameworks (React, Vue, Tailwind CSS) via CDN. Use this when the user asks to create, build, make, or generate interactive content like websites, apps, games, visualizations, calculators, forms, dashboards, or any web-based UI. The artifact should be complete, self-contained, and visually polished.",
-                  inputSchema: z.object({
-                    title: z
-                      .string()
-                      .max(100)
-                      .describe("A short, descriptive title for the artifact"),
-                    code: z
-                      .string()
-                      .max(51200)
-                      .describe(
-                        "Complete HTML code. Can use modern frameworks via CDN: React, Tailwind CSS, Vue, etc. Include CSS in <style> tags and JavaScript in <script> tags. Must be self-contained and work in a sandboxed iframe."
-                      ),
-                    description: z
-                      .string()
-                      .max(500)
-                      .describe("A brief explanation of what this artifact does and how to use it"),
-                  }),
-                  execute: async ({ title, code, description }) => {
-                    console.log("[TOOL] createArtifact called:", {
-                      title,
-                      description,
-                      codeLength: code?.length,
-                    });
-                    return { success: true, title, code, description };
-                  },
-                }),
+                createArtifact: createArtifactTool(),
               }
             : {},
-          // AI SDK timeout configuration (total timeout for entire operation)
           timeout: {
-            totalMs: 30000, // 30s for full response
+            totalMs: 30000,
           },
-          // Transform stream to accumulate text for suggestion extraction
           experimental_transform: () =>
             new TransformStream({
               transform(chunk, controller) {
                 controller.enqueue(chunk);
-
-                // Accumulate text to detect suggestion at the end
                 if (chunk.type === "text-delta") {
                   accumulatedText += chunk.text;
                 }
               },
             }),
-          // AI SDK onFinish callback for usage tracking and logging
           onFinish: async (event) => {
             console.log("[STREAM] Finished:", {
               finishReason: event.finishReason,
@@ -510,29 +615,24 @@ export async function POST(request: Request): Promise<Response> {
           },
         });
 
-        // Pipe the streamText output to the UI message writer
-        for await (const chunk of result.toUIMessageStream()) {
-          writer.write(chunk);
-        }
+        writer.merge(result.toUIMessageStream());
+        await result.consumeStream();
 
-        // Extract suggestion after stream completes and write as data part
-        // Only extract if not already done (prevents duplicates)
-        if (!suggestionExtracted) {
-          const suggestionMatch = accumulatedText.match(/\n?\s*SUGGESTION:\s*(.+)$/i);
-          if (suggestionMatch) {
-            const suggestion = suggestionMatch[1].trim();
-            if (suggestion) {
-              writer.write({
-                type: "data-suggestion",
-                data: { suggestion },
-              });
-            }
-            suggestionExtracted = true;
-          }
+        const { cleanText, suggestion } = extractSuggestion(accumulatedText);
+        if (suggestion) {
+          writer.write({
+            type: "data-suggestion",
+            data: { suggestion },
+          });
         }
+        responseTextForCache = cleanText || accumulatedText;
+        responseSuggestionForCache = suggestion;
       },
       onError: (error) => {
-        console.error("[STREAM] Error:", error instanceof Error ? error.message : error);
+        console.error(
+          "[STREAM] Error:",
+          error instanceof Error ? error.message : error,
+        );
         return "An error occurred while processing your request.";
       },
     });

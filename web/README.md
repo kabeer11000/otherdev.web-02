@@ -135,7 +135,19 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 # RAG Configuration
 RAG_SIMILARITY_THRESHOLD=0.1
 RAG_MATCH_COUNT=10
+RAG_MAX_MESSAGE_LENGTH=500
+CHAT_HISTORY_TTL_SECONDS=1209600
+RAG_RETRIEVAL_CACHE_TTL_SECONDS=21600
+CHAT_RESPONSE_CACHE_TTL_SECONDS=86400
 ```
+
+### RAG Cache Invalidation
+
+- Redis cache keys include a KB version for retrieval/response caching.
+- By default, KB version is computed automatically from `src/lib/knowledge-base.ts` content.
+- Run `bun run ingest` after changing `src/lib/knowledge-base.ts`.
+- If you want manual control, set `RAG_KB_VERSION` to override the auto-computed hash.
+- Caches are effectively invalidated when the KB changes because key version changes.
 
 ## Project Structure
 
