@@ -151,6 +151,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 75vw, 50vw"
                     className="w-full h-auto object-contain rounded-[5px] px-6"
                     unoptimized
+                    priority={index === 0}
                   />
                 </a>
               ))}
