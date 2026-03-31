@@ -9,6 +9,8 @@ docs
 # testing
 coverage
 *.lcov
+AGENTS.md
+tasks
 .playwright-mcp
 
 # next.js
