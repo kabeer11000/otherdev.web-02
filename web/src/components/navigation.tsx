@@ -4,11 +4,16 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ContactDialog } from "@/components/contact-dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const ContactDialog = dynamic(
+  () => import("@/components/contact-dialog").then((mod) => mod.ContactDialog),
+  { ssr: false },
+);
 
 interface NavigationProps {
   variant?: "default" | "ai";

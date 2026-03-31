@@ -5,8 +5,9 @@ import { TenantProvider } from "@/lib/tenant-context";
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import localFont from "next/font/local";
-import { GoogleAnalytics } from "@next/third-parties/google";
 import { headers } from "next/headers";
+
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 // Lazy load ChatWidget - client-only component
 const ChatWidget = dynamic(() => import("@/components/chat-widget").then((mod) => mod.ChatWidget), {
