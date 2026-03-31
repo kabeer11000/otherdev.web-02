@@ -21,6 +21,14 @@ describe("chat-routing", () => {
     expect(shouldUseRagFromDecision(decision)).toBe(true);
   });
 
+  it("uses RAG for weak OtherDev domain signals", () => {
+    const query = "What services do you offer?";
+    const decision = classifyChatRoute(query, detectQueryQuality(query));
+
+    expect(decision.route).toBe("otherdev_no_rag");
+    expect(shouldUseRagFromDecision(decision)).toBe(true);
+  });
+
   it("asks for clarification on mixed domain + non-domain prompts", () => {
     const query =
       "Can OtherDev build a SaaS app and what is the latest update on Iran war news?";

@@ -41,6 +41,7 @@ import {
   classifyChatRoute,
   detectQueryQuality,
   shouldUseRagFromDecision,
+  type ChatRoute,
   type QueryQuality,
 } from "@/server/lib/chat-routing";
 
@@ -163,6 +164,48 @@ RULES
 
 function sanitizeInput(text: string): string {
   return text.replace(INJECTION_PATTERN, "").slice(0, RAG_MAX_MESSAGE_LENGTH);
+}
+
+function extractUserText(message: UIMessage | undefined): string {
+  if (!message || message.role !== "user" || !Array.isArray(message.parts)) {
+    return "";
+  }
+  return message.parts
+    .filter((part: any) => part.type === "text")
+    .map((part: any) => part.text)
+    .join(" ");
+}
+
+function isDomainRoute(route: ChatRoute): boolean {
+  return route === "otherdev_rag" || route === "otherdev_no_rag";
+}
+
+function scopeMessagesForRoute(
+  messages: UIMessage[],
+  activeRoute: ChatRoute,
+): UIMessage[] {
+  if (messages.length <= 1) return messages;
+
+  const targetIsDomain = isDomainRoute(activeRoute);
+  let startIndex = 0;
+
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const msg = messages[i];
+    if (msg.role !== "user") continue;
+
+    const rawUserText = extractUserText(msg);
+    const query = sanitizeInput(rawUserText).replace(/otherdev/gi, "Other Dev");
+    const decision = classifyChatRoute(query, detectQueryQuality(query));
+    const decisionIsDomain = isDomainRoute(decision.route);
+
+    if (decisionIsDomain !== targetIsDomain) {
+      startIndex = i + 1;
+      break;
+    }
+  }
+
+  const scoped = messages.slice(startIndex);
+  return scoped.length > 0 ? scoped : [messages[messages.length - 1]];
 }
 
 // Extract suggestion from text and return clean text + suggestion
@@ -348,18 +391,79 @@ export async function POST(request: Request): Promise<Response> {
       throw error;
     }
 
+    // Extract text from the last user message for routing and RAG.
+    const lastUserMessage = uiMessages.filter((m: any) => m.role === "user").pop();
+    const lastUserText = extractUserText(lastUserMessage);
+    const sanitizedQuery = sanitizeInput(lastUserText);
+    const normalizedQuery = sanitizedQuery.replace(/otherdev/gi, "Other Dev");
+
+    const queryQuality = detectQueryQuality(normalizedQuery);
+    const routeDecision = classifyChatRoute(normalizedQuery, queryQuality);
+    const ragEnabled = shouldUseRagFromDecision(routeDecision);
+    const enableArtifacts = supportsArtifacts && queryQuality.needsArtifact;
+    const selectedPrompt =
+      routeDecision.route === "general_chat"
+        ? SYSTEM_PROMPT_GENERAL
+        : SYSTEM_PROMPT_DOMAIN;
+    const scopedUIMessages = scopeMessagesForRoute(uiMessages, routeDecision.route);
+
+    console.log("[ROUTER] decision", {
+      route: routeDecision.route,
+      confidence: routeDecision.confidence,
+      reason: routeDecision.reason,
+      domainHits: routeDecision.domainHits,
+      nonDomainHits: routeDecision.nonDomainHits,
+      ragUsed: ragEnabled,
+      enableArtifacts,
+      originalMessageCount: uiMessages.length,
+      scopedMessageCount: scopedUIMessages.length,
+    });
+
+    if (routeDecision.route === "clarify") {
+      const clarifyMessage =
+        "Do you want information about Other Dev specifically, or a general answer? Please clarify in one short line.";
+      const assistantMessage: UIMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        parts: [{ type: "text", text: clarifyMessage }],
+      };
+
+      await saveChatMessages(chatId, [...uiMessages, assistantMessage]);
+
+      const stream = createUIMessageStream({
+        originalMessages: uiMessages,
+        execute: ({ writer }) => {
+          const textId = crypto.randomUUID();
+          writer.write({ type: "start" });
+          writer.write({ type: "text-start", id: textId });
+          writer.write({ type: "text-delta", id: textId, delta: clarifyMessage });
+          writer.write({ type: "text-end", id: textId });
+          writer.write({ type: "finish", finishReason: "stop" });
+        },
+      });
+
+      return createUIMessageStreamResponse({
+        stream,
+        headers: {
+          "X-RateLimit-Limit": REQUESTS_PER_WINDOW.toString(),
+          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+          "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
+        },
+      });
+    }
+
     // Detect if user sent images
-    const hasImageContent = uiMessages.some((m: any) =>
+    const hasImageContent = scopedUIMessages.some((m: any) =>
       m.parts?.some((p: any) => p.type === "image") ||
       m.parts?.some((p: any) => p.type === "file" && p.mediaType?.startsWith("image/"))
     );
 
     console.log("[API] hasImageContent:", hasImageContent);
-    console.log("[API] uiMessages count:", uiMessages.length);
+    console.log("[API] uiMessages count:", scopedUIMessages.length);
 
     // Manually convert UIMessage[] to ModelMessage[] format for Groq
     // convertToModelMessages has issues with file parts and data URIs
-    const modelMessages: any[] = uiMessages.map((msg: any) => {
+    const modelMessages: any[] = scopedUIMessages.map((msg: any) => {
       const content: any[] = [];
 
       // Process text parts
@@ -420,70 +524,8 @@ export async function POST(request: Request): Promise<Response> {
       return { ...msg, content: sanitizedContent };
     });
 
-    // Extract text from the last user message for RAG
-    const lastUserMessage = uiMessages.filter((m: any) => m.role === "user").pop();
-    const lastUserText = lastUserMessage?.parts
-      ?.filter((p: any) => p.type === "text")
-      .map((p: any) => p.text)
-      .join(" ") || "";
-
-    const sanitizedQuery = sanitizeInput(lastUserText);
-    const normalizedQuery = sanitizedQuery.replace(/otherdev/gi, "Other Dev");
-
-    const queryQuality = detectQueryQuality(normalizedQuery);
-    const routeDecision = classifyChatRoute(normalizedQuery, queryQuality);
-    const ragEnabled = shouldUseRagFromDecision(routeDecision);
-    const enableArtifacts = supportsArtifacts && queryQuality.needsArtifact;
     const selectedModel = hasImageContent ? VISION_MODEL : CHAT_MODEL;
-    const enableResponseCache =
-      ragEnabled && !hasImageContent && !enableArtifacts;
-    const selectedPrompt =
-      routeDecision.route === "general_chat"
-        ? SYSTEM_PROMPT_GENERAL
-        : SYSTEM_PROMPT_DOMAIN;
-
-    console.log("[ROUTER] decision", {
-      route: routeDecision.route,
-      confidence: routeDecision.confidence,
-      reason: routeDecision.reason,
-      domainHits: routeDecision.domainHits,
-      nonDomainHits: routeDecision.nonDomainHits,
-      ragUsed: ragEnabled,
-      enableArtifacts,
-    });
-
-    if (routeDecision.route === "clarify") {
-      const clarifyMessage =
-        "Do you want information about Other Dev specifically, or a general answer? Please clarify in one short line.";
-      const assistantMessage: UIMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        parts: [{ type: "text", text: clarifyMessage }],
-      };
-
-      await saveChatMessages(chatId, [...uiMessages, assistantMessage]);
-
-      const stream = createUIMessageStream({
-        originalMessages: uiMessages,
-        execute: ({ writer }) => {
-          const textId = crypto.randomUUID();
-          writer.write({ type: "start" });
-          writer.write({ type: "text-start", id: textId });
-          writer.write({ type: "text-delta", id: textId, delta: clarifyMessage });
-          writer.write({ type: "text-end", id: textId });
-          writer.write({ type: "finish", finishReason: "stop" });
-        },
-      });
-
-      return createUIMessageStreamResponse({
-        stream,
-        headers: {
-          "X-RateLimit-Limit": REQUESTS_PER_WINDOW.toString(),
-          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
-          "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
-        },
-      });
-    }
+    const enableResponseCache = ragEnabled && !hasImageContent && !enableArtifacts;
 
     // Fetch RAG context BEFORE starting stream (must complete before streamText is called)
     let ragContext: string | null = null;

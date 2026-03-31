@@ -194,5 +194,7 @@ export function classifyChatRoute(
 }
 
 export function shouldUseRagFromDecision(decision: ChatRouteDecision): boolean {
-  return decision.route === "otherdev_rag";
+  return (
+    decision.route === "otherdev_rag" || decision.route === "otherdev_no_rag"
+  );
 }
