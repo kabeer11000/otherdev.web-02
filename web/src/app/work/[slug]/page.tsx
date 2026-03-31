@@ -146,11 +146,10 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
                   <Image
                     src={mediaUrl}
                     alt={`${project.title} - Image ${index + 1}`}
-                    fill
+                    width={800}
+                    height={800}
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 75vw, 50vw"
-                    className={cn(
-                      "w-full h-auto object-contain rounded-[5px] px-6",
-                    )}
+                    className="w-full h-auto object-contain rounded-[5px] px-6"
                     unoptimized
                   />
                 </a>
