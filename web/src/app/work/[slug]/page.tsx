@@ -97,7 +97,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
       <main className="px-3">
         <div className="pt-[69px]">
-          <h1 className="text-[22.7px] leading-[28px] tracking-[-0.48px] font-bold text-black mb-[12px]">
+          <h1 className="text-[28px] sm:text-[30px] leading-[1.1] tracking-[-0.48px] font-bold text-black mb-[12px]">
             {project.title}
           </h1>
 
@@ -159,7 +159,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         )}
 
         <div className="mb-[10.63px]">
-          <h2 className="text-[11.4px] leading-[14px] tracking-[-0.24px] font-normal text-[#686868]">
+          <h2 className="text-[13px] sm:text-[14px] leading-[18px] tracking-[-0.24px] font-normal text-[#686868]">
             Related Projects
           </h2>
         </div>
@@ -178,6 +178,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
                   description={relatedProject.description}
                   variant="work"
                   showText={true}
+                  sizes="(max-width: 640px) 320px, 600px"
                 />
               </div>
             ))}
