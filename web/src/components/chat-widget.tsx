@@ -49,6 +49,7 @@ export function ChatWidget() {
             alt="Other Dev AI"
             width={32}
             height={32}
+            loading="eager"
             className="h-8 w-8 object-contain"
           />
         </button>
