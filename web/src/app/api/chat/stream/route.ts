@@ -37,6 +37,12 @@ import {
   setCachedResponse,
   setCachedRetrievalContext,
 } from "@/server/lib/chat-cache-store";
+import {
+  classifyChatRoute,
+  detectQueryQuality,
+  shouldUseRagFromDecision,
+  type QueryQuality,
+} from "@/server/lib/chat-routing";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -105,38 +111,11 @@ const RAG_MATCH_COUNT = Number.parseInt(process.env.RAG_MATCH_COUNT || "5", 10);
 const INJECTION_PATTERN =
   /\[INST\]|\[\/INST\]|<\|im_start\|>|<\|im_end\|>|<\|system\|>|<\|user\|>|<\|assistant\|>/gi;
 
-const ARTIFACT_INTENT_PATTERN =
-  /\b(build|create|make|generate|write|design|code|demo|example|template|prototype|app|website|calculator|game|form|dashboard|visualization|chart|component|widget)\b/;
-
-const CONVERSATIONAL_PHRASES = new Set([
-  "ok",
-  "okay",
-  "sure",
-  "thanks",
-  "thank you",
-  "yes",
-  "no",
-  "yeah",
-  "yep",
-  "nope",
-  "cool",
-  "nice",
-  "great",
-  "good",
-  "alright",
-  "hi",
-  "hello",
-  "hey",
-]);
-
 const suggestionDataSchema = z.object({
   suggestion: z.string(),
 });
 
-const OTHERDEV_DOMAIN_PATTERN =
-  /\b(other\s*dev|otherdev|founder|founders|ossaid|kabeer|karachi|portfolio|project|projects|service|services|case study|contact|website|agency|studio)\b/i;
-
-const SYSTEM_PROMPT = `You are a helpful assistant representing Other Dev, a web development and design studio based in Karachi, Pakistan.
+const SYSTEM_PROMPT_DOMAIN = `You are a helpful assistant representing Other Dev, a web development and design studio based in Karachi, Pakistan.
 
 Answer questions about Other Dev's projects, services, technologies, and capabilities in a professional, conversational tone.
 
@@ -171,6 +150,17 @@ CONTACT INFORMATION
 
 Be professional, friendly, and focused on helping potential clients learn about Other Dev. Always be helpful and engaging, never claim to lack information.`;
 
+const SYSTEM_PROMPT_GENERAL = `You are a helpful, neutral AI assistant.
+
+Provide direct, accurate answers for general topics in a concise conversational tone.
+
+RULES
+1. Do not pretend to have live access to breaking events unless the user provides context.
+2. For high-stakes or time-sensitive claims (news, wars, laws, finance), ask a brief clarification if needed and avoid fabricated specifics.
+3. Keep answers practical and clear.
+4. For short conversational inputs, reply naturally.
+5. After your main response, add a new line with "SUGGESTION:" followed by one short next question from the user's perspective (max 60 characters).`;
+
 function sanitizeInput(text: string): string {
   return text.replace(INJECTION_PATTERN, "").slice(0, RAG_MAX_MESSAGE_LENGTH);
 }
@@ -188,37 +178,6 @@ function extractSuggestion(text: string): { cleanText: string; suggestion: strin
   return { cleanText, suggestion };
 }
 
-interface QueryQuality {
-  isLowQuality: boolean;
-  isConversational: boolean;
-  tokenCount: number;
-  hasRepeatedWords: boolean;
-  needsArtifact: boolean;
-}
-
-function detectQueryQuality(query: string): QueryQuality {
-  const normalized = query.toLowerCase().trim();
-  const tokens = normalized.split(/\s+/).filter((t) => t.length > 0);
-  const uniqueTokens = new Set(tokens);
-
-  const isConversational =
-    CONVERSATIONAL_PHRASES.has(normalized) ||
-    tokens.every((t) => CONVERSATIONAL_PHRASES.has(t));
-
-  const hasRepeatedWords =
-    tokens.length > 0 && uniqueTokens.size < tokens.length * 0.6;
-  const isLowQuality =
-    tokens.length < 3 || hasRepeatedWords || isConversational;
-
-  return {
-    isLowQuality,
-    isConversational,
-    tokenCount: tokens.length,
-    hasRepeatedWords,
-    needsArtifact: ARTIFACT_INTENT_PATTERN.test(normalized),
-  };
-}
-
 function getAdaptiveThreshold(queryQuality: QueryQuality): number {
   if (queryQuality.isConversational) {
     return RAG_SIMILARITY_THRESHOLD * 0.5;
@@ -230,11 +189,6 @@ function getAdaptiveThreshold(queryQuality: QueryQuality): number {
     return RAG_SIMILARITY_THRESHOLD * 0.8;
   }
   return RAG_SIMILARITY_THRESHOLD;
-}
-
-function shouldUseRag(query: string, queryQuality: QueryQuality): boolean {
-  if (queryQuality.isConversational) return false;
-  return OTHERDEV_DOMAIN_PATTERN.test(query);
 }
 
 function createArtifactTool() {
@@ -477,19 +431,71 @@ export async function POST(request: Request): Promise<Response> {
     const normalizedQuery = sanitizedQuery.replace(/otherdev/gi, "Other Dev");
 
     const queryQuality = detectQueryQuality(normalizedQuery);
-    const ragEnabled = shouldUseRag(normalizedQuery, queryQuality);
+    const routeDecision = classifyChatRoute(normalizedQuery, queryQuality);
+    const ragEnabled = shouldUseRagFromDecision(routeDecision);
     const enableArtifacts = supportsArtifacts && queryQuality.needsArtifact;
     const selectedModel = hasImageContent ? VISION_MODEL : CHAT_MODEL;
     const enableResponseCache =
       ragEnabled && !hasImageContent && !enableArtifacts;
+    const selectedPrompt =
+      routeDecision.route === "general_chat"
+        ? SYSTEM_PROMPT_GENERAL
+        : SYSTEM_PROMPT_DOMAIN;
+
+    console.log("[ROUTER] decision", {
+      route: routeDecision.route,
+      confidence: routeDecision.confidence,
+      reason: routeDecision.reason,
+      domainHits: routeDecision.domainHits,
+      nonDomainHits: routeDecision.nonDomainHits,
+      ragUsed: ragEnabled,
+      enableArtifacts,
+    });
+
+    if (routeDecision.route === "clarify") {
+      const clarifyMessage =
+        "Do you want information about Other Dev specifically, or a general answer? Please clarify in one short line.";
+      const assistantMessage: UIMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        parts: [{ type: "text", text: clarifyMessage }],
+      };
+
+      await saveChatMessages(chatId, [...uiMessages, assistantMessage]);
+
+      const stream = createUIMessageStream({
+        originalMessages: uiMessages,
+        execute: ({ writer }) => {
+          const textId = crypto.randomUUID();
+          writer.write({ type: "start" });
+          writer.write({ type: "text-start", id: textId });
+          writer.write({ type: "text-delta", id: textId, delta: clarifyMessage });
+          writer.write({ type: "text-end", id: textId });
+          writer.write({ type: "finish", finishReason: "stop" });
+        },
+      });
+
+      return createUIMessageStreamResponse({
+        stream,
+        headers: {
+          "X-RateLimit-Limit": REQUESTS_PER_WINDOW.toString(),
+          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+          "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
+        },
+      });
+    }
 
     // Fetch RAG context BEFORE starting stream (must complete before streamText is called)
     let ragContext: string | null = null;
+    let retrievalCacheHit = false;
+    let retrievalDocCount = 0;
+    const ragStartTimeMs = Date.now();
     if (ragEnabled) {
       try {
         const cachedContext = await getCachedRetrievalContext(normalizedQuery);
         if (cachedContext) {
           ragContext = cachedContext;
+          retrievalCacheHit = true;
           console.log("[RAG] Retrieval cache hit");
         } else {
           console.log(
@@ -504,6 +510,7 @@ export async function POST(request: Request): Promise<Response> {
             adaptiveThreshold,
             RAG_MATCH_COUNT,
           );
+          retrievalDocCount = similarDocs.length;
           console.log("[RAG] Found", similarDocs.length, "documents");
           ragContext = buildContext(similarDocs, queryQuality);
           await setCachedRetrievalContext(normalizedQuery, ragContext);
@@ -517,6 +524,18 @@ export async function POST(request: Request): Promise<Response> {
         // Embedding service unavailable — proceed without RAG context
       }
     }
+
+    console.log("[TELEMETRY] chat-route", {
+      routeDecision: routeDecision.route,
+      routeConfidence: routeDecision.confidence,
+      ragUsed: ragEnabled,
+      ragContextLength: ragContext?.length ?? 0,
+      retrievalCacheHit,
+      retrievalDocCount,
+      retrievalLatencyMs: ragEnabled ? Date.now() - ragStartTimeMs : 0,
+      topK: RAG_MATCH_COUNT,
+      model: selectedModel,
+    });
 
     // Inject RAG context into the last user message
     if (ragContext && sanitized.length > 0) {
@@ -580,7 +599,7 @@ export async function POST(request: Request): Promise<Response> {
 
         const result = streamText({
           model: groqAI(selectedModel),
-          system: SYSTEM_PROMPT,
+          system: selectedPrompt,
           messages: sanitized as any,
           temperature: 0.7,
           maxOutputTokens: 1024,
