@@ -54,6 +54,7 @@ interface ProjectCardProps extends VariantProps<typeof cardVariants> {
   image: string;
   description?: string;
   showText?: boolean;
+  priority?: boolean;
 }
 
 export function ProjectCard({
@@ -63,6 +64,7 @@ export function ProjectCard({
   description,
   variant,
   showText = false,
+  priority = false,
 }: ProjectCardProps) {
   const showHoverTitle = variant === "home" || variant === "broll";
   const [isHovered, setIsHovered] = useState(false);
@@ -97,6 +99,7 @@ export function ProjectCard({
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
               className={imageVariants({ variant })}
+              priority={priority}
             />
           </div>
         </div>

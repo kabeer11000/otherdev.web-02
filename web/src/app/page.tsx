@@ -79,7 +79,7 @@ export default function Home() {
           </p>
         </div>
         <div className="mt-[30px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[12px] gap-y-[15px]">
-          {data.map((project) => (
+          {data.map((project, index) => (
             <ProjectCard
               key={project.id}
               title={project.title}
@@ -87,6 +87,7 @@ export default function Home() {
               image={project.image}
               description={project.description}
               variant={"isPlaylistOrImage" in project ? "broll" : "home"}
+              priority={index < 8}
             />
           ))}
         </div>
