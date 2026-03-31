@@ -79,7 +79,7 @@ export function Navigation({
                     "flex items-center bg-transparent gap-1.5 rounded-full",
                   )}
                 >
-                  <Image src="/otherdev-chat-logo.svg" alt="Other Dev" width={16} height={16} className="object-contain" priority />
+                  <Image src="/otherdev-chat-logo.svg" alt="Other Dev" width={16} height={16} className="object-contain" priority style={{ width: "auto", height: "auto" }} />
                 </Button>
               ) : (
                 <Button
@@ -284,7 +284,7 @@ export function Navigation({
               </Button>
 
               <Link href="/" data-slot="nav-item">
-                <Image src="/otherdev-chat-logo.svg" alt="Other Dev" width={16} height={16} className="mr-2 group-hover:opacity-0 object-contain rounded-circle" priority />
+                <Image src="/otherdev-chat-logo.svg" alt="Other Dev" width={16} height={16} className="mr-2 group-hover:opacity-0 object-contain rounded-circle" priority style={{ width: "auto", height: "auto" }} />
               </Link>
             </div>
           ) : (
