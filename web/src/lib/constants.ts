@@ -50,8 +50,8 @@ export const SUGGESTED_PROMPTS = [
       "Provide a detailed breakdown of Other Dev's technology stack and development approach. Include:\n- Frontend technologies and frameworks (React, Next.js, TypeScript, etc.)\n- Backend technologies and infrastructure\n- Design and prototyping tools\n- Development workflows and methodologies\n- Quality assurance and testing approaches\n- Deployment and DevOps practices\nExplain why these technologies were chosen and how they benefit clients' projects.",
   },
   {
-    label: 'Build a portfolio website',
+    label: 'What are the latest AI releases this week?',
     prompt:
-      'Build me a complete, interactive portfolio website using React and Tailwind CSS. Create:\n- A stunning hero section with animated introduction and gradient backgrounds\n- An about section with animated skill cards\n- A projects showcase with interactive hover effects and modal previews\n- A working contact form with validation\n- Smooth scroll animations and modern transitions\n- Glass morphism effects and modern UI design\n- Fully responsive layout that works beautifully on all devices\nUse React from CDN with Babel standalone for JSX, and Tailwind CSS from CDN. Make it visually impressive and production-ready.',
+      'Search the web for the latest AI and technology news from this week. Provide current headlines, recent product launches, and any breaking announcements from major companies. Include source links and dates to show the information is up to date.',
   },
 ] as const
