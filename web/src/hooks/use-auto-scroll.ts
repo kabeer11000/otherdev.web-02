@@ -1,43 +1,43 @@
-"use client";
+'use client'
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react'
 
 export function useAutoScroll(messageCount: number) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-  const userScrolledRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
+  const userScrolledRef = useRef(false)
 
   const scrollToBottom = () => {
     if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
-      setShouldAutoScroll(true);
-      userScrolledRef.current = false;
+      containerRef.current.scrollTop = containerRef.current.scrollHeight
+      setShouldAutoScroll(true)
+      userScrolledRef.current = false
     }
-  };
+  }
 
   const handleScroll = () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) return
 
-    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 50
 
     if (!isAtBottom && !userScrolledRef.current) {
-      userScrolledRef.current = true;
+      userScrolledRef.current = true
     }
 
-    setShouldAutoScroll(isAtBottom);
-  };
+    setShouldAutoScroll(isAtBottom)
+  }
 
   const handleTouchStart = () => {
-    userScrolledRef.current = true;
-  };
+    userScrolledRef.current = true
+  }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — trigger on messageCount only, read current scroll state without re-subscribing
   useEffect(() => {
     if (shouldAutoScroll && !userScrolledRef.current) {
-      scrollToBottom();
+      scrollToBottom()
     }
-  }, [messageCount]);
+  }, [messageCount])
 
   return {
     containerRef,
@@ -45,5 +45,5 @@ export function useAutoScroll(messageCount: number) {
     handleScroll,
     shouldAutoScroll,
     handleTouchStart,
-  };
+  }
 }

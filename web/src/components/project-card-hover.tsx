@@ -1,51 +1,51 @@
-"use client";
+'use client'
 
-import Image from "next/image";
-import Link from "next/link";
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { cva } from "class-variance-authority";
+import { cva } from 'class-variance-authority'
+import { AnimatePresence, motion } from 'motion/react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useState } from 'react'
 
 const cardVariants = cva(
-  "relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center",
+  'relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center',
   {
     variants: {
       variant: {
-        home: "bg-stone-200 -hover:shadow-lg",
-        broll: "",
+        home: 'bg-stone-200 -hover:shadow-lg',
+        broll: '',
       },
     },
-    defaultVariants: { variant: "home" },
-  },
-);
+    defaultVariants: { variant: 'home' },
+  }
+)
 
-const imageContainerVariants = cva("relative w-full h-full bg-stone-200", {
+const imageContainerVariants = cva('relative w-full h-full bg-stone-200', {
   variants: {
     variant: {
-      home: "px-[24px] py-[36px]",
-      broll: "",
+      home: 'px-[24px] py-[36px]',
+      broll: '',
     },
   },
-  defaultVariants: { variant: "home" },
-});
+  defaultVariants: { variant: 'home' },
+})
 
-const imageVariants = cva("transition-transform duration-300", {
+const imageVariants = cva('transition-transform duration-300', {
   variants: {
     variant: {
-      home: "object-contain group-hover:scale-[1.02] p-6",
-      broll: "object-cover",
+      home: 'object-contain group-hover:scale-[1.02] p-6',
+      broll: 'object-cover',
     },
   },
-  defaultVariants: { variant: "home" },
-});
+  defaultVariants: { variant: 'home' },
+})
 
 interface ProjectCardHoverProps {
-  title: string;
-  slug: string;
-  image: string;
-  variant: "home" | "broll";
-  priority?: boolean;
-  sizes?: string;
+  title: string
+  slug: string
+  image: string
+  variant: 'home' | 'broll'
+  priority?: boolean
+  sizes?: string
 }
 
 export function ProjectCardHover({
@@ -54,17 +54,17 @@ export function ProjectCardHover({
   image,
   variant,
   priority = false,
-  sizes = "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw",
+  sizes = '(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw',
 }: ProjectCardHoverProps) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 
   return (
     <>
       <Link
-        href={variant === "broll" ? (slug ?? "#") : `/work/${slug}`}
+        href={variant === 'broll' ? (slug ?? '#') : `/work/${slug}`}
         className="block group"
-        onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
+        onMouseMove={e => setMousePosition({ x: e.clientX, y: e.clientY })}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -88,7 +88,7 @@ export function ProjectCardHover({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             className="fixed pointer-events-none z-50"
             style={{
               left: `${mousePosition.x + 15}px`,
@@ -104,5 +104,5 @@ export function ProjectCardHover({
         )}
       </AnimatePresence>
     </>
-  );
+  )
 }

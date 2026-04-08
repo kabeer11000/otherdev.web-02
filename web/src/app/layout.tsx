@@ -1,90 +1,90 @@
-import type { Metadata, Viewport } from "next";
-import "./globals.css";
-import { TRPCProvider } from "@/components/providers";
-import { TenantProvider } from "@/lib/tenant-context";
-import dynamic from "next/dynamic";
-import { Suspense } from "react";
-import localFont from "next/font/local";
+import type { Metadata, Viewport } from 'next'
+import './globals.css'
 
-import { GoogleAnalytics } from "@next/third-parties/google";
+import { GoogleAnalytics } from '@next/third-parties/google'
+import dynamic from 'next/dynamic'
+import localFont from 'next/font/local'
+import { Suspense } from 'react'
+import { TRPCProvider } from '@/components/providers'
+import { TenantProvider } from '@/lib/tenant-context'
 
 // Lazy load ChatWidget - client-only component
-const ChatWidget = dynamic(() => import("@/components/chat-widget").then((mod) => mod.ChatWidget), {
+const ChatWidget = dynamic(() => import('@/components/chat-widget').then(mod => mod.ChatWidget), {
   loading: () => null,
-});
+})
 
 const twkLausanne = localFont({
   src: [
     {
-      path: "../../public/fonts/TWKLausanne/TWKLausanne-200 (1).woff2",
-      weight: "200",
+      path: '../../public/fonts/TWKLausanne/TWKLausanne-200 (1).woff2',
+      weight: '200',
     },
     {
-      path: "../../public/fonts/TWKLausanne/TWKLausanne-300-1.woff2",
-      weight: "300",
+      path: '../../public/fonts/TWKLausanne/TWKLausanne-300-1.woff2',
+      weight: '300',
     },
     {
-      path: "../../public/fonts/TWKLausanne/TWKLausanne-400.woff2",
-      weight: "400",
+      path: '../../public/fonts/TWKLausanne/TWKLausanne-400.woff2',
+      weight: '400',
     },
   ],
-  variable: "--twk-lausanne",
-  display: "swap",
-});
+  variable: '--twk-lausanne',
+  display: 'swap',
+})
 
 const queensCompressed = localFont({
   src: [
     {
-      path: "../../public/fonts/QueensCompressed/QueensCompressed_W-Thin.woff2",
-      weight: "100",
+      path: '../../public/fonts/QueensCompressed/QueensCompressed_W-Thin.woff2',
+      weight: '100',
     },
     {
-      path: "../../public/fonts/QueensCompressed/QueensCompressed_W-Light.woff2",
-      weight: "300",
+      path: '../../public/fonts/QueensCompressed/QueensCompressed_W-Light.woff2',
+      weight: '300',
     },
   ],
-  variable: "--queens-compressed",
-  display: "swap",
-});
+  variable: '--queens-compressed',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://otherdev.com"),
-  title: "Other Dev",
-  description: "Digital platforms for pioneering creatives",
+  metadataBase: new URL('https://otherdev.com'),
+  title: 'Other Dev',
+  description: 'Digital platforms for pioneering creatives',
   robots: {
     index: true,
     follow: true,
     googleBot: {
       index: true,
       follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
     },
   },
   icons: {
-    icon: "/icon.png",
-    shortcut: "/icon.png",
-    apple: "/icon.png",
+    icon: '/icon.png',
+    shortcut: '/icon.png',
+    apple: '/icon.png',
   },
-};
+}
 
 export const viewport: Viewport = {
-  width: "device-width",
+  width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-};
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html
       lang="en"
       className={`${twkLausanne.variable} ${queensCompressed.variable}`}
-      style={{ colorScheme: "light dark" }}
+      style={{ colorScheme: 'light dark' }}
     >
       <head>
         {/* Favicon - Multiple sizes for optimal display */}
@@ -105,5 +105,5 @@ export default function RootLayout({
         <GoogleAnalytics gaId="G-YXVG798Y18" />
       </body>
     </html>
-  );
+  )
 }

@@ -1,36 +1,41 @@
-import { useLayoutEffect, useRef } from "react";
+import { layout, prepare } from '@chenglou/pretext'
+import { useLayoutEffect, useMemo, useRef } from 'react'
 
 interface UseAutosizeTextAreaProps {
-  ref: React.RefObject<HTMLTextAreaElement | null>;
-  maxHeight?: number;
-  borderWidth?: number;
-  dependencies: React.DependencyList;
+  ref: React.RefObject<HTMLTextAreaElement | null>
+  width: number
+  maxHeight?: number
+  fontSize?: number
+  lineHeight?: number
+  borderWidth?: number
+  dependencies: React.DependencyList
 }
 
 export function useAutosizeTextArea({
   ref,
+  width,
   maxHeight = Number.MAX_SAFE_INTEGER,
+  fontSize = 14,
+  lineHeight = 21,
   borderWidth = 0,
-  dependencies,
+  dependencies: _dependencies,
 }: UseAutosizeTextAreaProps) {
-  const originalHeight = useRef<number | null>(null);
+  const preparedRef = useRef<ReturnType<typeof prepare> | null>(null)
+  const text = ref.current?.value || ''
+  const font = `${fontSize}px TWKLausanne`
+
+  const prepared = useMemo(() => prepare(text, font, { whiteSpace: 'pre-wrap' }), [text, font])
+  preparedRef.current = prepared
 
   useLayoutEffect(() => {
-    if (!ref.current) return;
+    if (!ref.current || width <= 0 || !preparedRef.current) return
 
-    const currentRef = ref.current;
-    const borderAdjustment = borderWidth * 2;
+    const padding = borderWidth * 2
+    const contentWidth = width - padding
 
-    if (originalHeight.current === null) {
-      originalHeight.current = currentRef.scrollHeight - borderAdjustment;
-    }
+    const { height } = layout(preparedRef.current, contentWidth, lineHeight)
+    const clampedHeight = Math.min(height, maxHeight)
 
-    currentRef.style.removeProperty("height");
-    const scrollHeight = currentRef.scrollHeight;
-
-    const clampedToMax = Math.min(scrollHeight, maxHeight);
-    const clampedToMin = Math.max(clampedToMax, originalHeight.current);
-
-    currentRef.style.height = `${clampedToMin + borderAdjustment}px`;
-  }, [maxHeight, ref, ...dependencies]);
+    ref.current.style.height = `${clampedHeight + padding}px`
+  }, [width, maxHeight, lineHeight, borderWidth, ref])
 }

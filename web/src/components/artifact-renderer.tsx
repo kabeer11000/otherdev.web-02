@@ -1,24 +1,24 @@
-"use client";
+'use client'
 
-import { Check, ChevronLeft, Code2, Copy, Eye, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { type BundledLanguage, codeToHtml } from "shiki";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SHIKI_THEMES } from "@/lib/shiki-config";
+import { Check, ChevronLeft, Code2, Copy, Eye, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { type BundledLanguage, codeToHtml } from 'shiki'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { SHIKI_THEMES } from '@/lib/shiki-config'
 
 // Local type for artifact tool calls (AI SDK v6 compatible)
 // Matches AI SDK's ToolInvocation pattern for tool-invocation parts
 export interface ArtifactToolCall {
-  toolCallId: string;
-  toolName: "createArtifact";
-  state: "output-available";
+  toolCallId: string
+  toolName: 'createArtifact'
+  state: 'output-available'
   result: {
-    title: string;
-    code: string;
-    description: string;
-    success: boolean;
-  };
+    title: string
+    code: string
+    description: string
+    success: boolean
+  }
 }
 
 function ArtifactHeader({
@@ -29,14 +29,14 @@ function ArtifactHeader({
   onCopy,
   onClose,
 }: {
-  mode: "panel" | "inline";
-  title: string;
-  description: string;
-  copied: boolean;
-  onCopy: () => void;
-  onClose?: () => void;
+  mode: 'panel' | 'inline'
+  title: string
+  description: string
+  copied: boolean
+  onCopy: () => void
+  onClose?: () => void
 }) {
-  if (mode === "panel") {
+  if (mode === 'panel') {
     return (
       <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-3 relative z-[60] pointer-events-auto">
         <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -52,9 +52,7 @@ function ArtifactHeader({
             </Button>
           )}
           <div className="min-w-0 flex-1">
-            <h3 className="truncate font-serif text-base font-medium text-foreground">
-              {title}
-            </h3>
+            <h3 className="truncate font-serif text-base font-medium text-foreground">{title}</h3>
             {description && (
               <p className="mt-0.5 truncate font-serif text-sm text-muted-foreground">
                 {description}
@@ -70,11 +68,7 @@ function ArtifactHeader({
             className="h-8 w-8 p-0 cursor-pointer hover:bg-muted pointer-events-auto"
             title="Copy code"
           >
-            {copied ? (
-              <Check className="h-4 w-4 text-green-600" />
-            ) : (
-              <Copy className="h-4 w-4" />
-            )}
+            {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
           </Button>
           {onClose && (
             <Button
@@ -89,7 +83,7 @@ function ArtifactHeader({
           )}
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -120,80 +114,76 @@ function ArtifactHeader({
         </Button>
       </div>
     </div>
-  );
+  )
 }
 
 interface ArtifactRendererProps {
-  toolCall: ArtifactToolCall;
-  mode?: "panel" | "inline";
-  onClose?: () => void;
+  toolCall: ArtifactToolCall
+  mode?: 'panel' | 'inline'
+  onClose?: () => void
 }
 
-export function ArtifactRenderer({
-  toolCall,
-  mode = "inline",
-  onClose,
-}: ArtifactRendererProps) {
-  const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState("preview");
-  const [highlightedCode, setHighlightedCode] = useState<string>("");
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+export function ArtifactRenderer({ toolCall, mode = 'inline', onClose }: ArtifactRendererProps) {
+  const [copied, setCopied] = useState(false)
+  const [activeTab, setActiveTab] = useState('preview')
+  const [highlightedCode, setHighlightedCode] = useState<string>('')
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     return () => {
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-    };
-  }, []);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+    }
+  }, [])
 
-  const { title, code, description } = toolCall.result;
+  const { title, code, description } = toolCall.result
 
   useEffect(() => {
     if (iframeRef.current) {
-      const iframe = iframeRef.current;
-      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      const iframe = iframeRef.current
+      const doc = iframe.contentDocument || iframe.contentWindow?.document
       if (doc) {
-        doc.open();
-        doc.write(code);
-        doc.close();
+        doc.open()
+        doc.write(code)
+        doc.close()
       }
     }
-  }, [code]);
+  }, [code])
 
   useEffect(() => {
     const highlightCode = async () => {
       if (!code) {
-        setHighlightedCode("<pre><code></code></pre>");
-        return;
+        setHighlightedCode('<pre><code></code></pre>')
+        return
       }
 
       try {
         const html = await codeToHtml(code.trim(), {
-          lang: "html" as BundledLanguage,
+          lang: 'html' as BundledLanguage,
           themes: SHIKI_THEMES,
-        });
-        setHighlightedCode(html);
+        })
+        setHighlightedCode(html)
       } catch (error) {
-        console.error("Error highlighting code:", error);
-        setHighlightedCode(`<pre><code>${code}</code></pre>`);
+        console.error('Error highlighting code:', error)
+        setHighlightedCode(`<pre><code>${code}</code></pre>`)
       }
-    };
+    }
 
-    highlightCode();
-  }, [code]);
+    highlightCode()
+  }, [code])
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000)
     } catch (error) {
-      console.error("Failed to copy code:", error);
+      console.error('Failed to copy code:', error)
     }
-  };
+  }
 
-  if (mode === "panel") {
+  if (mode === 'panel') {
     return (
       <div className="flex h-full flex-col border-l border-border bg-background">
         <ArtifactHeader
@@ -245,6 +235,7 @@ export function ArtifactRenderer({
             {highlightedCode ? (
               <div
                 className="h-full w-full [&>pre]:h-full [&>pre]:p-4 [&>pre]:text-sm [&>pre]:overflow-auto"
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: Highlighted code from Shiki is safe
                 dangerouslySetInnerHTML={{ __html: highlightedCode }}
               />
             ) : (
@@ -255,7 +246,7 @@ export function ArtifactRenderer({
           </TabsContent>
         </Tabs>
       </div>
-    );
+    )
   }
 
   return (
@@ -277,5 +268,5 @@ export function ArtifactRenderer({
         />
       </div>
     </div>
-  );
+  )
 }

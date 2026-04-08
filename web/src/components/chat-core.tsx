@@ -1,15 +1,14 @@
-"use client";
+'use client'
 
-import { useChat } from "@ai-sdk/react";
+import { useChat } from '@ai-sdk/react'
 import {
   DefaultChatTransport,
   getToolName,
   isToolUIPart,
   lastAssistantMessageIsCompleteWithToolCalls,
   type UIMessage,
-} from "ai";
-import { z } from "zod";
-import { AnimatePresence, motion } from "framer-motion";
+} from 'ai'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   ArrowUp,
   AudioLines,
@@ -20,168 +19,152 @@ import {
   Paperclip,
   Square,
   X,
-} from "lucide-react";
-import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ArtifactToolCall } from "@/components/artifact-renderer";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+} from 'lucide-react'
+import Image from 'next/image'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { z } from 'zod'
+import type { ArtifactToolCall } from '@/components/artifact-renderer'
+import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   ChatContainerContent,
   ChatContainerRoot,
   ChatContainerScrollAnchor,
-} from "@/components/ui/chat-container";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { CopyButton } from "@/components/ui/copy-button";
-import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+} from '@/components/ui/chat-container'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { CopyButton } from '@/components/ui/copy-button'
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer'
 import {
   PromptInput,
   PromptInputAction,
   PromptInputActions,
   PromptInputTextarea,
-} from "@/components/ui/prompt-input";
-import { SUGGESTED_PROMPTS } from "@/lib/constants";
-import { processAttachment } from "@/lib/ai-sdk-attachments";
-import { parseSSEStream } from "@/lib/sse";
-import { cleanSuggestionMarkers, cn } from "@/lib/utils";
-import { VoiceRecorder } from "@/lib/voice-recorder";
-import { VoiceWaveform } from "@/components/voice-waveform";
+} from '@/components/ui/prompt-input'
+import { VoiceWaveform } from '@/components/voice-waveform'
+import { processAttachment } from '@/lib/ai-sdk-attachments'
+import { SUGGESTED_PROMPTS } from '@/lib/constants'
+import { parseSSEStream } from '@/lib/sse'
+import { cleanSuggestionMarkers, cn } from '@/lib/utils'
+import { VoiceRecorder } from '@/lib/voice-recorder'
 
 // Define custom data parts for the chat stream
 const suggestionDataSchema = z.object({
   suggestion: z.string(),
-});
+})
 
 type ChatDataParts = {
-  suggestion: z.infer<typeof suggestionDataSchema>;
-};
+  suggestion: z.infer<typeof suggestionDataSchema>
+}
 
 // Custom UIMessage type with our data parts
-type ChatUIMessage = UIMessage<unknown, ChatDataParts>;
+type ChatUIMessage = UIMessage<unknown, ChatDataParts>
 
 const GREETINGS: { range: [number, number]; options: string[] }[] = [
   {
     range: [0, 5],
     options: [
-      "Hello, night owl",
-      "Burning the midnight oil?",
-      "Still up, I see",
-      "Late night inspiration strike?",
-      "Welcome back, creative soul",
+      'Hello, night owl',
+      'Burning the midnight oil?',
+      'Still up, I see',
+      'Late night inspiration strike?',
+      'Welcome back, creative soul',
     ],
   },
   {
     range: [5, 9],
-    options: [
-      "Good morning",
-      "Early riser mode on",
-      "Fresh start ahead",
-      "Ready to create?",
-    ],
+    options: ['Good morning', 'Early riser mode on', 'Fresh start ahead', 'Ready to create?'],
   },
   {
     range: [9, 12],
     options: [
-      "Good morning",
+      'Good morning',
       "Morning, let's make something great",
       "What's on your mind today?",
-      "Feeling creative?",
+      'Feeling creative?',
     ],
   },
   {
     range: [12, 17],
     options: [
-      "Good afternoon",
-      "Afternoon vibes",
-      "Still grinding?",
+      'Good afternoon',
+      'Afternoon vibes',
+      'Still grinding?',
       "How's the day treating you?",
     ],
   },
   {
     range: [17, 21],
     options: [
-      "Good evening",
-      "Evening, creator",
-      "Golden hour thinking time",
-      "Winding down or gearing up?",
+      'Good evening',
+      'Evening, creator',
+      'Golden hour thinking time',
+      'Winding down or gearing up?',
     ],
   },
   {
     range: [21, 24],
     options: [
-      "Good night",
-      "Late night magic hour",
-      "Night mode activated",
-      "Quiet hours for the best ideas",
+      'Good night',
+      'Late night magic hour',
+      'Night mode activated',
+      'Quiet hours for the best ideas',
     ],
   },
-];
+]
 
 function pickGreeting() {
-  const hour = new Date().getHours();
+  const hour = new Date().getHours()
   const bucket =
-    GREETINGS.find(({ range: [min, max] }) => hour >= min && hour < max) ??
-    GREETINGS[0];
-  return bucket.options[Math.floor(Math.random() * bucket.options.length)];
+    GREETINGS.find(({ range: [min, max] }) => hour >= min && hour < max) ?? GREETINGS[0]
+  return bucket.options[Math.floor(Math.random() * bucket.options.length)]
 }
 
 function useTimeBasedGreeting() {
-  const [greeting, setGreeting] = useState<string | null>(null);
-  const lastHourRef = useRef(new Date().getHours());
+  const [greeting, setGreeting] = useState<string | null>(null)
+  const lastHourRef = useRef(new Date().getHours())
 
   useEffect(() => {
     // Set initial greeting on mount (client-side only)
-    setGreeting(pickGreeting());
-    
-    const interval = setInterval(() => {
-      const hour = new Date().getHours();
-      if (hour === lastHourRef.current) return;
-      lastHourRef.current = hour;
-      setGreeting(pickGreeting());
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    setGreeting(pickGreeting())
 
-  return greeting;
+    const interval = setInterval(() => {
+      const hour = new Date().getHours()
+      if (hour === lastHourRef.current) return
+      lastHourRef.current = hour
+      setGreeting(pickGreeting())
+    }, 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  return greeting
 }
 
-function useScrollToBottom(
-  containerRef: React.RefObject<HTMLDivElement | null>,
-) {
-  const [showButton, setShowButton] = useState(false);
+function useScrollToBottom(containerRef: React.RefObject<HTMLDivElement | null>) {
+  const [showButton, setShowButton] = useState(false)
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const container = containerRef.current
+    if (!container) return
 
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-      setShowButton(!isNearBottom);
-    };
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+      setShowButton(!isNearBottom)
+    }
 
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
+    container.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
 
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, [containerRef]);
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [containerRef])
 
   const scrollToBottom = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
-  }, [containerRef]);
+    const container = containerRef.current
+    if (!container) return
+    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
+  }, [containerRef])
 
-  return { showButton, scrollToBottom };
+  return { showButton, scrollToBottom }
 }
 
 function ReasoningCollapsible({ reasoning }: { reasoning: string }) {
@@ -197,7 +180,7 @@ function ReasoningCollapsible({ reasoning }: { reasoning: string }) {
         </div>
       </CollapsibleContent>
     </Collapsible>
-  );
+  )
 }
 
 function SuggestionButton({
@@ -205,21 +188,21 @@ function SuggestionButton({
   prompt,
   sendMessage,
 }: {
-  display: string;
-  prompt: string;
+  display: string
+  prompt: string
   sendMessage: (message: {
-    text: string;
+    text: string
     files?: Array<{
-      type: "file";
-      mediaType: string;
-      url: string;
-      name: string;
-    }>;
-  }) => void;
+      type: 'file'
+      mediaType: string
+      url: string
+      name: string
+    }>
+  }) => void
 }) {
   const handleClick = () => {
-    sendMessage({ text: prompt });
-  };
+    sendMessage({ text: prompt })
+  }
 
   return (
     <Button
@@ -230,31 +213,31 @@ function SuggestionButton({
     >
       {display}
     </Button>
-  );
+  )
 }
 
 function UserMessage({ message }: { message: UIMessage }) {
   const textContent =
     message.parts
-      ?.filter((p) => p.type === "text")
-      .map((p) => p.text)
-      .join("") || "";
+      ?.filter(p => p.type === 'text')
+      .map(p => p.text)
+      .join('') || ''
 
   const imageParts =
-    (message.parts?.filter((p) => p.type === "file" && p.mediaType?.startsWith("image/")) as Array<{
-      type: "file";
-      mediaType: string;
-      url: string;
-      filename?: string;
-    }>) || [];
+    (message.parts?.filter(p => p.type === 'file' && p.mediaType?.startsWith('image/')) as Array<{
+      type: 'file'
+      mediaType: string
+      url: string
+      filename?: string
+    }>) || []
 
   const fileParts =
-    (message.parts?.filter((p) => p.type === "file" && !p.mediaType?.startsWith("image/")) as Array<{
-      type: "file";
-      mediaType: string;
-      url: string;
-      filename?: string;
-    }>) || [];
+    (message.parts?.filter(p => p.type === 'file' && !p.mediaType?.startsWith('image/')) as Array<{
+      type: 'file'
+      mediaType: string
+      url: string
+      filename?: string
+    }>) || []
 
   return (
     <div className="flex justify-end items-end gap-2">
@@ -263,10 +246,11 @@ function UserMessage({ message }: { message: UIMessage }) {
           {imageParts.length > 0 && (
             <div className="flex flex-wrap gap-2 justify-end">
               {imageParts.map((img, i) => (
+                // biome-ignore lint/performance/noImgElement: User-uploaded image preview in chat
                 <img
-                  key={i}
+                  key={`img-${i}-${img.url}`}
                   src={img.url}
-                  alt={img.filename || "Attachment"}
+                  alt={img.filename || 'Attachment'}
                   className="max-h-48 max-w-48 rounded-xl object-cover"
                 />
               ))}
@@ -276,11 +260,11 @@ function UserMessage({ message }: { message: UIMessage }) {
             <div className="flex flex-wrap gap-2 justify-end">
               {fileParts.map((file, i) => (
                 <div
-                  key={i}
+                  key={`file-${i}-${file.filename || 'file'}`}
                   className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground"
                 >
                   <FileText className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                  <span className="max-w-[180px] truncate">{file.filename || "File"}</span>
+                  <span className="max-w-[180px] truncate">{file.filename || 'File'}</span>
                 </div>
               ))}
             </div>
@@ -300,58 +284,75 @@ function UserMessage({ message }: { message: UIMessage }) {
         className="h-7 w-7 flex-shrink-0 rounded-full sm:h-8 sm:w-8"
       />
     </div>
-  );
+  )
 }
 
 function AssistantMessage({
   message,
   setActiveArtifact,
 }: {
-  message: UIMessage;
-  setActiveArtifact: (artifact: ArtifactToolCall | null) => void;
+  message: UIMessage
+  setActiveArtifact: (artifact: ArtifactToolCall | null) => void
 }) {
-  const contentRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const textPart =
     message.parts
-      ?.filter((p) => p.type === "text")
-      .map((p) => p.text)
-      .join("") || "";
+      ?.filter(p => p.type === 'text')
+      .map(p => p.text)
+      .join('') || ''
 
   // Find artifact tool invocation using proper type narrowing
-  const artifactToolCall = message.parts?.find((part) => {
-    if (!isToolUIPart(part)) return false;
-    const toolName = getToolName(part);
+  const artifactToolCall = message.parts?.find(part => {
+    if (!isToolUIPart(part)) return false
+    const toolName = getToolName(part)
     return (
-      toolName === "createArtifact" &&
-      (part.state === "output-available" || part.state === "input-available")
-    );
+      toolName === 'createArtifact' &&
+      (part.state === 'output-available' || part.state === 'input-available')
+    )
   }) as
-    | { type: `tool-createArtifact`; toolCallId: string; state: "output-available"; output: { title: string; code: string; description: string; success?: boolean }; input?: undefined }
-    | { type: `tool-createArtifact`; toolCallId: string; state: "input-available"; input: { title: string; code: string; description: string }; output?: undefined }
-    | undefined;
-
-  const reasoningPart = message.parts?.find(
-    (part) => part.type === "reasoning",
-  ) as
     | {
-        type: "reasoning";
-        text: string;
+        type: `tool-createArtifact`
+        toolCallId: string
+        state: 'output-available'
+        output: {
+          title: string
+          code: string
+          description: string
+          success?: boolean
+        }
+        input?: undefined
       }
-    | undefined;
-  const reasoning = reasoningPart?.text;
-  const hasArtifact = Boolean(artifactToolCall);
+    | {
+        type: `tool-createArtifact`
+        toolCallId: string
+        state: 'input-available'
+        input: { title: string; code: string; description: string }
+        output?: undefined
+      }
+    | undefined
 
-  const cleanedText = cleanSuggestionMarkers(textPart);
+  const reasoningPart = message.parts?.find(part => part.type === 'reasoning') as
+    | {
+        type: 'reasoning'
+        text: string
+      }
+    | undefined
+  const reasoning = reasoningPart?.text
+  const hasArtifact = Boolean(artifactToolCall)
 
-  const getHtmlContent = () => contentRef.current?.innerHTML;
+  const cleanedText = cleanSuggestionMarkers(textPart)
+
+  const getHtmlContent = () => contentRef.current?.innerHTML
 
   if (hasArtifact && artifactToolCall) {
-    const artifactData = (artifactToolCall.state === "output-available" ? artifactToolCall.output : artifactToolCall.input) as
-      | { title: string; code: string; description: string; success?: boolean }
-      | undefined;
-    const title = artifactData?.title;
-    const description = artifactData?.description;
+    const artifactData = (
+      artifactToolCall.state === 'output-available'
+        ? artifactToolCall.output
+        : artifactToolCall.input
+    ) as { title: string; code: string; description: string; success?: boolean } | undefined
+    const title = artifactData?.title
+    const _description = artifactData?.description
 
     return (
       <div className="flex justify-start items-start gap-2 mt-12">
@@ -375,13 +376,17 @@ function AssistantMessage({
             {artifactToolCall && (
               <Card
                 onClick={() => {
-                  const result = artifactToolCall.state === "output-available" ? artifactToolCall.output : artifactToolCall.input;
+                  const result =
+                    artifactToolCall.state === 'output-available'
+                      ? artifactToolCall.output
+                      : artifactToolCall.input
                   setActiveArtifact({
                     toolCallId: artifactToolCall.toolCallId,
-                    toolName: "createArtifact",
-                    state: "output-available",
-                    result: (result as any) || { title: "", code: "", description: "", success: false },
-                  });
+                    toolName: 'createArtifact',
+                    state: 'output-available',
+                    // biome-ignore lint/suspicious/noExplicitAny: artifact result type
+                    result: (result ?? artifactToolCall.output) as any,
+                  })
                 }}
                 className="w-full max-w-md cursor-pointer border-border/60 bg-card/50 transition-all duration-200 hover:border-foreground/20 hover:bg-card/80 hover:shadow-sm active:scale-[0.99]"
               >
@@ -392,11 +397,9 @@ function AssistantMessage({
                     </div>
                     <div className="min-w-0 flex-1">
                       <CardTitle className="truncate text-sm font-medium leading-tight">
-                        {title || "View Artifact"}
+                        {title || 'View Artifact'}
                       </CardTitle>
-                      <CardDescription className="mt-1 text-xs">
-                        Artifact · HTML
-                      </CardDescription>
+                      <CardDescription className="mt-1 text-xs">Artifact · HTML</CardDescription>
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground/60" />
@@ -406,7 +409,7 @@ function AssistantMessage({
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -438,35 +441,26 @@ function AssistantMessage({
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-function AttachmentChip({
-  file,
-  onRemove,
-}: {
-  file: File;
-  onRemove: () => void;
-}) {
-  const isImage = file.type.startsWith("image/");
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+function AttachmentChip({ file, onRemove }: { file: File; onRemove: () => void }) {
+  const isImage = file.type.startsWith('image/')
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isImage) return;
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [isImage, file]);
+    if (!isImage) return
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [isImage, file])
 
   return (
     <div className="relative flex group items-center gap-1.5 border rounded-t-xl pb-4 mb-[-10px] bg-accent px-2 py-1.5 text-xs text-accent-foreground">
       {isImage && previewUrl ? (
         <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-background">
-          <img
-            src={previewUrl}
-            alt={file.name}
-            className="h-full w-full object-contain"
-          />
+          {/* biome-ignore lint/performance/noImgElement: User file preview thumbnail */}
+          <img src={previewUrl} alt={file.name} className="h-full w-full object-contain" />
         </div>
       ) : (
         <FileText className="h-6 w-6 shrink-0 opacity-70" />
@@ -480,22 +474,22 @@ function AttachmentChip({
         <X className="h-4 w-4" />
       </button>
     </div>
-  );
+  )
 }
 
 export interface ChatCoreProps {
   /** Callback when active artifact is set (for panel layout) */
-  onArtifactOpen?: (artifact: ArtifactToolCall | null) => void;
+  onArtifactOpen?: (artifact: ArtifactToolCall | null) => void
   /** Callback when chat is cleared */
-  onClear?: () => void;
+  onClear?: () => void
   /** Initial active artifact (for panel layout) */
-  activeArtifact?: ArtifactToolCall | null;
+  activeArtifact?: ArtifactToolCall | null
   /** Whether to show artifact panel (for desktop split view) */
-  showArtifactPanel?: boolean;
+  showArtifactPanel?: boolean
   /** Custom className for the root container */
-  className?: string;
+  className?: string
   /** Whether to show the greeting screen when empty */
-  showGreeting?: boolean;
+  showGreeting?: boolean
 }
 
 /**
@@ -509,38 +503,40 @@ export interface ChatCoreProps {
  */
 export function ChatCore({
   onArtifactOpen,
-  onClear,
+  onClear: _onClear,
   activeArtifact: externalActiveArtifact,
-  showArtifactPanel = false,
+  showArtifactPanel: _showArtifactPanel = false,
   className,
   showGreeting = true,
 }: ChatCoreProps) {
-  const [internalActiveArtifact, setInternalActiveArtifact] = useState<ArtifactToolCall | null>(null);
-  const [suggestion, setSuggestion] = useState("");
-  const [inputValue, setInputValue] = useState("");
-  const [inputError, setInputError] = useState("");
-  const [attachments, setAttachments] = useState<File[]>([]);
-  const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isRecordingProcessing, setIsRecordingProcessing] = useState(false);
+  const [internalActiveArtifact, setInternalActiveArtifact] = useState<ArtifactToolCall | null>(
+    null
+  )
+  const [suggestion, setSuggestion] = useState('')
+  const [inputValue, setInputValue] = useState('')
+  const [inputError, setInputError] = useState('')
+  const [attachments, setAttachments] = useState<File[]>([])
+  const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const [isRecordingProcessing, setIsRecordingProcessing] = useState(false)
 
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const recorderRef = useRef<VoiceRecorder | null>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const recorderRef = useRef<VoiceRecorder | null>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
-  const activeArtifact = externalActiveArtifact ?? internalActiveArtifact;
-  const setActiveArtifact = onArtifactOpen ?? setInternalActiveArtifact;
+  const _activeArtifact = externalActiveArtifact ?? internalActiveArtifact
+  const setActiveArtifact = onArtifactOpen ?? setInternalActiveArtifact
 
-  const greeting = useTimeBasedGreeting();
+  const greeting = useTimeBasedGreeting()
 
   const { messages, sendMessage, status, setMessages, addToolOutput } = useChat<ChatUIMessage>({
     dataPartSchemas: {
       suggestion: suggestionDataSchema,
     },
     transport: new DefaultChatTransport({
-      api: "/api/chat/stream",
+      api: '/api/chat/stream',
       body: {
         supportsArtifacts: true,
       },
@@ -551,208 +547,195 @@ export function ChatCore({
             message: messages[messages.length - 1],
             supportsArtifacts: true,
           },
-        };
+        }
       },
     }),
     experimental_throttle: 100,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     async onToolCall({ toolCall }) {
       if (toolCall.dynamic) {
-        return;
+        return
       }
-      if (toolCall.toolName === "createArtifact") {
+      if (toolCall.toolName === 'createArtifact') {
         addToolOutput({
-          tool: "createArtifact",
+          tool: 'createArtifact',
           toolCallId: toolCall.toolCallId,
           output: { success: true },
-        });
+        })
       }
     },
     onData(dataPart) {
-      if (dataPart.type === "data-suggestion") {
-        const parsed = suggestionDataSchema.safeParse(dataPart.data);
+      if (dataPart.type === 'data-suggestion') {
+        const parsed = suggestionDataSchema.safeParse(dataPart.data)
         if (parsed.success && parsed.data.suggestion) {
-          setSuggestion(parsed.data.suggestion);
+          setSuggestion(parsed.data.suggestion)
         }
       }
     },
-  });
+  })
 
-  const handleClear = useCallback(() => {
-    setMessages([]);
-    setSuggestion("");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: clear handler needs stable refs
+  const _handleClear = useCallback(() => {
+    setMessages([])
+    setSuggestion('')
     if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+      abortControllerRef.current.abort()
     }
-    if (onClear) {
-      onClear();
+    if (_onClear) {
+      _onClear()
     }
-  }, [setMessages, onClear]);
+  }, [setMessages, setSuggestion, abortControllerRef, _onClear])
 
-  const { showButton, scrollToBottom } = useScrollToBottom(contentRef);
+  const { showButton, scrollToBottom } = useScrollToBottom(contentRef)
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setAttachments((prev) => [...prev, ...Array.from(e.target.files!)]);
+    const files = e.target.files
+    if (files) {
+      setAttachments(prev => [...prev, ...Array.from(files)])
     }
-  };
+  }
 
   const removeAttachment = (index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
+    setAttachments(prev => prev.filter((_, i) => i !== index))
+  }
 
   const handleTranscriptReceived = (text: string) => {
-    setInputValue(text);
-    inputRef.current?.focus();
-  };
+    setInputValue(text)
+    inputRef.current?.focus()
+  }
 
   const handleStartRecording = async () => {
     try {
-      setIsRecordingProcessing(true);
-      const stream = await VoiceRecorder.requestMicrophone();
-      const recorder = new VoiceRecorder(stream);
-      recorder.start();
-      recorderRef.current = recorder;
-      setIsRecording(true);
-      setRecordingStream(stream);
-      setIsRecordingProcessing(false);
+      setIsRecordingProcessing(true)
+      const stream = await VoiceRecorder.requestMicrophone()
+      const recorder = new VoiceRecorder(stream)
+      recorder.start()
+      recorderRef.current = recorder
+      setIsRecording(true)
+      setRecordingStream(stream)
+      setIsRecordingProcessing(false)
     } catch (error) {
-      setInputError(
-        error instanceof Error ? error.message : "Failed to access microphone",
-      );
-      setIsRecordingProcessing(false);
+      setInputError(error instanceof Error ? error.message : 'Failed to access microphone')
+      setIsRecordingProcessing(false)
     }
-  };
+  }
 
   const handleStopRecording = async () => {
-    const recorder = recorderRef.current;
-    if (!recorder) return;
+    const recorder = recorderRef.current
+    if (!recorder) return
 
     try {
-      setIsRecordingProcessing(true);
-      const audioBlob = await recorder.stop();
-      recorder.release();
-      recorderRef.current = null;
-      setIsRecording(false);
-      setRecordingStream(null);
+      setIsRecordingProcessing(true)
+      const audioBlob = await recorder.stop()
+      recorder.release()
+      recorderRef.current = null
+      setIsRecording(false)
+      setRecordingStream(null)
 
-      const formData = new FormData();
-      formData.append("audio", audioBlob, "recording.webm");
+      const formData = new FormData()
+      formData.append('audio', audioBlob, 'recording.webm')
 
-      const response = await fetch("/api/transcribe", {
-        method: "POST",
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
         body: formData,
-      });
-      if (!response.ok) throw new Error("Transcription failed");
+      })
+      if (!response.ok) throw new Error('Transcription failed')
 
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("Response body is not readable");
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('Response body is not readable')
 
-      let fullTranscript = "";
-      await parseSSEStream(reader, (event) => {
-        if (
-          event.type === "transcript-chunk" &&
-          typeof event.content === "string"
-        ) {
-          fullTranscript += event.content;
-          handleTranscriptReceived(fullTranscript);
-        } else if (
-          event.type === "transcript-complete" &&
-          typeof event.content === "string"
-        ) {
-          handleTranscriptReceived(event.content);
+      let fullTranscript = ''
+      await parseSSEStream(reader, event => {
+        if (event.type === 'transcript-chunk' && typeof event.content === 'string') {
+          fullTranscript += event.content
+          handleTranscriptReceived(fullTranscript)
+        } else if (event.type === 'transcript-complete' && typeof event.content === 'string') {
+          handleTranscriptReceived(event.content)
         }
-      });
+      })
 
-      setIsRecordingProcessing(false);
+      setIsRecordingProcessing(false)
     } catch (error) {
-      setInputError(
-        error instanceof Error ? error.message : "Transcription error",
-      );
-      recorderRef.current?.release();
-      recorderRef.current = null;
-      setIsRecording(false);
-      setRecordingStream(null);
-      setIsRecordingProcessing(false);
+      setInputError(error instanceof Error ? error.message : 'Transcription error')
+      recorderRef.current?.release()
+      recorderRef.current = null
+      setIsRecording(false)
+      setRecordingStream(null)
+      setIsRecordingProcessing(false)
     }
-  };
+  }
 
   const handleSubmit = async () => {
-    if (isRecording || isRecordingProcessing) return;
+    if (isRecording || isRecordingProcessing) return
 
-    const value = inputValue.trim();
-    if (!value && attachments.length === 0) return;
+    const value = inputValue.trim()
+    if (!value && attachments.length === 0) return
 
     if (attachments.length === 0) {
-      sendMessage({ text: value });
+      sendMessage({ text: value })
     } else {
-      const processed = await Promise.all(attachments.map(processAttachment));
-      const fileParts = processed.map((a) => ({
-        type: "file" as const,
+      const processed = await Promise.all(attachments.map(processAttachment))
+      const fileParts = processed.map(a => ({
+        type: 'file' as const,
         mediaType: a.contentType,
         url: a.url,
         filename: a.name,
-      }));
+      }))
 
       sendMessage({
-        role: "user",
-        parts: [
-          ...fileParts,
-          { type: "text" as const, text: value },
-        ],
-      });
+        role: 'user',
+        parts: [...fileParts, { type: 'text' as const, text: value }],
+      })
     }
 
-    setSuggestion("");
-    setInputValue("");
-    setAttachments([]);
+    setSuggestion('')
+    setInputValue('')
+    setAttachments([])
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = ''
     }
-  };
+  }
 
   const applySuggestion = () => {
-    if (!suggestion) return;
-    setInputValue(suggestion);
-    setSuggestion("");
-    inputRef.current?.focus();
-  };
+    if (!suggestion) return
+    setInputValue(suggestion)
+    setSuggestion('')
+    inputRef.current?.focus()
+  }
 
   useEffect(() => {
-    const inputElement = inputRef.current;
-    if (!inputElement) return;
+    const inputElement = inputRef.current
+    if (!inputElement) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const shouldApplySuggestion =
-        (e.key === "Tab" || e.key === "ArrowRight") &&
-        suggestion &&
-        !inputElement.value;
+        (e.key === 'Tab' || e.key === 'ArrowRight') && suggestion && !inputElement.value
       if (shouldApplySuggestion) {
-        e.preventDefault();
-        setInputValue(suggestion);
-        setSuggestion("");
+        e.preventDefault()
+        setInputValue(suggestion)
+        setSuggestion('')
       }
-    };
+    }
 
-    inputElement.addEventListener("keydown", handleKeyDown);
-    return () => inputElement.removeEventListener("keydown", handleKeyDown);
-  }, [suggestion]);
+    inputElement.addEventListener('keydown', handleKeyDown)
+    return () => inputElement.removeEventListener('keydown', handleKeyDown)
+  }, [suggestion])
 
   useEffect(() => {
-    scrollToBottom();
-  }, [scrollToBottom, messages.length]);
+    scrollToBottom()
+  }, [scrollToBottom])
 
   const isSendDisabled = useMemo(() => {
-    const hasText = inputValue.trim().length > 0;
-    const hasValidAttachments = attachments.length > 0;
-    const isBlocked = isRecording || isRecordingProcessing;
-    return (!hasText && !hasValidAttachments) || isBlocked;
-  }, [inputValue, attachments, isRecording, isRecordingProcessing]);
+    const hasText = inputValue.trim().length > 0
+    const hasValidAttachments = attachments.length > 0
+    const isBlocked = isRecording || isRecordingProcessing
+    return (!hasText && !hasValidAttachments) || isBlocked
+  }, [inputValue, attachments, isRecording, isRecordingProcessing])
 
-  const placeholder = suggestion || "Type your message...";
+  const placeholder = suggestion || 'Type your message...'
 
   return (
-    <div className={cn("relative h-full flex flex-col bg-background", className)}>
+    <div className={cn('relative h-full flex flex-col bg-background', className)}>
       <ChatContainerRoot className="flex-1 w-full">
         <ChatContainerContent
           className="flex-1 scroll-smooth pb-32 sm:pb-40"
@@ -777,7 +760,7 @@ export function ChatCore({
                         key={greeting}
                         initial={{ opacity: 0, y: 4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        transition={{ duration: 0.4, ease: 'easeOut' }}
                         className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl"
                         suppressHydrationWarning
                       >
@@ -792,7 +775,7 @@ export function ChatCore({
                   </div>
 
                   <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-                    {SUGGESTED_PROMPTS.map((suggestionItem) => (
+                    {SUGGESTED_PROMPTS.map(suggestionItem => (
                       <SuggestionButton
                         key={suggestionItem.label}
                         display={suggestionItem.label}
@@ -807,8 +790,8 @@ export function ChatCore({
 
             <div className="absolute bottom-0 w-screen h-30 bg-gradient-to-t from-background to-transparent pointer-events-none" />
             <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-4xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-12">
-              {messages.map((message) =>
-                message.role === "user" ? (
+              {messages.map(message =>
+                message.role === 'user' ? (
                   <UserMessage key={message.id} message={message} />
                 ) : (
                   <AssistantMessage
@@ -816,11 +799,10 @@ export function ChatCore({
                     message={message}
                     setActiveArtifact={setActiveArtifact}
                   />
-                ),
+                )
               )}
 
-              {(status === "submitted" ||
-                (status === "streaming" && messages.at(-1)?.role !== "assistant")) && (
+              {(status === 'submitted' || status === 'streaming') && (
                 <div className="flex items-center gap-2 sm:gap-3">
                   <Image
                     src="/otherdev-chat-logo.svg"
@@ -834,15 +816,15 @@ export function ChatCore({
                     <div className="flex gap-1">
                       <div
                         className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
-                        style={{ animationDelay: "0ms" }}
+                        style={{ animationDelay: '0ms' }}
                       />
                       <div
                         className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
-                        style={{ animationDelay: "150ms" }}
+                        style={{ animationDelay: '150ms' }}
                       />
                       <div
                         className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
-                        style={{ animationDelay: "300ms" }}
+                        style={{ animationDelay: '300ms' }}
                       />
                     </div>
                   </div>
@@ -877,7 +859,7 @@ export function ChatCore({
               <span>{inputError}</span>
               <button
                 type="button"
-                onClick={() => setInputError("")}
+                onClick={() => setInputError('')}
                 className="ml-0.5 flex h-8 w-8 ml-auto items-center justify-center rounded-full hover:bg-foreground/10"
                 aria-label="Remove error message"
               >
@@ -894,9 +876,7 @@ export function ChatCore({
           ))}
         </div>
 
-        <PromptInput
-          className="relative rounded-2xl border-border shadow-sm pointer-events-auto"
-        >
+        <PromptInput className="relative rounded-2xl border-border shadow-sm pointer-events-auto">
           {recordingStream ? (
             <VoiceWaveform stream={recordingStream} />
           ) : (
@@ -904,17 +884,17 @@ export function ChatCore({
               ref={inputRef}
               placeholder={placeholder}
               className={cn(
-                "font-sans text-sm sm:text-base",
+                'font-sans text-sm sm:text-base',
                 suggestion &&
                   !inputValue &&
-                  "placeholder:text-transparent placeholder:md:text-muted-foreground",
+                  'placeholder:text-transparent placeholder:md:text-muted-foreground'
               )}
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit();
+              onChange={e => setInputValue(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSubmit()
                 }
               }}
               autoFocus
@@ -952,19 +932,15 @@ export function ChatCore({
               <PromptInputAction tooltip="Use voice mode">
                 <button
                   type="button"
-                  onClick={
-                    isRecording ? handleStopRecording : handleStartRecording
-                  }
+                  onClick={isRecording ? handleStopRecording : handleStartRecording}
                   disabled={isRecordingProcessing}
                   className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] disabled:opacity-50 sm:h-7 sm:w-7",
+                    'flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] disabled:opacity-50 sm:h-7 sm:w-7',
                     isRecording
-                      ? "bg-red-500 hover:bg-red-600 text-white"
-                      : "text-muted-foreground hover:opacity-70",
+                      ? 'bg-red-500 hover:bg-red-600 text-white'
+                      : 'text-muted-foreground hover:opacity-70'
                   )}
-                  aria-label={
-                    isRecording ? "Stop recording" : "Start recording"
-                  }
+                  aria-label={isRecording ? 'Stop recording' : 'Start recording'}
                 >
                   {isRecording ? (
                     <Square className="h-3 w-3 sm:h-4 sm:w-4 fill-current" />
@@ -980,10 +956,10 @@ export function ChatCore({
                 onClick={handleSubmit}
                 disabled={isSendDisabled}
                 className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] sm:h-8 sm:w-8",
+                  'flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] sm:h-8 sm:w-8',
                   isSendDisabled
-                    ? "bg-muted text-muted-foreground hover:opacity-70 disabled:opacity-50"
-                    : "bg-foreground text-background hover:opacity-90",
+                    ? 'bg-muted text-muted-foreground hover:opacity-70 disabled:opacity-50'
+                    : 'bg-foreground text-background hover:opacity-90'
                 )}
               >
                 <ArrowUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -993,5 +969,5 @@ export function ChatCore({
         </PromptInput>
       </div>
     </div>
-  );
+  )
 }

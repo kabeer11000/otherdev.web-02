@@ -1,50 +1,37 @@
-"use client";
+'use client'
 
-import { useCallback, useState } from "react";
-import type { ArtifactToolCall } from "@/components/artifact-renderer";
-import { ArtifactRenderer } from "@/components/artifact-renderer";
-import { Navigation } from "@/components/navigation";
-import { ChatCore } from "@/components/chat-core";
+import { useCallback, useState } from 'react'
+import type { ArtifactToolCall } from '@/components/artifact-renderer'
+import { ArtifactRenderer } from '@/components/artifact-renderer'
+import { ChatCore } from '@/components/chat-core'
+import { Navigation } from '@/components/navigation'
 
 function LoomPageInner({
   onClear,
   hasActiveArtifact,
 }: {
-  onClear: () => void;
-  hasActiveArtifact: boolean;
+  onClear: () => void
+  hasActiveArtifact: boolean
 }) {
-  return (
-    <Navigation
-      isLoomPage={true}
-      onClear={onClear}
-      hasActiveArtifact={hasActiveArtifact}
-    />
-  );
+  return <Navigation isLoomPage={true} onClear={onClear} hasActiveArtifact={hasActiveArtifact} />
 }
 
 export function LoomPageClient({ noNavigation }: { noNavigation?: boolean }) {
-  const [activeArtifact, setActiveArtifact] = useState<ArtifactToolCall | null>(
-    null,
-  );
-  const [suggestion, setSuggestion] = useState("");
+  const [activeArtifact, setActiveArtifact] = useState<ArtifactToolCall | null>(null)
+  const [_suggestion, setSuggestion] = useState('')
 
   const handleClear = useCallback(() => {
-    setSuggestion("");
-  }, []);
+    setSuggestion('')
+  }, [])
 
   return (
     <>
       {noNavigation ? null : (
-        <LoomPageInner
-          onClear={handleClear}
-          hasActiveArtifact={!!activeArtifact}
-        />
+        <LoomPageInner onClear={handleClear} hasActiveArtifact={!!activeArtifact} />
       )}
       <main className="h-screen">
         <div className="flex h-full overflow-hidden">
-          <div
-            className={`h-full ${activeArtifact ? "hidden md:block md:w-1/2" : "w-full"}`}
-          >
+          <div className={`h-full ${activeArtifact ? 'hidden md:block md:w-1/2' : 'w-full'}`}>
             <ChatCore
               activeArtifact={activeArtifact}
               onArtifactOpen={setActiveArtifact}
@@ -64,8 +51,8 @@ export function LoomPageClient({ noNavigation }: { noNavigation?: boolean }) {
         </div>
       </main>
     </>
-  );
+  )
 }
 
 // Re-export for backwards compatibility
-export { ChatCore as OtherDevLoomThread };
+export { ChatCore as OtherDevLoomThread }

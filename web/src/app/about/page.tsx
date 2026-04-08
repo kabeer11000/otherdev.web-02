@@ -1,85 +1,84 @@
-import type { Metadata } from "next";
-import Script from "next/script";
-import { Navigation } from "@/components/navigation";
-import { Footer } from "@/components/footer";
-import Image from "next/image";
-import Link from "next/link";
+import type { Metadata } from 'next'
+import Image from 'next/image'
+import Script from 'next/script'
+import { Footer } from '@/components/footer'
+import { Navigation } from '@/components/navigation'
 
 export const metadata: Metadata = {
-  title: "About | Other Dev",
+  title: 'About | Other Dev',
   description:
     "Learn about Other Dev, a full-service web development and design studio based in Karachi. Discover our team, mission, and the clients we've worked with.",
   keywords: [
-    "about Other Dev",
-    "web design studio",
-    "Karachi web development",
-    "creative studio team",
-    "digital agency",
-    "design studio",
+    'about Other Dev',
+    'web design studio',
+    'Karachi web development',
+    'creative studio team',
+    'digital agency',
+    'design studio',
   ],
   alternates: {
-    canonical: "https://otherdev.com/about",
+    canonical: 'https://otherdev.com/about',
   },
   openGraph: {
-    title: "About | Other Dev",
+    title: 'About | Other Dev',
     description:
       "Learn about Other Dev, a full-service web development and design studio based in Karachi. Discover our team, mission, and the clients we've worked with.",
-    type: "website",
-    url: "https://otherdev.com/about",
+    type: 'website',
+    url: 'https://otherdev.com/about',
   },
   twitter: {
-    card: "summary_large_image",
-    title: "About | Other Dev",
+    card: 'summary_large_image',
+    title: 'About | Other Dev',
     description:
       "Learn about Other Dev, a full-service web development and design studio based in Karachi. Discover our team, mission, and the clients we've worked with.",
   },
-};
+}
 
 // JSON-LD Structured Data
 const organizationSchema = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "Other Dev",
-  url: "https://otherdev.com",
-  logo: "https://otherdev.com/TheOtherDevLogo.svg",
-  description: "Digital platforms for pioneering creatives",
-  sameAs: ["https://otherdev.com"],
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Other Dev',
+  url: 'https://otherdev.com',
+  logo: 'https://otherdev.com/TheOtherDevLogo.svg',
+  description: 'Digital platforms for pioneering creatives',
+  sameAs: ['https://otherdev.com'],
   address: {
-    "@type": "PostalAddress",
-    addressLocality: "Karachi",
-    addressCountry: "Pakistan",
+    '@type': 'PostalAddress',
+    addressLocality: 'Karachi',
+    addressCountry: 'Pakistan',
   },
-  foundingDate: "2021",
+  foundingDate: '2021',
   founders: [
     {
-      "@type": "Person",
-      name: "Kabeer Jaffri",
+      '@type': 'Person',
+      name: 'Kabeer Jaffri',
     },
     {
-      "@type": "Person",
-      name: "Ossaid Qadri",
+      '@type': 'Person',
+      name: 'Ossaid Qadri',
     },
   ],
-};
+}
 
 export default function AboutPage() {
   const clientsDesktop = [
-    ["Narkins Builders", "Groovy Pakistan", "Olly Shinder"],
-    ["Bin Yousuf Group", "Parcheh81", "Tiny Footprint Coffee"],
-    ["Lexa", "Finlit", "Ek Qadam Aur"],
-    ["Wish Apparels", "Kiswa Noir", "BLVD"],
-    ["CLTRD Legacy"],
-  ];
+    ['Narkins Builders', 'Groovy Pakistan', 'Olly Shinder'],
+    ['Bin Yousuf Group', 'Parcheh81', 'Tiny Footprint Coffee'],
+    ['Lexa', 'Finlit', 'Ek Qadam Aur'],
+    ['Wish Apparels', 'Kiswa Noir', 'BLVD'],
+    ['CLTRD Legacy'],
+  ]
 
   const clientsMobile = [
-    ["Narkins Builders", "Parcheh81"],
-    ["Bin Yousuf Group", "Tiny Footprint Coffee"],
-    ["Lexa", "Ek Qadam Aur"],
-    ["Olly Shinder", "Groovy Pakistan"],
-    ["Wish Apparels", "Finlit"],
-    ["Kiswa Noir", "BLVD"],
-    ["CLTRD Legacy"],
-  ];
+    ['Narkins Builders', 'Parcheh81'],
+    ['Bin Yousuf Group', 'Tiny Footprint Coffee'],
+    ['Lexa', 'Ek Qadam Aur'],
+    ['Olly Shinder', 'Groovy Pakistan'],
+    ['Wish Apparels', 'Finlit'],
+    ['Kiswa Noir', 'BLVD'],
+    ['CLTRD Legacy'],
+  ]
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -116,12 +115,11 @@ export default function AboutPage() {
               About
             </p>
             <p className="mt-[9px] text-black text-[12px] font-normal leading-[14px] tracking-[-0.24px] whitespace-pre-line">
-              Other Dev produces digital platforms for pioneering creatives.
-              Based in Karachi City, we are a full-service web development and
-              design studio specializing in the fashion and design fields, with
-              a focus on bringing ideas to life through thoughtful design. Our
-              team consists of Kabeer Jaffri and Ossaid Qadri, who met while
-              studying at Habib Public School.
+              Other Dev produces digital platforms for pioneering creatives. Based in Karachi City,
+              we are a full-service web development and design studio specializing in the fashion
+              and design fields, with a focus on bringing ideas to life through thoughtful design.
+              Our team consists of Kabeer Jaffri and Ossaid Qadri, who met while studying at Habib
+              Public School.
             </p>
           </div>
         </div>
@@ -136,22 +134,24 @@ export default function AboutPage() {
               {clientsDesktop.map((row, rowIndex) =>
                 row.map((client, colIndex) => (
                   <p
+                    // biome-ignore lint/suspicious/noArrayIndexKey: Static client list that never reorders
                     key={`desktop-${rowIndex}-${colIndex}`}
                     className="hidden sm:block text-black text-[11px] font-normal leading-[14px] tracking-[-0.24px]"
                   >
                     {client}
                   </p>
-                )),
+                ))
               )}
               {clientsMobile.map((row, rowIndex) =>
                 row.map((client, colIndex) => (
                   <p
+                    // biome-ignore lint/suspicious/noArrayIndexKey: Static client list that never reorders
                     key={`mobile-${rowIndex}-${colIndex}`}
                     className="sm:hidden text-black text-[11px] font-normal leading-[14px] tracking-[-0.24px]"
                   >
                     {client}
                   </p>
-                )),
+                ))
               )}
             </div>
           </div>
@@ -164,8 +164,9 @@ export default function AboutPage() {
       <Script
         id="about-organization-jsonld"
         type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD is safe, generated from static schema
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
       />
     </div>
-  );
+  )
 }

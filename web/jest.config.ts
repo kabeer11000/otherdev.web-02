@@ -8,13 +8,16 @@ const config: Config = {
   },
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', {
-      tsconfig: {
-        jsx: 'react-jsx',
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true,
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          jsx: 'react-jsx',
+          esModuleInterop: true,
+          allowSyntheticDefaultImports: true,
+        },
       },
-    }],
+    ],
   },
 }
 

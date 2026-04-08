@@ -1,63 +1,60 @@
-import type { Metadata } from "next";
-import { CanvasClient } from "@od-canvas/sdk";
-import { cacheLife, cacheTag } from "next/cache";
-import Link from "next/link";
+import { CanvasClient } from '@od-canvas/sdk'
+import type { Metadata } from 'next'
+import { cacheLife, cacheTag } from 'next/cache'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: "Blog | Other Dev",
+  title: 'Blog | Other Dev',
   description:
-    "Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.",
+    'Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.',
   alternates: {
-    canonical: "https://otherdev.com/blog",
+    canonical: 'https://otherdev.com/blog',
   },
   openGraph: {
-    title: "Blog | Other Dev",
+    title: 'Blog | Other Dev',
     description:
-      "Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.",
-    type: "website",
-    url: "https://otherdev.com/blog",
+      'Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.',
+    type: 'website',
+    url: 'https://otherdev.com/blog',
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Blog | Other Dev",
+    card: 'summary_large_image',
+    title: 'Blog | Other Dev',
     description:
-      "Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.",
+      'Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.',
   },
-};
+}
 
 interface CanvasDocument {
-  id: number;
-  title: string;
-  created_at: string;
-  content: string;
+  id: number
+  title: string
+  created_at: string
+  content: string
 }
 
 async function getBlogPosts(): Promise<CanvasDocument[]> {
-  "use cache";
-  cacheLife("hours");
-  cacheTag("blog-posts");
+  'use cache'
+  cacheLife('hours')
+  cacheTag('blog-posts')
 
   const canvas = new CanvasClient({
     baseUrl: process.env.CANVAS_API_URL,
     apiKey: process.env.CANVAS_API_KEY,
-  });
+  })
 
   try {
     const documents =
-      (await canvas.getPublicDocuments(
-        parseInt(process.env.CANVAS_PROJECT_ID || "4", 10),
-      )) ?? [];
+      (await canvas.getPublicDocuments(parseInt(process.env.CANVAS_PROJECT_ID || '4', 10))) ?? []
     return documents.sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
   } catch {
-    return [];
+    return []
   }
 }
 
 export default async function BlogPage() {
-  const posts = await getBlogPosts();
+  const posts = await getBlogPosts()
 
   if (!posts || posts.length === 0) {
     return (
@@ -65,7 +62,7 @@ export default async function BlogPage() {
         <h1 className="text-4xl font-bold mb-8">Blog</h1>
         <p className="text-gray-600">No blog posts found.</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -76,21 +73,18 @@ export default async function BlogPage() {
         </h1>
       </div>
       <p className="text-neutral-600 text-xs mb-8">
-        {posts.length} {posts.length === 1 ? "post" : "posts"} • Powered by{" "}
+        {posts.length} {posts.length === 1 ? 'post' : 'posts'} • Powered by{' '}
         <a href="https://canvas.otherdev.com">Canvas</a>
       </p>
 
       <div className="grid gap-8 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
-        {posts.map((post) => (
+        {posts.map(post => (
           <article
             key={post.id}
             className="md:border duration-300 hover:bg-neutral-200 rounded-md hover:rounded-xl md:p-4 hover:shadow-lg transition-shadow"
           >
             <h2 className="text-sm font-bold mb-2">
-              <Link
-                href={`/blog/${post.id}`}
-                className="text-neutral-900 hover:text-blue-600"
-              >
+              <Link href={`/blog/${post.id}`} className="text-neutral-900 hover:text-blue-600">
                 {post.title}
               </Link>
             </h2>
@@ -98,7 +92,7 @@ export default async function BlogPage() {
               {new Date(post.created_at).toLocaleDateString()}
             </p>
             <p className="text-neutral-700 line-clamp-2">
-              {post.content.replace(/<[^>]*>/g, "").substring(0, 200)}...
+              {post.content.replace(/<[^>]*>/g, '').substring(0, 200)}...
             </p>
             <Link
               href={`/blog/${post.id}`}
@@ -110,5 +104,5 @@ export default async function BlogPage() {
         ))}
       </div>
     </div>
-  );
+  )
 }

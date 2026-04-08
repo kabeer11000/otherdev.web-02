@@ -1,71 +1,73 @@
-"use client";
+'use client'
 
-import { cn } from "@/lib/utils";
-import React, { useEffect, useState } from "react";
-import { codeToHtml } from "shiki";
+import type React from 'react'
+import { useEffect, useState } from 'react'
+import { codeToHtml } from 'shiki'
+import { cn } from '@/lib/utils'
 
 export type CodeBlockProps = {
-  children?: React.ReactNode;
-  className?: string;
-} & React.HTMLProps<HTMLDivElement>;
+  children?: React.ReactNode
+  className?: string
+} & React.HTMLProps<HTMLDivElement>
 
 function CodeBlock({ children, className, ...props }: CodeBlockProps) {
   return (
     <div
       className={cn(
-        "not-prose flex w-full flex-col overflow-clip border",
-        "border-border bg-card text-card-foreground rounded-xl",
-        className,
+        'not-prose flex w-full flex-col overflow-clip border',
+        'border-border bg-card text-card-foreground rounded-xl',
+        className
       )}
       {...props}
     >
       {children}
     </div>
-  );
+  )
 }
 
 export type CodeBlockCodeProps = {
-  code: string;
-  language?: string;
-  theme?: string;
-  className?: string;
-} & React.HTMLProps<HTMLDivElement>;
+  code: string
+  language?: string
+  theme?: string
+  className?: string
+} & React.HTMLProps<HTMLDivElement>
 
 function CodeBlockCode({
   code,
-  language = "tsx",
-  theme = "github-light",
+  language = 'tsx',
+  theme = 'github-light',
   className,
   ...props
 }: CodeBlockCodeProps) {
-  const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
+  const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null)
 
   useEffect(() => {
     async function highlight() {
       if (!code) {
-        setHighlightedHtml("<pre><code></code></pre>");
-        return;
+        setHighlightedHtml('<pre><code></code></pre>')
+        return
       }
 
-      const html = await codeToHtml(code, { lang: language, theme });
-      setHighlightedHtml(html);
+      const html = await codeToHtml(code, { lang: language, theme })
+      setHighlightedHtml(html)
     }
-    highlight();
-  }, [code, language, theme]);
+    highlight()
+  }, [code, language, theme])
 
   const baseClassName = cn(
-    "w-full overflow-x-auto text-[13px] [&>pre]:px-4 [&>pre]:py-4",
-    className,
-  );
+    'w-full overflow-x-auto text-[13px] [&>pre]:px-4 [&>pre]:py-4',
+    className
+  )
 
   if (highlightedHtml) {
     return (
       <div
         className={baseClassName}
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: Highlighted code from syntax highlighter is safe
         dangerouslySetInnerHTML={{ __html: highlightedHtml }}
         {...props}
       />
-    );
+    )
   }
 
   return (
@@ -74,24 +76,17 @@ function CodeBlockCode({
         <code>{code}</code>
       </pre>
     </div>
-  );
+  )
 }
 
-export type CodeBlockGroupProps = React.HTMLAttributes<HTMLDivElement>;
+export type CodeBlockGroupProps = React.HTMLAttributes<HTMLDivElement>
 
-function CodeBlockGroup({
-  children,
-  className,
-  ...props
-}: CodeBlockGroupProps) {
+function CodeBlockGroup({ children, className, ...props }: CodeBlockGroupProps) {
   return (
-    <div
-      className={cn("flex items-center justify-between", className)}
-      {...props}
-    >
+    <div className={cn('flex items-center justify-between', className)} {...props}>
       {children}
     </div>
-  );
+  )
 }
 
-export { CodeBlockGroup, CodeBlockCode, CodeBlock };
+export { CodeBlockGroup, CodeBlockCode, CodeBlock }

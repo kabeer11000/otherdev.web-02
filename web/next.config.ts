@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   // Disable TypeScript type checking during build
@@ -11,48 +11,48 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "http",
-        hostname: "localhost",
-        port: "3845",
-        pathname: "/assets/**",
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3845',
+        pathname: '/assets/**',
       },
       {
-        protocol: "https",
-        hostname: "images.unsplash.com",
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
       },
       {
-        protocol: "https",
-        hostname: "cdn.jsdelivr.net",
+        protocol: 'https',
+        hostname: 'cdn.jsdelivr.net',
       },
       {
-        protocol: "https",
-        hostname: "github.com",
+        protocol: 'https',
+        hostname: 'github.com',
       },
     ],
   },
   async headers() {
     return [
       {
-        source: "/(.*)",
+        source: '/(.*)',
         headers: [
           {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
           },
           {
-            key: "X-Frame-Options",
-            value: "SAMEORIGIN",
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
           },
           {
-            key: "Referrer-Policy",
-            value: "strict-origin-when-cross-origin",
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
           },
           {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(self), geolocation=()",
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(self), geolocation=()',
           },
           {
-            key: "Content-Security-Policy",
+            key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' cdn.jsdelivr.net unpkg.com esm.sh",
@@ -63,41 +63,41 @@ const nextConfig: NextConfig = {
               "frame-src 'self'",
               "object-src 'none'",
               "base-uri 'self'",
-            ].join("; "),
+            ].join('; '),
           },
         ],
       },
-    ];
+    ]
   },
   async redirects() {
     return [
       {
-        source: "/expertise",
-        destination: "/work",
+        source: '/expertise',
+        destination: '/work',
         permanent: true,
       },
       {
-        source: "/ur/:path*",
-        destination: "/:path*",
+        source: '/ur/:path*',
+        destination: '/:path*',
         permanent: true,
       },
       {
-        source: "/de/:path*",
-        destination: "/:path*",
+        source: '/de/:path*',
+        destination: '/:path*',
         permanent: true,
       },
       {
-        source: "/work/narkins-2025",
-        destination: "/work/narkins-2024",
+        source: '/work/narkins-2025',
+        destination: '/work/narkins-2024',
         permanent: true,
       },
       {
-        source: "/work/cultured-legacy-2025",
-        destination: "/work/cultured-legacy-2024",
+        source: '/work/cultured-legacy-2025',
+        destination: '/work/cultured-legacy-2024',
         permanent: true,
       },
-    ];
+    ]
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig

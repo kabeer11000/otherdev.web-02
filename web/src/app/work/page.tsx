@@ -1,66 +1,65 @@
-import type { Metadata } from "next";
-import Script from "next/script";
-import { Navigation } from "@/components/navigation";
-import { Footer } from "@/components/footer";
-import { projects } from "@/lib/projects";
-import { ProjectCard } from "@/components/project-card";
+import type { Metadata } from 'next'
+import Script from 'next/script'
+import { Footer } from '@/components/footer'
+import { Navigation } from '@/components/navigation'
+import { ProjectCard } from '@/components/project-card'
+import { projects } from '@/lib/projects'
 
 export const metadata: Metadata = {
-  title: "Work | Other Dev",
+  title: 'Work | Other Dev',
   description:
-    "Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.",
+    'Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.',
   keywords: [
-    "web design",
-    "web development",
-    "portfolio",
-    "project showcase",
-    "digital solutions",
-    "Other Dev",
+    'web design',
+    'web development',
+    'portfolio',
+    'project showcase',
+    'digital solutions',
+    'Other Dev',
   ],
   alternates: {
-    canonical: "https://otherdev.com/work",
+    canonical: 'https://otherdev.com/work',
   },
   openGraph: {
-    title: "Work | Other Dev",
+    title: 'Work | Other Dev',
     description:
-      "Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.",
-    type: "website",
-    url: "https://otherdev.com/work",
+      'Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.',
+    type: 'website',
+    url: 'https://otherdev.com/work',
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Work | Other Dev",
+    card: 'summary_large_image',
+    title: 'Work | Other Dev',
     description:
-      "Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.",
+      'Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.',
   },
-};
+}
 
 const organizationSchema = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "Other Dev - We engineer digital solutions for pioneering brands.",
-  url: "https://otherdev.com",
-  logo: "https://otherdev.com/TheOtherDevLogo.svg",
-  description: "Digital platforms for pioneering creatives",
-  sameAs: ["https://otherdev.com"],
-};
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Other Dev - We engineer digital solutions for pioneering brands.',
+  url: 'https://otherdev.com',
+  logo: 'https://otherdev.com/TheOtherDevLogo.svg',
+  description: 'Digital platforms for pioneering creatives',
+  sameAs: ['https://otherdev.com'],
+}
 
 const portfolioSchema = {
-  "@context": "https://schema.org",
-  "@type": "WebPage",
-  name: "Our Work",
-  url: "https://otherdev.com/work",
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'Our Work',
+  url: 'https://otherdev.com/work',
   description:
-    "Explore our premium web design and development projects. We engineer digital solutions for pioneering brands.",
+    'Explore our premium web design and development projects. We engineer digital solutions for pioneering brands.',
   creator: {
-    "@type": "Organization",
-    name: "Other Dev",
-    url: "https://otherdev.com",
+    '@type': 'Organization',
+    name: 'Other Dev',
+    url: 'https://otherdev.com',
   },
-};
+}
 
 export default function WorkPage() {
-
   return (
     <div className="min-h-screen">
       <Navigation />
@@ -68,9 +67,8 @@ export default function WorkPage() {
       <main className="container -mx-auto px-3 pr-3 md:pr-[8%] lg:pr-[15%] pt-[60px] pb-12">
         <div className="grid grid-cols-12 mb-8">
           <p className="text-[#686868] text-[11px] leading-[14px] font-normal col-span-7 sm:col-span-8 md:col-span-7 lg:col-span-6">
-            We work closely with our collaborators to engineer premium web and
-            design solutions. Below is a selection showcasing some of our most
-            recent work.
+            We work closely with our collaborators to engineer premium web and design solutions.
+            Below is a selection showcasing some of our most recent work.
           </p>
         </div>
 
@@ -78,11 +76,11 @@ export default function WorkPage() {
           {projects
             .toSorted((a, b) => {
               if (b.year !== a.year) {
-                return b.year - a.year;
+                return b.year - a.year
               }
-              return parseInt(b.id) - parseInt(a.id);
+              return parseInt(b.id, 10) - parseInt(a.id, 10)
             })
-            .map((project) => (
+            .map(project => (
               <ProjectCard
                 key={project.id}
                 title={project.title}
@@ -101,13 +99,15 @@ export default function WorkPage() {
       <Script
         id="organization-jsonld"
         type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD is safe, generated from static schema
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
       />
       <Script
         id="portfolio-jsonld"
         type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD is safe, generated from static schema
         dangerouslySetInnerHTML={{ __html: JSON.stringify(portfolioSchema) }}
       />
     </div>
-  );
+  )
 }

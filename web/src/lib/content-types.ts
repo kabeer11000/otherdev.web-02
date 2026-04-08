@@ -4,37 +4,37 @@
  */
 
 export type TextContentBlock = {
-  type: "text";
-  text: string;
-};
+  type: 'text'
+  text: string
+}
 
 export type ImageUrlContentBlock = {
-  type: "image_url";
+  type: 'image_url'
   image_url: {
-    url: string;
-  };
-};
+    url: string
+  }
+}
 
 /**
  * Content block type for messages containing text and/or image attachments.
  * Can be used in message content arrays to support mixed media.
  */
-export type ContentBlock = TextContentBlock | ImageUrlContentBlock;
+export type ContentBlock = TextContentBlock | ImageUrlContentBlock
 
 /**
  * Message content can be either a simple string (backward compatible)
  * or an array of content blocks (with file/voice attachments).
  */
-export type MessageContent = string | ContentBlock[];
+export type MessageContent = string | ContentBlock[]
 
 /**
  * Message type for the chat widget (not the loom/assistant-ui runtime).
  * Kept separate from @assistant-ui/react's ThreadMessage.
  */
 export interface WidgetMessage {
-  id?: string;
-  role: "user" | "assistant";
-  content: string;
-  reasoning?: string;
-  createdAt?: Date;
+  id?: string
+  role: 'user' | 'assistant'
+  content: string
+  reasoning?: string
+  createdAt?: Date
 }

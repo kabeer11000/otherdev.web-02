@@ -1,65 +1,65 @@
-"use client";
+'use client'
 
-import { AnimatePresence, motion } from "framer-motion";
-import { Menu, Trash2, X } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import dynamic from "next/dynamic";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from 'framer-motion'
+import { Menu, Trash2, X } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import Image from 'next/image'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 const ContactDialog = dynamic(
-  () => import("@/components/contact-dialog").then((mod) => mod.ContactDialog),
-  { ssr: false },
-);
+  () => import('@/components/contact-dialog').then(mod => mod.ContactDialog),
+  { ssr: false }
+)
 
 interface NavigationProps {
-  variant?: "default" | "ai";
-  isLoomPage?: boolean;
-  onClear?: () => void;
-  hasActiveArtifact?: boolean;
+  variant?: 'default' | 'ai'
+  isLoomPage?: boolean
+  onClear?: () => void
+  hasActiveArtifact?: boolean
 }
 
 export function Navigation({
-  variant = "default",
+  variant = 'default',
   isLoomPage = false,
   onClear,
   hasActiveArtifact = false,
 }: NavigationProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [contactDialogOpen, setContactDialogOpen] = useState(false);
-  const pathname = usePathname();
-  const router = useRouter();
-  const isAIVariant = variant === "ai";
+  const [isOpen, setIsOpen] = useState(false)
+  const [contactDialogOpen, setContactDialogOpen] = useState(false)
+  const pathname = usePathname()
+  const router = useRouter()
+  const isAIVariant = variant === 'ai'
 
   useEffect(() => {
-    const saved = sessionStorage.getItem("mobileMenuOpen");
-    if (saved === "true") {
-      setIsOpen(true);
+    const saved = sessionStorage.getItem('mobileMenuOpen')
+    if (saved === 'true') {
+      setIsOpen(true)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    sessionStorage.setItem("mobileMenuOpen", isOpen.toString());
-  }, [isOpen]);
+    sessionStorage.setItem('mobileMenuOpen', isOpen.toString())
+  }, [isOpen])
 
   useEffect(() => {
-    setIsOpen(false);
-  }, [pathname]);
+    setIsOpen(false)
+  }, [])
 
-  const handleContactClick = () => {
-    setContactDialogOpen(true);
-  };
+  const _handleContactClick = () => {
+    setContactDialogOpen(true)
+  }
 
   return (
     <nav className="fixed top-[15px] left-0 right-0 z-[60] px-3 pointer-events-none">
       {/* Mobile Navigation (or AI variant) */}
       <div
         className={cn(
-          "flex items-center justify-between w-full pointer-events-auto relative z-50",
-          isAIVariant ? "" : "sm:hidden",
+          'flex items-center justify-between w-full pointer-events-auto relative z-50',
+          isAIVariant ? '' : 'sm:hidden'
         )}
       >
         <AnimatePresence mode="wait">
@@ -75,18 +75,24 @@ export function Navigation({
                 <Button
                   variant="nav"
                   size="icon"
-                  className={cn(
-                    "flex items-center bg-transparent gap-1.5 rounded-full",
-                  )}
+                  className={cn('flex items-center bg-transparent gap-1.5 rounded-full')}
                 >
-                  <Image src="/otherdev-chat-logo.svg" alt="Other Dev" width={16} height={16} className="object-contain" priority style={{ width: "auto", height: "auto" }} />
+                  <Image
+                    src="/otherdev-chat-logo.svg"
+                    alt="Other Dev"
+                    width={16}
+                    height={16}
+                    className="object-contain"
+                    priority
+                    style={{ width: 'auto', height: 'auto' }}
+                  />
                 </Button>
               ) : (
                 <Button
                   asChild
                   variant="nav"
                   size="nav-default"
-                  className={pathname === "/" ? "text-foreground" : ""}
+                  className={pathname === '/' ? 'text-foreground' : ''}
                 >
                   <Link href="/" data-slot="nav-item">
                     other dev
@@ -104,8 +110,8 @@ export function Navigation({
               size="nav-default"
               onClick={onClear}
               className={cn(
-                "mr-2 bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70 flex items-center",
-                isOpen && "hidden",
+                'mr-2 bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70 flex items-center',
+                isOpen && 'hidden'
               )}
             >
               <Trash2 size={12} strokeWidth={2} />
@@ -166,9 +172,7 @@ export function Navigation({
                   asChild
                   variant="nav"
                   size="nav-mobile"
-                  className={
-                    pathname?.startsWith("/work") ? "text-foreground" : ""
-                  }
+                  className={pathname?.startsWith('/work') ? 'text-foreground' : ''}
                 >
                   <Link href="/work" data-slot="nav-item">
                     work
@@ -185,9 +189,7 @@ export function Navigation({
                   asChild
                   variant="nav"
                   size="nav-mobile"
-                  className={
-                    pathname?.startsWith("/about") ? "text-foreground" : ""
-                  }
+                  className={pathname?.startsWith('/about') ? 'text-foreground' : ''}
                 >
                   <Link href="/about" data-slot="nav-item">
                     about
@@ -203,9 +205,7 @@ export function Navigation({
                   asChild
                   variant="nav"
                   size="nav-mobile"
-                  className={
-                    pathname?.startsWith("/loom") ? "text-foreground" : ""
-                  }
+                  className={pathname?.startsWith('/loom') ? 'text-foreground' : ''}
                 >
                   <Link href="/loom" data-slot="nav-item">
                     ai
@@ -221,9 +221,7 @@ export function Navigation({
                   asChild
                   variant="nav"
                   size="nav-mobile"
-                  className={
-                    pathname === "/work/ads-portfolio" ? "text-foreground" : ""
-                  }
+                  className={pathname === '/work/ads-portfolio' ? 'text-foreground' : ''}
                 >
                   <Link href="/work/ads-portfolio" data-slot="nav-item">
                     ads
@@ -269,22 +267,29 @@ export function Navigation({
       {!isAIVariant && (
         <div className="hidden sm:flex items-center gap-1.5 pointer-events-auto">
           {isLoomPage ? (
-            <div
-              className={cn(
-                "group flex items-center bg-transparent gap-1.5 ",
-              )}
-            >
+            <div className={cn('group flex items-center bg-transparent gap-1.5 ')}>
               <Button
                 variant="nav"
                 size="nav-default"
-                onClick={() => router.push("/")}
-                className={"cursor-pointer group-hover:w-full w-0 opacity-0 group-hover:opacity-100 " + (pathname === "/" ? "text-foreground" : "")}
+                onClick={() => router.push('/')}
+                className={
+                  'cursor-pointer group-hover:w-full w-0 opacity-0 group-hover:opacity-100 ' +
+                  (pathname === '/' ? 'text-foreground' : '')
+                }
               >
                 other dev
               </Button>
 
               <Link href="/" data-slot="nav-item">
-                <Image src="/otherdev-chat-logo.svg" alt="Other Dev" width={16} height={16} className="mr-2 group-hover:opacity-0 object-contain rounded-circle" priority style={{ width: "auto", height: "auto" }} />
+                <Image
+                  src="/otherdev-chat-logo.svg"
+                  alt="Other Dev"
+                  width={16}
+                  height={16}
+                  className="mr-2 group-hover:opacity-0 object-contain rounded-circle"
+                  priority
+                  style={{ width: 'auto', height: 'auto' }}
+                />
               </Link>
             </div>
           ) : (
@@ -292,7 +297,7 @@ export function Navigation({
               asChild
               variant="nav"
               size="nav-default"
-              className={pathname === "/" ? "text-foreground" : ""}
+              className={pathname === '/' ? 'text-foreground' : ''}
             >
               <Link href="/" data-slot="nav-item">
                 other dev
@@ -303,7 +308,7 @@ export function Navigation({
             asChild
             variant="nav"
             size="nav-default"
-            className={pathname?.startsWith("/work") ? "text-foreground" : ""}
+            className={pathname?.startsWith('/work') ? 'text-foreground' : ''}
           >
             <Link href="/work" data-slot="nav-item">
               work
@@ -314,7 +319,7 @@ export function Navigation({
             asChild
             variant="nav"
             size="nav-default"
-            className={pathname?.startsWith("/about") ? "text-foreground" : ""}
+            className={pathname?.startsWith('/about') ? 'text-foreground' : ''}
           >
             <Link href="/about" data-slot="nav-item">
               about
@@ -325,7 +330,7 @@ export function Navigation({
             asChild
             variant="nav"
             size="nav-default"
-            className={pathname?.startsWith("/loom") ? "text-foreground" : ""}
+            className={pathname?.startsWith('/loom') ? 'text-foreground' : ''}
           >
             <Link href="/loom" data-slot="nav-item">
               ai
@@ -336,7 +341,7 @@ export function Navigation({
             asChild
             variant="nav"
             size="nav-default"
-            className={pathname === "/work/ads-portfolio" ? "text-foreground" : ""}
+            className={pathname === '/work/ads-portfolio' ? 'text-foreground' : ''}
           >
             <Link href="/work/ads-portfolio" data-slot="nav-item">
               ads
@@ -362,19 +367,20 @@ export function Navigation({
               whatsapp
             </Link>
           </Button>
-                {isLoomPage && onClear && !hasActiveArtifact && (
+          {isLoomPage && onClear && !hasActiveArtifact && (
             <Button
               variant="nav"
               size="nav-default"
               onClick={onClear}
               className={cn(
-                "ml-auto mr-2 bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70 flex items-center",
-                isOpen && "hidden",
+                'ml-auto mr-2 bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70 flex items-center',
+                isOpen && 'hidden'
               )}
             >
               <Trash2 size={12} strokeWidth={2} />
               clear
-            </Button>)}
+            </Button>
+          )}
         </div>
       )}
 
@@ -382,17 +388,14 @@ export function Navigation({
       {isOpen && (
         <div
           className={cn(
-            "fixed inset-0 z-30 -backdrop-blur-lg pointer-events-none",
-            isAIVariant ? "" : "sm:hidden",
+            'fixed inset-0 z-30 -backdrop-blur-lg pointer-events-none',
+            isAIVariant ? '' : 'sm:hidden'
           )}
         />
       )}
 
       {/* Contact Dialog */}
-      <ContactDialog
-        open={contactDialogOpen}
-        onOpenChange={setContactDialogOpen}
-      />
+      <ContactDialog open={contactDialogOpen} onOpenChange={setContactDialogOpen} />
     </nav>
-  );
+  )
 }

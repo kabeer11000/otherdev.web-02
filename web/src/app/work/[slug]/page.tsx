@@ -1,95 +1,84 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import Script from "next/script";
-import type { Metadata } from "next";
-import { Navigation } from "@/components/navigation";
-import { Footer } from "@/components/footer";
-import { projects } from "@/lib/projects";
-import { ProjectCard } from "@/components/project-card";
-import { cn } from "@/lib/utils";
-import { Download } from "lucide-react";
+import { Download } from 'lucide-react'
+import type { Metadata } from 'next'
+import Image from 'next/image'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import Script from 'next/script'
+import { Footer } from '@/components/footer'
+import { Navigation } from '@/components/navigation'
+import { ProjectCard } from '@/components/project-card'
+import { projects } from '@/lib/projects'
 
 interface ProjectPageProps {
   params: Promise<{
-    slug: string;
-  }>;
+    slug: string
+  }>
 }
 
 // Enable static generation for all project pages
 // export const dynamic = "error";
 
 export async function generateStaticParams() {
-  return projects.map((project) => ({
+  return projects.map(project => ({
     slug: project.slug,
-  }));
+  }))
 }
 
-export async function generateMetadata({
-  params,
-}: ProjectPageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const project = projects.find((p) => p.slug === slug);
+export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
+  const { slug } = await params
+  const project = projects.find(p => p.slug === slug)
 
   if (!project) {
     return {
-      title: "Project Not Found | Other Dev",
-    };
+      title: 'Project Not Found | Other Dev',
+    }
   }
 
   return {
     title: `${project.title} | Other Dev Portfolio`,
     description: project.description,
-    keywords: [
-      "web design",
-      "web development",
-      "project",
-      project.title,
-      "Other Dev",
-    ],
+    keywords: ['web design', 'web development', 'project', project.title, 'Other Dev'],
     alternates: {
       canonical: `https://otherdev.com/work/${slug}`,
     },
     openGraph: {
       title: `${project.title} | Other Dev Portfolio`,
       description: project.description,
-      type: "website",
+      type: 'website',
       url: `https://otherdev.com/work/${slug}`,
     },
     twitter: {
-      card: "summary_large_image",
+      card: 'summary_large_image',
       title: `${project.title} | Other Dev Portfolio`,
       description: project.description,
     },
-  };
+  }
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
-  const { slug } = await params;
-  const project = projects.find((p) => p.slug === slug);
+  const { slug } = await params
+  const project = projects.find(p => p.slug === slug)
 
   if (!project) {
-    notFound();
+    notFound()
   }
 
-  const relatedProjects = projects
-    .filter((p) => p.id !== project.id)
-    .slice(0, 13);
+  const relatedProjects = projects.filter(p => p.id !== project.id).slice(0, 13)
 
   // JSON-LD Structured Data
   const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "CreativeWork",
+    '@context': 'https://schema.org',
+    '@type': 'CreativeWork',
     name: project.title,
     description: project.description,
     image: project.image,
     url: `https://otherdev.com/work/${slug}`,
     creator: {
-      "@type": "Organization",
-      name: "Other Dev",
-      url: "https://otherdev.com",
+      '@type': 'Organization',
+      name: 'Other Dev',
+      url: 'https://otherdev.com',
     },
-  };
+  }
 
   return (
     <div className="min-h-screen relative">
@@ -137,6 +126,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             <div className="flex flex-col gap-[90px] md:px-[145px] md:max-w-none lg:max-w-[803px] lg:mx-auto lg:px-0 py-[78px]">
               {project.media.map((mediaUrl, index) => (
                 <a
+                  // biome-ignore lint/suspicious/noArrayIndexKey: Media URLs are stable and never reorder
                   key={mediaUrl + index}
                   href={project.url ? `https://${project.url}` : '#'}
                   target="_blank"
@@ -167,11 +157,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
         <div className="overflow-x-auto overflow-y-clip pb-[6px] mb-[57px] -mx-3 scrollbar-hide">
           <div className="flex gap-[12px] px-3">
-            {relatedProjects.map((relatedProject) => (
-              <div
-                key={relatedProject.id}
-                className="flex-shrink-0 w-[320px] sm:w-[600px]"
-              >
+            {relatedProjects.map(relatedProject => (
+              <div key={relatedProject.id} className="flex-shrink-0 w-[320px] sm:w-[600px]">
                 <ProjectCard
                   title={relatedProject.title}
                   slug={relatedProject.slug}
@@ -201,8 +188,9 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       <Script
         id="project-jsonld"
         type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD is safe, generated from static project data
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
     </div>
-  );
+  )
 }

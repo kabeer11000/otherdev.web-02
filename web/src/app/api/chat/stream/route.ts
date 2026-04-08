@@ -1,34 +1,23 @@
+import { createGroq } from '@ai-sdk/groq'
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   stepCountIs,
   streamText,
-  tool,
   TypeValidationError,
-  validateUIMessages,
+  tool,
   type UIMessage,
-} from "ai";
-import { createGroq } from "@ai-sdk/groq";
-import { z } from "zod";
+  validateUIMessages,
+} from 'ai'
+import { z } from 'zod'
 
 // Helper to extract raw base64 from data URI
 // Groq provider expects raw base64, not "data:image/jpeg;base64,..." format
 function extractBase64(dataUri: string): string {
-  return dataUri.includes(",") ? dataUri.split(",")[1] : dataUri;
+  return dataUri.includes(',') ? dataUri.split(',')[1] : dataUri
 }
 
-import { generateEmbedding } from "@/server/lib/rag/embeddings";
-import { searchSimilarDocuments } from "@/server/lib/rag/vector-search";
-import {
-  checkRateLimit,
-  getClientIdentifier,
-  REQUESTS_PER_WINDOW,
-} from "@/server/lib/rate-limit";
-import { createJsonResponse } from "@/server/lib/api-helpers";
-import {
-  CHAT_MODEL,
-  VISION_MODEL,
-} from "./helpers";
+import { createJsonResponse } from '@/server/lib/api-helpers'
 import {
   getCachedResponse,
   getCachedRetrievalContext,
@@ -36,22 +25,34 @@ import {
   saveChatMessages,
   setCachedResponse,
   setCachedRetrievalContext,
-} from "@/server/lib/chat-cache-store";
+} from '@/server/lib/chat-cache-store'
 import {
+  type ChatRoute,
   classifyChatRoute,
   detectQueryQuality,
-  shouldUseRagFromDecision,
-  type ChatRoute,
   type QueryQuality,
-} from "@/server/lib/chat-routing";
+  shouldUseRagFromDecision,
+} from '@/server/lib/chat-routing'
+import { generateEmbedding } from '@/server/lib/rag/embeddings'
+import { searchSimilarDocuments } from '@/server/lib/rag/vector-search'
+import { checkRateLimit, getClientIdentifier, REQUESTS_PER_WINDOW } from '@/server/lib/rate-limit'
+import { CHAT_MODEL, VISION_MODEL } from './helpers'
 
 // Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
+export const maxDuration = 30
 
 // AI SDK Groq instance for streamText()
 const groqAI = createGroq({
   apiKey: process.env.GROQ_API_KEY,
-});
+})
+
+// Type definitions for model messages sent to Groq
+type ModelMessageContent = { type: 'text'; text: string } | { type: 'image'; image: string }
+
+interface ModelMessage {
+  role: 'user' | 'assistant' | 'system'
+  content: ModelMessageContent[]
+}
 
 /**
  * Repairs malformed tool calls from Groq models.
@@ -59,62 +60,47 @@ const groqAI = createGroq({
  */
 async function repairToolCall({
   toolCall,
-  error,
+  error: _error,
 }: {
-  toolCall: any;
-  error: any;
-  system?: any;
-  messages?: any[];
-  tools?: any;
-  inputSchema?: any;
-}): Promise<any> {
-  console.log("[TOOL] Attempting to repair tool call:", {
-    toolName: toolCall.toolName,
-    errorType: error?.constructor?.name,
-    error: error?.message || String(error),
-    rawInput: toolCall.input,
-  });
-
+  toolCall: { input: string; toolCallId: string; toolName: string }
+  error: unknown
+  system?: string | { content: string } | { content: string }[]
+  messages?: UIMessage[]
+  tools?: Record<string, unknown>
+  inputSchema?: z.ZodType
+}): Promise<{ input: string; toolCallId: string; toolName: string } | null> {
   try {
     // Try to fix common JSON issues
-    let fixedInput = toolCall.input;
+    let fixedInput = toolCall.input
 
     // Remove markdown code blocks if present
-    fixedInput = fixedInput.replace(/^```json\s*/i, "").replace(/\s*```$/, "");
-    fixedInput = fixedInput.replace(/^```\s*/i, "").replace(/\s*```$/, "");
+    fixedInput = fixedInput.replace(/^```json\s*/i, '').replace(/\s*```$/, '')
+    fixedInput = fixedInput.replace(/^```\s*/i, '').replace(/\s*```$/, '')
 
     // Trim whitespace
-    fixedInput = fixedInput.trim();
+    fixedInput = fixedInput.trim()
 
     // Try to parse the fixed input
-    const parsed = JSON.parse(fixedInput);
-    console.log("[TOOL] Tool call repaired successfully");
+    const parsed = JSON.parse(fixedInput)
     return {
       ...toolCall,
       input: JSON.stringify(parsed),
-    };
-  } catch (parseError) {
-    // If repair fails, return null to let AI SDK handle the error
-    console.log("[TOOL] Tool call repair failed:", parseError);
-    return null;
+    }
+  } catch (_parseError) {
+    return null
   }
 }
 
-const RAG_MAX_MESSAGE_LENGTH = Number.parseInt(
-  process.env.RAG_MAX_MESSAGE_LENGTH || "500",
-  10,
-);
-const RAG_SIMILARITY_THRESHOLD = Number.parseFloat(
-  process.env.RAG_SIMILARITY_THRESHOLD || "0.1",
-);
-const RAG_MATCH_COUNT = Number.parseInt(process.env.RAG_MATCH_COUNT || "5", 10);
+const RAG_MAX_MESSAGE_LENGTH = Number.parseInt(process.env.RAG_MAX_MESSAGE_LENGTH || '500', 10)
+const RAG_SIMILARITY_THRESHOLD = Number.parseFloat(process.env.RAG_SIMILARITY_THRESHOLD || '0.1')
+const RAG_MATCH_COUNT = Number.parseInt(process.env.RAG_MATCH_COUNT || '5', 10)
 
 const INJECTION_PATTERN =
-  /\[INST\]|\[\/INST\]|<\|im_start\|>|<\|im_end\|>|<\|system\|>|<\|user\|>|<\|assistant\|>/gi;
+  /\[INST\]|\[\/INST\]|<\|im_start\|>|<\|im_end\|>|<\|system\|>|<\|user\|>|<\|assistant\|>/gi
 
 const suggestionDataSchema = z.object({
   suggestion: z.string(),
-});
+})
 
 const SYSTEM_PROMPT_DOMAIN = `You are a helpful assistant representing Other Dev, a web development and design studio based in Karachi, Pakistan.
 
@@ -149,7 +135,7 @@ CONTACT INFORMATION
 - Location: Karachi, Pakistan
 - Specializations: fashion, e-commerce, real estate, legal tech, SaaS, enterprise systems
 
-Be professional, friendly, and focused on helping potential clients learn about Other Dev. Always be helpful and engaging, never claim to lack information.`;
+Be professional, friendly, and focused on helping potential clients learn about Other Dev. Always be helpful and engaging, never claim to lack information.`
 
 const SYSTEM_PROMPT_GENERAL = `You are a helpful, neutral AI assistant.
 
@@ -157,146 +143,132 @@ Provide direct, accurate answers for general topics in a concise conversational 
 
 RULES
 1. Do not pretend to have live access to breaking events unless the user provides context.
-2. For high-stakes or time-sensitive claims (news, wars, laws, finance), ask a brief clarification if needed and avoid fabricated specifics.
+2. For high-stakes or time-sensitive topics (news, wars, laws, finance), provide a best-effort current status first when web search context is available, include concrete dates when relevant, and avoid fabricated specifics.
 3. Keep answers practical and clear.
 4. For short conversational inputs, reply naturally.
-5. After your main response, add a new line with "SUGGESTION:" followed by one short next question from the user's perspective (max 60 characters).`;
+5. After your main response, add a new line with "SUGGESTION:" followed by one short next question from the user's perspective (max 60 characters).`
 
 function sanitizeInput(text: string): string {
-  return text.replace(INJECTION_PATTERN, "").slice(0, RAG_MAX_MESSAGE_LENGTH);
+  return text.replace(INJECTION_PATTERN, '').slice(0, RAG_MAX_MESSAGE_LENGTH)
 }
 
 function extractUserText(message: UIMessage | undefined): string {
-  if (!message || message.role !== "user" || !Array.isArray(message.parts)) {
-    return "";
+  if (!message || message.role !== 'user' || !Array.isArray(message.parts)) {
+    return ''
   }
   return message.parts
-    .filter((part: any) => part.type === "text")
-    .map((part: any) => part.text)
-    .join(" ");
+    .filter(part => part.type === 'text')
+    .map(part => (part as { type: 'text'; text: string }).text)
+    .join(' ')
 }
 
 function isDomainRoute(route: ChatRoute): boolean {
-  return route === "otherdev_rag" || route === "otherdev_no_rag";
+  return route === 'otherdev_rag' || route === 'otherdev_no_rag'
 }
 
-function scopeMessagesForRoute(
-  messages: UIMessage[],
-  activeRoute: ChatRoute,
-): UIMessage[] {
-  if (messages.length <= 1) return messages;
+function scopeMessagesForRoute(messages: UIMessage[], activeRoute: ChatRoute): UIMessage[] {
+  if (messages.length <= 1) return messages
 
-  const targetIsDomain = isDomainRoute(activeRoute);
-  let startIndex = 0;
+  const targetIsDomain = isDomainRoute(activeRoute)
+  let startIndex = 0
 
   for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const msg = messages[i];
-    if (msg.role !== "user") continue;
+    const msg = messages[i]
+    if (msg.role !== 'user') continue
 
-    const rawUserText = extractUserText(msg);
-    const query = sanitizeInput(rawUserText).replace(/otherdev/gi, "Other Dev");
-    const decision = classifyChatRoute(query, detectQueryQuality(query));
-    const decisionIsDomain = isDomainRoute(decision.route);
+    const rawUserText = extractUserText(msg)
+    const query = sanitizeInput(rawUserText).replace(/otherdev/gi, 'Other Dev')
+    const decision = classifyChatRoute(query, detectQueryQuality(query))
+    const decisionIsDomain = isDomainRoute(decision.route)
 
     if (decisionIsDomain !== targetIsDomain) {
-      startIndex = i + 1;
-      break;
+      startIndex = i + 1
+      break
     }
   }
 
-  const scoped = messages.slice(startIndex);
-  return scoped.length > 0 ? scoped : [messages[messages.length - 1]];
+  const scoped = messages.slice(startIndex)
+  return scoped.length > 0 ? scoped : [messages[messages.length - 1]]
 }
 
 // Extract suggestion from text and return clean text + suggestion
-function extractSuggestion(text: string): { cleanText: string; suggestion: string | null } {
-  const suggestionMatch = text.match(/\n?\s*SUGGESTION:\s*(.+)$/i);
+function extractSuggestion(text: string): {
+  cleanText: string
+  suggestion: string | null
+} {
+  const suggestionMatch = text.match(/\n?\s*SUGGESTION:\s*(.+)$/i)
   if (!suggestionMatch) {
-    return { cleanText: text, suggestion: null };
+    return { cleanText: text, suggestion: null }
   }
-  
-  const cleanText = text.replace(/\n?\s*SUGGESTION:[\s\S]*$/i, "").trim();
-  const suggestion = suggestionMatch[1]?.trim() || null;
-  
-  return { cleanText, suggestion };
+
+  const cleanText = text.replace(/\n?\s*SUGGESTION:[\s\S]*$/i, '').trim()
+  const suggestion = suggestionMatch[1]?.trim() || null
+
+  return { cleanText, suggestion }
 }
 
 function getAdaptiveThreshold(queryQuality: QueryQuality): number {
   if (queryQuality.isConversational) {
-    return RAG_SIMILARITY_THRESHOLD * 0.5;
+    return RAG_SIMILARITY_THRESHOLD * 0.5
   }
   if (queryQuality.isLowQuality || queryQuality.hasRepeatedWords) {
-    return RAG_SIMILARITY_THRESHOLD * 0.7;
+    return RAG_SIMILARITY_THRESHOLD * 0.7
   }
   if (queryQuality.tokenCount < 5) {
-    return RAG_SIMILARITY_THRESHOLD * 0.8;
+    return RAG_SIMILARITY_THRESHOLD * 0.8
   }
-  return RAG_SIMILARITY_THRESHOLD;
+  return RAG_SIMILARITY_THRESHOLD
 }
 
 function createArtifactTool() {
   return tool({
     description:
-      "Create an interactive web artifact that will be displayed in a live preview panel. Supports vanilla HTML/CSS/JS or modern frameworks (React, Vue, Tailwind CSS) via CDN. Use this when the user asks to create, build, make, or generate interactive content like websites, apps, games, visualizations, calculators, forms, dashboards, or any web-based UI. The artifact should be complete, self-contained, and visually polished.",
+      'Create an interactive web artifact that will be displayed in a live preview panel. Supports vanilla HTML/CSS/JS or modern frameworks (React, Vue, Tailwind CSS) via CDN. Use this when the user asks to create, build, make, or generate interactive content like websites, apps, games, visualizations, calculators, forms, dashboards, or any web-based UI. The artifact should be complete, self-contained, and visually polished.',
     inputSchema: z.object({
-      title: z
-        .string()
-        .max(100)
-        .describe("A short, descriptive title for the artifact"),
+      title: z.string().max(100).describe('A short, descriptive title for the artifact'),
       code: z
         .string()
         .max(51200)
         .describe(
-          "Complete HTML code. Can use modern frameworks via CDN: React, Tailwind CSS, Vue, etc. Include CSS in <style> tags and JavaScript in <script> tags. Must be self-contained and work in a sandboxed iframe.",
+          'Complete HTML code. Can use modern frameworks via CDN: React, Tailwind CSS, Vue, etc. Include CSS in <style> tags and JavaScript in <script> tags. Must be self-contained and work in a sandboxed iframe.'
         ),
       description: z
         .string()
         .max(500)
-        .describe(
-          "A brief explanation of what this artifact does and how to use it",
-        ),
+        .describe('A brief explanation of what this artifact does and how to use it'),
     }),
     execute: async ({ title, code, description }) => {
-      console.log("[TOOL] createArtifact called:", {
-        title,
-        description,
-        codeLength: code?.length,
-      });
-      return { success: true, title, code, description };
+      return { success: true, title, code, description }
     },
-  });
+  })
 }
 
 interface SimilarDocument {
-  similarity: number;
-  metadata: { title: string };
-  content: string;
+  similarity: number
+  metadata: { title: string }
+  content: string
 }
 
-function buildContext(
-  similarDocs: SimilarDocument[],
-  queryQuality: QueryQuality,
-): string {
+function buildContext(similarDocs: SimilarDocument[], queryQuality: QueryQuality): string {
   if (similarDocs.length > 0) {
     return similarDocs
       .map(
         (doc, idx) =>
-          `Document ${idx + 1} (Relevance: ${(doc.similarity * 100).toFixed(1)}%):\nTitle: ${doc.metadata.title}\n${doc.content}\n`,
+          `Document ${idx + 1} (Relevance: ${(doc.similarity * 100).toFixed(1)}%):\nTitle: ${doc.metadata.title}\n${doc.content}\n`
       )
-      .join("\n---\n\n");
+      .join('\n---\n\n')
   }
 
   if (queryQuality.isConversational) {
-    return "User sent a conversational message. Respond naturally and helpfully, offering to answer questions about Other Dev.";
+    return 'User sent a conversational message. Respond naturally and helpfully, offering to answer questions about Other Dev.'
   }
 
   if (queryQuality.isLowQuality || queryQuality.hasRepeatedWords) {
-    return "User query is unclear. Respond naturally, acknowledge their message, and offer to help with information about Other Dev's work, services, or projects.";
+    return "User query is unclear. Respond naturally, acknowledge their message, and offer to help with information about Other Dev's work, services, or projects."
   }
 
-  return "Provide helpful general information about Other Dev based on common topics: projects (fashion, e-commerce, real estate, legal tech, SaaS), web development services, design capabilities, and technologies used.";
+  return 'Provide helpful general information about Other Dev based on common topics: projects (fashion, e-commerce, real estate, legal tech, SaaS), web development services, design capabilities, and technologies used.'
 }
-
 
 /**
  * POST handler for chat streaming endpoint.
@@ -307,410 +279,386 @@ function buildContext(
  */
 export async function POST(request: Request): Promise<Response> {
   try {
-    const clientId = getClientIdentifier(request);
-    const rateLimitResult = await checkRateLimit(clientId);
+    const clientId = getClientIdentifier(request)
+    const rateLimitResult = await checkRateLimit(clientId)
 
     if (!rateLimitResult.allowed) {
-      const retryAfter = Math.ceil(
-        (rateLimitResult.resetTime - Date.now()) / 1000,
-      );
-      return createJsonResponse(
-        { error: "Too many requests. Please try again later." },
-        429,
-        {
-          "Retry-After": retryAfter.toString(),
-          "X-RateLimit-Limit": REQUESTS_PER_WINDOW.toString(),
-          "X-RateLimit-Remaining": "0",
-          "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
-        },
-      );
+      const retryAfter = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
+      return createJsonResponse({ error: 'Too many requests. Please try again later.' }, 429, {
+        'Retry-After': retryAfter.toString(),
+        'X-RateLimit-Limit': REQUESTS_PER_WINDOW.toString(),
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+      })
     }
 
     const body = (await request.json()) as {
-      id?: string;
-      message?: UIMessage;
-      messages?: UIMessage[];
-      supportsArtifacts?: boolean;
-    };
+      id?: string
+      message?: UIMessage
+      messages?: UIMessage[]
+      supportsArtifacts?: boolean
+    }
 
     const chatId =
-      typeof body.id === "string" && body.id.trim().length > 0
-        ? body.id
-        : crypto.randomUUID();
-    const supportsArtifacts = body.supportsArtifacts === true;
+      typeof body.id === 'string' && body.id.trim().length > 0 ? body.id : crypto.randomUUID()
+    const supportsArtifacts = body.supportsArtifacts === true
 
-    let candidateMessages: UIMessage[] = [];
+    let candidateMessages: UIMessage[] = []
 
     if (body.message) {
-      const previousMessages = await loadChatMessages(chatId);
-      candidateMessages = [...previousMessages, body.message];
+      const previousMessages = await loadChatMessages(chatId)
+      candidateMessages = [...previousMessages, body.message]
     } else if (Array.isArray(body.messages)) {
-      candidateMessages = body.messages;
+      candidateMessages = body.messages
     }
 
     if (candidateMessages.length === 0) {
-      return createJsonResponse({ error: "No messages provided" }, 400);
+      return createJsonResponse({ error: 'No messages provided' }, 400)
     }
 
     // Filter out malformed empty messages before strict schema validation.
-    candidateMessages = candidateMessages.filter((m) => {
-      if (m.role === "user") {
+    candidateMessages = candidateMessages.filter(m => {
+      if (m.role === 'user') {
         if (!m.parts || m.parts.length === 0) {
-          return false;
+          return false
         }
-        return m.parts.some((p: any) => {
-          if (p.type === "text") return Boolean(p.text?.trim());
-          if (p.type === "image" || p.type === "file") return true;
-          return false;
-        });
+        return m.parts.some(p => {
+          if (p.type === 'text') return Boolean('text' in p && p.text?.trim())
+          if (p.type === 'file') return true
+          return false
+        })
       }
 
-      return Boolean(m.parts && m.parts.length > 0);
-    });
+      return Boolean(m.parts && m.parts.length > 0)
+    })
 
     if (candidateMessages.length === 0) {
-      return createJsonResponse({ error: "No valid messages provided" }, 400);
+      return createJsonResponse({ error: 'No valid messages provided' }, 400)
     }
 
-    let uiMessages: UIMessage[];
+    let uiMessages: UIMessage[]
     try {
-      uiMessages = await validateUIMessages({
+      uiMessages = (await validateUIMessages({
         messages: candidateMessages,
         dataSchemas: {
           suggestion: suggestionDataSchema,
         },
         tools: {
+          // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool validation
           createArtifact: createArtifactTool() as any,
         },
-      }) as UIMessage[];
+      })) as UIMessage[]
     } catch (error) {
       if (error instanceof TypeValidationError) {
-        console.error("[VALIDATION] Invalid chat messages:", error.message);
-        return createJsonResponse({ error: "Invalid message payload" }, 400);
+        console.error('[VALIDATION] Invalid chat messages:', error.message)
+        return createJsonResponse({ error: 'Invalid message payload' }, 400)
       }
-      throw error;
+      throw error
     }
 
     // Extract text from the last user message for routing and RAG.
-    const lastUserMessage = uiMessages.filter((m: any) => m.role === "user").pop();
-    const lastUserText = extractUserText(lastUserMessage);
-    const sanitizedQuery = sanitizeInput(lastUserText);
-    const normalizedQuery = sanitizedQuery.replace(/otherdev/gi, "Other Dev");
+    const lastUserMessage = uiMessages.filter((m: UIMessage) => m.role === 'user').pop()
+    const lastUserText = extractUserText(lastUserMessage)
+    const sanitizedQuery = sanitizeInput(lastUserText)
+    const normalizedQuery = sanitizedQuery.replace(/otherdev/gi, 'Other Dev')
 
-    const queryQuality = detectQueryQuality(normalizedQuery);
-    const routeDecision = classifyChatRoute(normalizedQuery, queryQuality);
-    const ragEnabled = shouldUseRagFromDecision(routeDecision);
-    const enableArtifacts = supportsArtifacts && queryQuality.needsArtifact;
+    const queryQuality = detectQueryQuality(normalizedQuery)
+    const routeDecision = classifyChatRoute(normalizedQuery, queryQuality)
+    const ragEnabled = shouldUseRagFromDecision(routeDecision)
+    const enableArtifacts = supportsArtifacts && queryQuality.needsArtifact
     const selectedPrompt =
-      routeDecision.route === "general_chat"
-        ? SYSTEM_PROMPT_GENERAL
-        : SYSTEM_PROMPT_DOMAIN;
-    const scopedUIMessages = scopeMessagesForRoute(uiMessages, routeDecision.route);
+      routeDecision.route === 'general_chat' ? SYSTEM_PROMPT_GENERAL : SYSTEM_PROMPT_DOMAIN
+    const scopedUIMessages = scopeMessagesForRoute(uiMessages, routeDecision.route)
 
-    console.log("[ROUTER] decision", {
-      route: routeDecision.route,
-      confidence: routeDecision.confidence,
-      reason: routeDecision.reason,
-      domainHits: routeDecision.domainHits,
-      nonDomainHits: routeDecision.nonDomainHits,
-      ragUsed: ragEnabled,
-      enableArtifacts,
-      originalMessageCount: uiMessages.length,
-      scopedMessageCount: scopedUIMessages.length,
-    });
-
-    if (routeDecision.route === "clarify") {
+    if (routeDecision.route === 'clarify') {
       const clarifyMessage =
-        "Do you want information about Other Dev specifically, or a general answer? Please clarify in one short line.";
+        'Do you want information about Other Dev specifically, or a general answer? Please clarify in one short line.'
       const assistantMessage: UIMessage = {
         id: crypto.randomUUID(),
-        role: "assistant",
-        parts: [{ type: "text", text: clarifyMessage }],
-      };
+        role: 'assistant',
+        parts: [{ type: 'text', text: clarifyMessage }],
+      }
 
-      await saveChatMessages(chatId, [...uiMessages, assistantMessage]);
+      await saveChatMessages(chatId, [...uiMessages, assistantMessage])
 
       const stream = createUIMessageStream({
         originalMessages: uiMessages,
         execute: ({ writer }) => {
-          const textId = crypto.randomUUID();
-          writer.write({ type: "start" });
-          writer.write({ type: "text-start", id: textId });
-          writer.write({ type: "text-delta", id: textId, delta: clarifyMessage });
-          writer.write({ type: "text-end", id: textId });
-          writer.write({ type: "finish", finishReason: "stop" });
+          const textId = crypto.randomUUID()
+          writer.write({ type: 'start' })
+          writer.write({ type: 'text-start', id: textId })
+          writer.write({
+            type: 'text-delta',
+            id: textId,
+            delta: clarifyMessage,
+          })
+          writer.write({ type: 'text-end', id: textId })
+          writer.write({ type: 'finish', finishReason: 'stop' })
         },
-      });
+      })
 
       return createUIMessageStreamResponse({
         stream,
         headers: {
-          "X-RateLimit-Limit": REQUESTS_PER_WINDOW.toString(),
-          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
-          "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
+          'X-RateLimit-Limit': REQUESTS_PER_WINDOW.toString(),
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
         },
-      });
+      })
     }
 
     // Detect if user sent images
-    const hasImageContent = scopedUIMessages.some((m: any) =>
-      m.parts?.some((p: any) => p.type === "image") ||
-      m.parts?.some((p: any) => p.type === "file" && p.mediaType?.startsWith("image/"))
-    );
-
-    console.log("[API] hasImageContent:", hasImageContent);
-    console.log("[API] uiMessages count:", scopedUIMessages.length);
+    const hasImageContent = scopedUIMessages.some((m: UIMessage) =>
+      m.parts?.some(
+        p =>
+          p.type === 'file' &&
+          'mediaType' in p &&
+          (p as { mediaType?: string }).mediaType?.startsWith('image/')
+      )
+    )
 
     // Manually convert UIMessage[] to ModelMessage[] format for Groq
     // convertToModelMessages has issues with file parts and data URIs
-    const modelMessages: any[] = scopedUIMessages.map((msg: any) => {
-      const content: any[] = [];
+    const modelMessages: ModelMessage[] = scopedUIMessages
+      .map((msg: UIMessage) => {
+        const content: ModelMessageContent[] = []
 
-      // Process text parts
-      const textParts = msg.parts?.filter((p: any) => p.type === "text") || [];
-      for (const part of textParts) {
-        if (part.text && part.text.trim()) {
-          content.push({ type: "text" as const, text: part.text });
-        }
-      }
-
-      // Process file/image parts - convert to Groq-compatible format
-      const fileParts = msg.parts?.filter((p: any) => p.type === "file" || p.type === "image") || [];
-      for (const part of fileParts) {
-        if (part.mediaType?.startsWith("image/")) {
-          const dataUri = part.url || part.data;
-          
-          if (dataUri && typeof dataUri === "string") {
-            content.push({ 
-              type: "image" as const, 
-              image: extractBase64(dataUri) // Strip "data:...;base64," prefix
-            });
+        // Process text parts
+        const textParts =
+          msg.parts?.filter(
+            (p): p is { type: 'text'; text: string } => p.type === 'text' && 'text' in p
+          ) || []
+        for (const part of textParts) {
+          if (part.text?.trim()) {
+            content.push({ type: 'text' as const, text: part.text })
           }
         }
-      }
 
-      if (content.length === 0) return null;
+        // Process file/image parts - convert to Groq-compatible format
+        const fileParts = msg.parts?.filter(p => p.type === 'file') || []
+        for (const part of fileParts) {
+          const mediaType =
+            'mediaType' in part ? (part as { mediaType?: string }).mediaType : undefined
+          if (mediaType?.startsWith('image/')) {
+            const dataUri =
+              ('url' in part ? (part as { url?: string }).url : undefined) ||
+              ('data' in part ? (part as { data?: string }).data : undefined)
 
-      return {
-        role: msg.role as "user" | "assistant" | "system",
-        content,
-      };
-    }).filter(Boolean);
+            if (dataUri && typeof dataUri === 'string') {
+              content.push({
+                type: 'image' as const,
+                image: extractBase64(dataUri), // Strip "data:...;base64," prefix
+              })
+            }
+          }
+        }
 
-    console.log("[API] modelMessages count:", modelMessages.length);
-    console.log("[API] Using model:", hasImageContent ? VISION_MODEL : CHAT_MODEL);
+        if (content.length === 0) return null
+
+        return {
+          role: msg.role as 'user' | 'assistant' | 'system',
+          content,
+        }
+      })
+      .filter((msg): msg is ModelMessage => msg !== null)
 
     // Sanitize messages for Groq compatibility
-    const sanitized: any[] = modelMessages.map((msg: any) => {
-      if (msg.role !== "user" || !Array.isArray(msg.content)) return msg;
+    const sanitized: ModelMessage[] = modelMessages.map((msg: ModelMessage) => {
+      if (msg.role !== 'user' || !Array.isArray(msg.content)) return msg
 
-      const sanitizedContent = msg.content.map((part: any) => {
+      const sanitizedContent = msg.content.map((part: ModelMessageContent) => {
         // Sanitize text parts
-        if (part.type === "text" && typeof part.text === "string") {
-          return { ...part, text: sanitizeInput(part.text) };
+        if (part.type === 'text' && typeof part.text === 'string') {
+          return { ...part, text: sanitizeInput(part.text) }
         }
-        return part;
-      });
+        return part
+      })
 
       // Ensure there's always text content (Groq rejects image-only messages)
       const hasText = sanitizedContent.some(
-        (p: any) => p.type === "text" && p.text && p.text.trim(),
-      );
+        (p: ModelMessageContent) => p.type === 'text' && p.text && p.text.trim()
+      )
 
       if (!hasText) {
-        sanitizedContent.push({ type: "text" as const, text: " " });
+        sanitizedContent.push({ type: 'text' as const, text: ' ' })
       }
 
-      return { ...msg, content: sanitizedContent };
-    });
+      return { ...msg, content: sanitizedContent }
+    })
 
-    const selectedModel = hasImageContent ? VISION_MODEL : CHAT_MODEL;
-    const enableResponseCache = ragEnabled && !hasImageContent && !enableArtifacts;
+    const selectedModel = hasImageContent ? VISION_MODEL : CHAT_MODEL
+    const isSearchLikeQuery = !queryQuality.isConversational && queryQuality.tokenCount >= 3
+    const enableBrowserSearch =
+      routeDecision.route === 'general_chat' &&
+      isSearchLikeQuery &&
+      !hasImageContent &&
+      !enableArtifacts
+    const enableResponseCache =
+      ragEnabled && !hasImageContent && !enableArtifacts && !enableBrowserSearch
 
     // Fetch RAG context BEFORE starting stream (must complete before streamText is called)
-    let ragContext: string | null = null;
-    let retrievalCacheHit = false;
-    let retrievalDocCount = 0;
-    const ragStartTimeMs = Date.now();
+    let ragContext: string | null = null
+    let _retrievalCacheHit = false
+    let _retrievalDocCount = 0
+    const _ragStartTimeMs = Date.now()
     if (ragEnabled) {
       try {
-        const cachedContext = await getCachedRetrievalContext(normalizedQuery);
+        const cachedContext = await getCachedRetrievalContext(normalizedQuery)
         if (cachedContext) {
-          ragContext = cachedContext;
-          retrievalCacheHit = true;
-          console.log("[RAG] Retrieval cache hit");
+          ragContext = cachedContext
+          _retrievalCacheHit = true
         } else {
-          console.log(
-            "[RAG] Starting embedding generation for:",
-            normalizedQuery.slice(0, 50),
-          );
-          const queryEmbedding = await generateEmbedding(normalizedQuery);
-          console.log("[RAG] Embedding generated, starting vector search...");
-          const adaptiveThreshold = getAdaptiveThreshold(queryQuality);
+          const queryEmbedding = await generateEmbedding(normalizedQuery)
+          const adaptiveThreshold = getAdaptiveThreshold(queryQuality)
           const similarDocs = await searchSimilarDocuments(
             queryEmbedding,
             adaptiveThreshold,
-            RAG_MATCH_COUNT,
-          );
-          retrievalDocCount = similarDocs.length;
-          console.log("[RAG] Found", similarDocs.length, "documents");
-          ragContext = buildContext(similarDocs, queryQuality);
-          await setCachedRetrievalContext(normalizedQuery, ragContext);
-          console.log("[RAG] Context built, length:", ragContext.length);
+            RAG_MATCH_COUNT
+          )
+          _retrievalDocCount = similarDocs.length
+          ragContext = buildContext(similarDocs, queryQuality)
+          await setCachedRetrievalContext(normalizedQuery, ragContext)
         }
       } catch (error) {
         console.error(
-          "[RAG] Error during RAG pipeline:",
-          error instanceof Error ? error.message : error,
-        );
+          '[RAG] Error during RAG pipeline:',
+          error instanceof Error ? error.message : error
+        )
         // Embedding service unavailable — proceed without RAG context
       }
     }
 
-    console.log("[TELEMETRY] chat-route", {
-      routeDecision: routeDecision.route,
-      routeConfidence: routeDecision.confidence,
-      ragUsed: ragEnabled,
-      ragContextLength: ragContext?.length ?? 0,
-      retrievalCacheHit,
-      retrievalDocCount,
-      retrievalLatencyMs: ragEnabled ? Date.now() - ragStartTimeMs : 0,
-      topK: RAG_MATCH_COUNT,
-      model: selectedModel,
-    });
-
     // Inject RAG context into the last user message
     if (ragContext && sanitized.length > 0) {
-      const lastMsg = sanitized[sanitized.length - 1];
-      if (lastMsg.role === "user" && Array.isArray(lastMsg.content)) {
+      const lastMsg = sanitized[sanitized.length - 1]
+      if (lastMsg.role === 'user' && Array.isArray(lastMsg.content)) {
         const textPartIndex = lastMsg.content.findIndex(
-          (p: any) => p.type === "text",
-        );
+          (p: ModelMessageContent) => p.type === 'text'
+        )
         if (textPartIndex >= 0) {
-          const originalText =
-            typeof lastMsg.content[textPartIndex]?.text === "string"
-              ? lastMsg.content[textPartIndex].text
-              : "";
-          lastMsg.content[textPartIndex].text = `=== CONTEXT ===\n${ragContext}\n=== END CONTEXT ===\n\n${originalText}`;
+          const part = lastMsg.content[textPartIndex]
+          const originalText = part.type === 'text' ? part.text : ''
+          lastMsg.content[textPartIndex] = {
+            type: 'text',
+            text: `=== CONTEXT ===\n${ragContext}\n=== END CONTEXT ===\n\n${originalText}`,
+          }
         }
       }
     }
 
-    let responseTextForCache = "";
-    let responseSuggestionForCache: string | null = null;
+    let responseTextForCache = ''
+    let responseSuggestionForCache: string | null = null
 
     // Use createUIMessageStream to properly handle data parts and persistence mode.
     const stream = createUIMessageStream({
       originalMessages: uiMessages,
       onFinish: async ({ messages }) => {
-        await saveChatMessages(chatId, messages as UIMessage[]);
+        await saveChatMessages(chatId, messages as UIMessage[])
 
         if (enableResponseCache && responseTextForCache.trim().length > 0) {
           await setCachedResponse(
             normalizedQuery,
             selectedModel,
             responseTextForCache,
-            responseSuggestionForCache,
-          );
+            responseSuggestionForCache
+          )
         }
       },
       execute: async ({ writer }) => {
         if (enableResponseCache) {
-          const cached = await getCachedResponse(normalizedQuery, selectedModel);
+          const cached = await getCachedResponse(normalizedQuery, selectedModel)
           if (cached) {
-            const textId = crypto.randomUUID();
-            writer.write({ type: "start" });
-            writer.write({ type: "text-start", id: textId });
-            writer.write({ type: "text-delta", id: textId, delta: cached.text });
-            writer.write({ type: "text-end", id: textId });
+            const textId = crypto.randomUUID()
+            writer.write({ type: 'start' })
+            writer.write({ type: 'text-start', id: textId })
+            writer.write({
+              type: 'text-delta',
+              id: textId,
+              delta: cached.text,
+            })
+            writer.write({ type: 'text-end', id: textId })
             if (cached.suggestion) {
               writer.write({
-                type: "data-suggestion",
+                type: 'data-suggestion',
                 data: { suggestion: cached.suggestion },
-              });
+              })
             }
-            writer.write({ type: "finish", finishReason: "stop" });
-            responseTextForCache = cached.text;
-            responseSuggestionForCache = cached.suggestion;
-            console.log("[CACHE] Response cache hit");
-            return;
+            writer.write({ type: 'finish', finishReason: 'stop' })
+            responseTextForCache = cached.text
+            responseSuggestionForCache = cached.suggestion
+            return
           }
         }
 
-        let accumulatedText = "";
+        let accumulatedText = ''
 
         const result = streamText({
           model: groqAI(selectedModel),
           system: selectedPrompt,
+          // biome-ignore lint/suspicious/noExplicitAny: AI SDK message type conversion
           messages: sanitized as any,
           temperature: 0.7,
           maxOutputTokens: 1024,
           stopWhen: stepCountIs(5),
-          toolChoice: "auto",
+          toolChoice: enableBrowserSearch ? 'required' : 'auto',
           experimental_repairToolCall: enableArtifacts
-            ? repairToolCall
+            ? // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool repair
+              (repairToolCall as any)
             : undefined,
-          tools: enableArtifacts
+          tools: (enableArtifacts
             ? {
                 createArtifact: createArtifactTool(),
               }
-            : {},
+            : enableBrowserSearch
+              ? {
+                  browser_search: groqAI.tools.browserSearch({}),
+                }
+              : // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool type
+                {}) as any,
           timeout: {
             totalMs: 30000,
           },
           experimental_transform: () =>
             new TransformStream({
               transform(chunk, controller) {
-                controller.enqueue(chunk);
-                if (chunk.type === "text-delta") {
-                  accumulatedText += chunk.text;
+                controller.enqueue(chunk)
+                if (chunk.type === 'text-delta') {
+                  accumulatedText += chunk.text
                 }
               },
             }),
-          onFinish: async (event) => {
-            console.log("[STREAM] Finished:", {
-              finishReason: event.finishReason,
-              usage: event.usage,
-              steps: event.steps?.length,
-            });
-          },
-        });
+          onFinish: async _event => {},
+        })
 
-        writer.merge(result.toUIMessageStream());
-        await result.consumeStream();
+        writer.merge(result.toUIMessageStream())
+        await result.consumeStream()
 
-        const { cleanText, suggestion } = extractSuggestion(accumulatedText);
+        const { cleanText, suggestion } = extractSuggestion(accumulatedText)
         if (suggestion) {
           writer.write({
-            type: "data-suggestion",
+            type: 'data-suggestion',
             data: { suggestion },
-          });
+          })
         }
-        responseTextForCache = cleanText || accumulatedText;
-        responseSuggestionForCache = suggestion;
+        responseTextForCache = cleanText || accumulatedText
+        responseSuggestionForCache = suggestion
       },
-      onError: (error) => {
-        console.error(
-          "[STREAM] Error:",
-          error instanceof Error ? error.message : error,
-        );
-        return "An error occurred while processing your request.";
+      onError: error => {
+        console.error('[STREAM] Error:', error instanceof Error ? error.message : error)
+        return 'An error occurred while processing your request.'
       },
-    });
+    })
 
     return createUIMessageStreamResponse({
       stream,
       headers: {
-        "X-RateLimit-Limit": REQUESTS_PER_WINDOW.toString(),
-        "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
-        "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
+        'X-RateLimit-Limit': REQUESTS_PER_WINDOW.toString(),
+        'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+        'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
       },
-    });
+    })
   } catch (error) {
-    console.error("Chat API error:", error);
-    return createJsonResponse(
-      { error: "Internal server error. Please try again." },
-      500,
-    );
+    console.error('Chat API error:', error)
+    return createJsonResponse({ error: 'Internal server error. Please try again.' }, 500)
   }
 }

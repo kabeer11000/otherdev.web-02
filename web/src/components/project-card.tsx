@@ -1,58 +1,58 @@
-import Link from "next/link";
-import Image from "next/image";
-import { cva, type VariantProps } from "class-variance-authority";
-import { ProjectCardHover } from "./project-card-hover";
+import { cva, type VariantProps } from 'class-variance-authority'
+import Image from 'next/image'
+import Link from 'next/link'
+import { ProjectCardHover } from './project-card-hover'
 
 const cardVariants = cva(
-  "relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center",
+  'relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center',
   {
     variants: {
       variant: {
-        home: "bg-stone-200 -hover:shadow-lg",
-        work: "bg-stone-200",
-        broll: "",
+        home: 'bg-stone-200 -hover:shadow-lg',
+        work: 'bg-stone-200',
+        broll: '',
       },
     },
     defaultVariants: {
-      variant: "home",
+      variant: 'home',
     },
-  },
-);
+  }
+)
 
-const imageContainerVariants = cva("relative w-full h-full bg-stone-200", {
+const imageContainerVariants = cva('relative w-full h-full bg-stone-200', {
   variants: {
     variant: {
-      home: "px-[24px] py-[36px]",
-      work: "px-[50px] py-[60px]",
-      broll: "",
+      home: 'px-[24px] py-[36px]',
+      work: 'px-[50px] py-[60px]',
+      broll: '',
     },
   },
   defaultVariants: {
-    variant: "home",
+    variant: 'home',
   },
-});
+})
 
-const imageVariants = cva("transition-transform duration-300", {
+const imageVariants = cva('transition-transform duration-300', {
   variants: {
     variant: {
-      home: "object-contain group-hover:scale-[1.02] p-6",
-      work: "object-contain group-hover:scale-[0.99] p-6",
-      broll: "object-cover",
+      home: 'object-contain group-hover:scale-[1.02] p-6',
+      work: 'object-contain group-hover:scale-[0.99] p-6',
+      broll: 'object-cover',
     },
   },
   defaultVariants: {
-    variant: "home",
+    variant: 'home',
   },
-});
+})
 
 interface ProjectCardProps extends VariantProps<typeof cardVariants> {
-  title: string;
-  slug: string;
-  image: string;
-  description?: string;
-  showText?: boolean;
-  priority?: boolean;
-  sizes?: string;
+  title: string
+  slug: string
+  image: string
+  description?: string
+  showText?: boolean
+  priority?: boolean
+  sizes?: string
 }
 
 export function ProjectCard({
@@ -63,9 +63,9 @@ export function ProjectCard({
   variant,
   showText = false,
   priority = false,
-  sizes = "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw",
+  sizes = '(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw',
 }: ProjectCardProps) {
-  const useHover = variant === "home" || variant === "broll";
+  const useHover = variant === 'home' || variant === 'broll'
 
   return (
     <div className="flex flex-col gap-[13px]">
@@ -113,5 +113,5 @@ export function ProjectCard({
         </Link>
       )}
     </div>
-  );
+  )
 }

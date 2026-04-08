@@ -8,6 +8,7 @@ describe('VoiceRecorder', () => {
       stop: jest.fn(),
       ondataavailable: null,
       onstop: null,
+      // biome-ignore lint/suspicious/noExplicitAny: test mock
     })) as any
     global.MediaRecorder.isTypeSupported = jest.fn(() => true)
   })
