@@ -50,7 +50,30 @@ const queensCompressed = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL('https://otherdev.com'),
   title: 'Other Dev',
-  description: 'Digital platforms for pioneering creatives',
+  description:
+    'Other Dev produces digital platforms for pioneering creatives. Full-service web development and design studio based in Karachi, specializing in fashion and design fields.',
+  openGraph: {
+    title: 'Other Dev',
+    description:
+      'Other Dev produces digital platforms for pioneering creatives. Full-service web development and design studio based in Karachi, specializing in fashion and design fields.',
+    type: 'website',
+    url: 'https://otherdev.com',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'Other Dev - Digital Platforms for Pioneering Creatives',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Other Dev',
+    description:
+      'Other Dev produces digital platforms for pioneering creatives. Full-service web development and design studio based in Karachi, specializing in fashion and design fields.',
+    images: ['/opengraph-image'],
+  },
   robots: {
     index: true,
     follow: true,

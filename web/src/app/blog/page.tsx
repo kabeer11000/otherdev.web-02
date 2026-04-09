@@ -16,12 +16,21 @@ export const metadata: Metadata = {
       'Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.',
     type: 'website',
     url: 'https://otherdev.com/blog',
+    images: [
+      {
+        url: '/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Blog | Other Dev',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Blog | Other Dev',
     description:
       'Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.',
+    images: ['/og-image.jpg'],
   },
 }
 

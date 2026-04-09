@@ -32,9 +32,31 @@ export async function generateMetadata({ params }: PageProps) {
     }
   }
 
+  const description = post.content.replace(/<[^>]*>/g, '').substring(0, 160)
+
   return {
     title: `${post.title} | Other Dev Blog`,
-    description: post.content.replace(/<[^>]*>/g, '').substring(0, 160),
+    description,
+    openGraph: {
+      title: `${post.title} | Other Dev Blog`,
+      description,
+      type: 'article',
+      url: `https://otherdev.com/blog/${slug}`,
+      images: [
+        {
+          url: `/blog/${slug}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          alt: `${post.title} | Other Dev Blog`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${post.title} | Other Dev Blog`,
+      description,
+      images: [`/blog/${slug}/opengraph-image`],
+    },
   }
 }
 

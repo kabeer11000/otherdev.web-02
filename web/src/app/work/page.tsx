@@ -26,12 +26,21 @@ export const metadata: Metadata = {
       'Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.',
     type: 'website',
     url: 'https://otherdev.com/work',
+    images: [
+      {
+        url: '/work/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'Our Work | Other Dev Portfolio',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Work | Other Dev',
     description:
       'Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.',
+    images: ['/work/opengraph-image'],
   },
 }
 

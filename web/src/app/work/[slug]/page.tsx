@@ -46,11 +46,20 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
       description: project.description,
       type: 'website',
       url: `https://otherdev.com/work/${slug}`,
+      images: [
+        {
+          url: `/work/${slug}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          alt: `${project.title} | Other Dev Portfolio`,
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: `${project.title} | Other Dev Portfolio`,
       description: project.description,
+      images: [`/work/${slug}/opengraph-image`],
     },
   }
 }

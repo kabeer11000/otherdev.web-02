@@ -25,12 +25,21 @@ export const metadata: Metadata = {
       "Learn about Other Dev, a full-service web development and design studio based in Karachi. Discover our team, mission, and the clients we've worked with.",
     type: 'website',
     url: 'https://otherdev.com/about',
+    images: [
+      {
+        url: '/about/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'About Other Dev',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'About | Other Dev',
     description:
       "Learn about Other Dev, a full-service web development and design studio based in Karachi. Discover our team, mission, and the clients we've worked with.",
+    images: ['/about/opengraph-image'],
   },
 }
 
