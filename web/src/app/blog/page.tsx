@@ -2,36 +2,20 @@ import { CanvasClient } from '@od-canvas/sdk'
 import type { Metadata } from 'next'
 import { cacheLife, cacheTag } from 'next/cache'
 import Link from 'next/link'
+import { buildSocialMetadata } from '@/lib/metadata'
 
 export const metadata: Metadata = {
   title: 'Blog | Other Dev',
   description:
     'Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.',
-  alternates: {
-    canonical: 'https://otherdev.com/blog',
-  },
-  openGraph: {
+  ...buildSocialMetadata({
     title: 'Blog | Other Dev',
     description:
       'Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.',
-    type: 'website',
-    url: 'https://otherdev.com/blog',
-    images: [
-      {
-        url: '/og-image.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'Blog | Other Dev',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Blog | Other Dev',
-    description:
-      'Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.',
-    images: ['/og-image.jpg'],
-  },
+    path: '/blog',
+    imagePath: '/images/projects/olly-2025/products-page-desktop.webp',
+    imageAlt: 'Blog | Other Dev',
+  }),
 }
 
 interface CanvasDocument {

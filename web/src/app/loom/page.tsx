@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { LoomPageClient } from '@/components/otherdev-loom-thread'
+import { buildSocialMetadata } from '@/lib/metadata'
 
 export const metadata: Metadata = {
   title: "Loom - Chat with Other Dev's AI Assistant",
@@ -13,34 +14,17 @@ export const metadata: Metadata = {
     'web development chat',
     'Other Dev',
   ],
-  openGraph: {
-    title: 'Other Dev Loom',
+  ...buildSocialMetadata({
+    title: "Loom - Chat with Other Dev's AI Assistant",
     description:
       "Chat with Loom, Other Dev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
-    type: 'website',
-    url: 'https://otherdev.com/loom',
-    images: [
-      {
-        url: '/og-image.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'Other Dev Loom',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Other Dev Loom',
-    description:
-      "Chat with Loom, Other Dev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
-    images: ['/og-image.jpg'],
-  },
+    path: '/loom',
+    imagePath: '/otherdev-chat-logo.svg',
+    imageAlt: 'Other Dev Loom',
+  }),
   robots: {
     index: true,
     follow: true,
-  },
-  alternates: {
-    canonical: 'https://otherdev.com/loom',
   },
 }
 

@@ -3,6 +3,7 @@ import Script from 'next/script'
 import { Footer } from '@/components/footer'
 import { Navigation } from '@/components/navigation'
 import { ProjectCard } from '@/components/project-card'
+import { buildSocialMetadata } from '@/lib/metadata'
 import { projects } from '@/lib/projects'
 
 export const metadata: Metadata = {
@@ -17,31 +18,14 @@ export const metadata: Metadata = {
     'digital solutions',
     'Other Dev',
   ],
-  alternates: {
-    canonical: 'https://otherdev.com/work',
-  },
-  openGraph: {
+  ...buildSocialMetadata({
     title: 'Work | Other Dev',
     description:
       'Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.',
-    type: 'website',
-    url: 'https://otherdev.com/work',
-    images: [
-      {
-        url: '/work/opengraph-image',
-        width: 1200,
-        height: 630,
-        alt: 'Our Work | Other Dev Portfolio',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Work | Other Dev',
-    description:
-      'Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.',
-    images: ['/work/opengraph-image'],
-  },
+    path: '/work',
+    imagePath: '/images/projects/olly-2025/products-page-desktop.webp',
+    imageAlt: 'Our Work | Other Dev Portfolio',
+  }),
 }
 
 const organizationSchema = {

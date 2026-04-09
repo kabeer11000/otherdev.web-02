@@ -2,6 +2,7 @@ import { CanvasClient } from '@od-canvas/sdk'
 import { cacheLife, cacheTag } from 'next/cache'
 import Link from 'next/link'
 import sanitizeHtml from 'sanitize-html'
+import { buildSocialMetadata } from '@/lib/metadata'
 
 type PageProps = { params: Promise<{ slug: string }> }
 
@@ -37,26 +38,14 @@ export async function generateMetadata({ params }: PageProps) {
   return {
     title: `${post.title} | Other Dev Blog`,
     description,
-    openGraph: {
+    ...buildSocialMetadata({
       title: `${post.title} | Other Dev Blog`,
       description,
+      path: `/blog/${slug}`,
+      imagePath: '/images/projects/finlit-2025/finlit-desktop-standard-ratio.webp',
+      imageAlt: `${post.title} | Other Dev Blog`,
       type: 'article',
-      url: `https://otherdev.com/blog/${slug}`,
-      images: [
-        {
-          url: `/blog/${slug}/opengraph-image`,
-          width: 1200,
-          height: 630,
-          alt: `${post.title} | Other Dev Blog`,
-        },
-      ],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${post.title} | Other Dev Blog`,
-      description,
-      images: [`/blog/${slug}/opengraph-image`],
-    },
+    }),
   }
 }
 

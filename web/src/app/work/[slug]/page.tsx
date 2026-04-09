@@ -7,6 +7,7 @@ import Script from 'next/script'
 import { Footer } from '@/components/footer'
 import { Navigation } from '@/components/navigation'
 import { ProjectCard } from '@/components/project-card'
+import { buildSocialMetadata } from '@/lib/metadata'
 import { projects } from '@/lib/projects'
 
 interface ProjectPageProps {
@@ -38,29 +39,13 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
     title: `${project.title} | Other Dev Portfolio`,
     description: project.description,
     keywords: ['web design', 'web development', 'project', project.title, 'Other Dev'],
-    alternates: {
-      canonical: `https://otherdev.com/work/${slug}`,
-    },
-    openGraph: {
+    ...buildSocialMetadata({
       title: `${project.title} | Other Dev Portfolio`,
       description: project.description,
-      type: 'website',
-      url: `https://otherdev.com/work/${slug}`,
-      images: [
-        {
-          url: `/work/${slug}/opengraph-image`,
-          width: 1200,
-          height: 630,
-          alt: `${project.title} | Other Dev Portfolio`,
-        },
-      ],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${project.title} | Other Dev Portfolio`,
-      description: project.description,
-      images: [`/work/${slug}/opengraph-image`],
-    },
+      path: `/work/${slug}`,
+      imagePath: project.image,
+      imageAlt: `${project.title} | Other Dev Portfolio`,
+    }),
   }
 }
 

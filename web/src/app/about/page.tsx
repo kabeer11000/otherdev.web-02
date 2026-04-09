@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Script from 'next/script'
 import { Footer } from '@/components/footer'
 import { Navigation } from '@/components/navigation'
+import { buildSocialMetadata } from '@/lib/metadata'
 
 export const metadata: Metadata = {
   title: 'About | Other Dev',
@@ -16,31 +17,14 @@ export const metadata: Metadata = {
     'digital agency',
     'design studio',
   ],
-  alternates: {
-    canonical: 'https://otherdev.com/about',
-  },
-  openGraph: {
+  ...buildSocialMetadata({
     title: 'About | Other Dev',
     description:
       "Learn about Other Dev, a full-service web development and design studio based in Karachi. Discover our team, mission, and the clients we've worked with.",
-    type: 'website',
-    url: 'https://otherdev.com/about',
-    images: [
-      {
-        url: '/about/opengraph-image',
-        width: 1200,
-        height: 630,
-        alt: 'About Other Dev',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'About | Other Dev',
-    description:
-      "Learn about Other Dev, a full-service web development and design studio based in Karachi. Discover our team, mission, and the clients we've worked with.",
-    images: ['/about/opengraph-image'],
-  },
+    path: '/about',
+    imagePath: '/images/about-page/about-team-combined-desktop.webp',
+    imageAlt: 'About Other Dev',
+  }),
 }
 
 // JSON-LD Structured Data

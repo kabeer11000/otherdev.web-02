@@ -3,14 +3,14 @@ import { connection } from 'next/server'
 import { Footer } from '@/components/footer'
 import { Navigation } from '@/components/navigation'
 import { ProjectCard } from '@/components/project-card'
+import { buildSocialMetadata, DEFAULT_SITE_DESCRIPTION } from '@/lib/metadata'
 import { playlistsAndImages } from '@/lib/playlists-and-images'
 import { projects } from '@/lib/projects'
 import { shuffle } from '@/lib/utils'
 
 export const metadata: Metadata = {
   title: 'Other Dev',
-  description:
-    'Other Dev produces digital platforms for pioneering creatives. Full-service web development and design studio based in Karachi, specializing in fashion and design fields.',
+  description: DEFAULT_SITE_DESCRIPTION,
   keywords: [
     'web development',
     'web design',
@@ -24,31 +24,13 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-  alternates: {
-    canonical: 'https://otherdev.com',
-  },
-  openGraph: {
+  ...buildSocialMetadata({
     title: 'Other Dev',
-    description:
-      'Other Dev produces digital platforms for pioneering creatives. Full-service web development and design studio based in Karachi, specializing in fashion and design fields.',
-    type: 'website',
-    url: 'https://otherdev.com',
-    images: [
-      {
-        url: '/opengraph-image',
-        width: 1200,
-        height: 630,
-        alt: 'Other Dev - Digital Platforms for Pioneering Creatives',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Other Dev',
-    description:
-      'Other Dev produces digital platforms for pioneering creatives. Full-service web development and design studio based in Karachi, specializing in fashion and design fields.',
-    images: ['/opengraph-image'],
-  },
+    description: DEFAULT_SITE_DESCRIPTION,
+    path: '/',
+    imagePath: '/og-image.jpg',
+    imageAlt: 'Other Dev - Digital Platforms for Pioneering Creatives',
+  }),
 }
 
 // JSON-LD Structured Data
