@@ -1,9 +1,11 @@
 'use client'
 
-import { useActions, useUIState } from '@ai-sdk/rsc'
+import { useChat } from '@ai-sdk/react'
 import {
+  DefaultChatTransport,
   getToolName,
   isToolUIPart,
+  lastAssistantMessageIsCompleteWithToolCalls,
   type UIMessage,
 } from 'ai'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -184,14 +186,22 @@ function ReasoningCollapsible({ reasoning }: { reasoning: string }) {
 function SuggestionButton({
   display,
   prompt,
-  onPromptSubmit,
+  sendMessage,
 }: {
   display: string
   prompt: string
-  onPromptSubmit: (prompt: string) => void
+  sendMessage: (message: {
+    text: string
+    files?: Array<{
+      type: 'file'
+      mediaType: string
+      url: string
+      name: string
+    }>
+  }) => void
 }) {
   const handleClick = () => {
-    onPromptSubmit(prompt)
+    sendMessage({ text: prompt })
   }
 
   return (
@@ -507,6 +517,19 @@ export function ChatCore({
   const [inputError, setInputError] = useState('')
   const [attachments, setAttachments] = useState<File[]>([])
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null)
+
+  // Persist chatId in localStorage for session continuity
+  const [chatId, setChatId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chatId') || crypto.randomUUID()
+    }
+    return crypto.randomUUID()
+  })
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('chatId', chatId)
+    }
+  }, [chatId])
   const [isRecording, setIsRecording] = useState(false)
   const [isRecordingProcessing, setIsRecordingProcessing] = useState(false)
 
@@ -514,23 +537,63 @@ export function ChatCore({
   const recorderRef = useRef<VoiceRecorder | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const _activeArtifact = externalActiveArtifact ?? internalActiveArtifact
   const setActiveArtifact = onArtifactOpen ?? setInternalActiveArtifact
 
   const greeting = useTimeBasedGreeting()
 
-  const { continueConversation } = useActions()
-  const [messages, setMessages] = useUIState()
-  const [isLoading, setIsLoading] = useState(false)
-  const conversationIdRef = useRef<string>(crypto.randomUUID())
+  const { messages, sendMessage, status, setMessages, addToolOutput } = useChat<ChatUIMessage>({
+    dataPartSchemas: {
+      suggestion: suggestionDataSchema,
+    },
+    transport: new DefaultChatTransport({
+      api: '/api/chat/stream',
+      body: {
+        supportsArtifacts: true,
+      },
+      prepareSendMessagesRequest({ id, messages }) {
+        return {
+          body: {
+            id: chatId,
+            message: messages[messages.length - 1],
+            supportsArtifacts: true,
+          },
+        }
+      },
+    }),
+    experimental_throttle: 100,
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    async onToolCall({ toolCall }) {
+      if (toolCall.dynamic) {
+        return
+      }
+      if (toolCall.toolName === 'createArtifact') {
+        addToolOutput({
+          tool: 'createArtifact',
+          toolCallId: toolCall.toolCallId,
+          output: { success: true },
+        })
+      }
+    },
+    onData(dataPart) {
+      if (dataPart.type === 'data-suggestion') {
+        const parsed = suggestionDataSchema.safeParse(dataPart.data)
+        if (parsed.success && parsed.data.suggestion) {
+          setSuggestion(parsed.data.suggestion)
+        }
+      }
+    },
+  })
 
-  // Persist conversationId across renders within a session
-  const conversationId = conversationIdRef.current
-
+  // biome-ignore lint/correctness/useExhaustiveDependencies: abortControllerRef is a stable ref, accessed via .current
   const _handleClear = useCallback(() => {
     setMessages([])
     setSuggestion('')
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
     if (_onClear) {
       _onClear()
     }
@@ -615,56 +678,34 @@ export function ChatCore({
     }
   }
 
-  const onPromptSubmit = (prompt: string) => {
-    setInputValue(prompt)
-  }
-
   const handleSubmit = async () => {
-    if (isLoading || isRecording || isRecordingProcessing) return
+    if (isRecording || isRecordingProcessing) return
 
     const value = inputValue.trim()
     if (!value && attachments.length === 0) return
 
-    setIsLoading(true)
+    if (attachments.length === 0) {
+      sendMessage({ text: value })
+    } else {
+      const processed = await Promise.all(attachments.map(processAttachment))
+      const fileParts = processed.map(a => ({
+        type: 'file' as const,
+        mediaType: a.contentType,
+        url: a.url,
+        filename: a.name,
+      }))
+
+      sendMessage({
+        role: 'user',
+        parts: [...fileParts, { type: 'text' as const, text: value }],
+      })
+    }
+
     setSuggestion('')
-
-    try {
-      let messageParts: Array<{ type: 'text'; text: string } | { type: 'file'; mediaType: string; url: string; filename: string }> = [{ type: 'text', text: value }]
-
-      if (attachments.length > 0) {
-        const processed = await Promise.all(attachments.map(processAttachment))
-        const fileParts = processed.map(a => ({
-          type: 'file' as const,
-          mediaType: a.contentType,
-          url: a.url,
-          filename: a.name,
-        }))
-        messageParts = [...fileParts, { type: 'text' as const, text: value }]
-      }
-
-      // 1. Add user message to UI
-      setMessages((prev: unknown[]) => [
-        ...prev,
-        { id: crypto.randomUUID(), role: 'user' as const, display: value },
-      ])
-
-      // 2. Call server action - returns ClientMessage with ReactNode display
-      const message = await continueConversation(value)
-
-      // 3. Add AI response to UI
-      setMessages((prev: unknown[]) => [...prev, message])
-
-      // Clear input and attachments
-      setInputValue('')
-      setSuggestion('')
-      setAttachments([])
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-    } catch (error) {
-      setInputError(error instanceof Error ? error.message : 'Failed to send message')
-    } finally {
-      setIsLoading(false)
+    setInputValue('')
+    setAttachments([])
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
     }
   }
 
@@ -752,7 +793,7 @@ export function ChatCore({
                         key={suggestionItem.label}
                         display={suggestionItem.label}
                         prompt={suggestionItem.prompt}
-                        onPromptSubmit={onPromptSubmit}
+                        sendMessage={sendMessage}
                       />
                     ))}
                   </div>
@@ -762,20 +803,19 @@ export function ChatCore({
 
             <div className="absolute bottom-0 w-screen h-30 bg-gradient-to-t from-background to-transparent pointer-events-none" />
             <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-4xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-12">
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {messages.map((message: any, index: number) =>
+              {messages.map(message =>
                 message.role === 'user' ? (
-                  <UserMessage key={message.id ?? `user-${index}`} message={message} />
+                  <UserMessage key={message.id} message={message} />
                 ) : (
                   <AssistantMessage
-                    key={message.id ?? `ai-${index}`}
+                    key={message.id}
                     message={message}
                     setActiveArtifact={setActiveArtifact}
                   />
                 )
               )}
 
-              {isLoading && (
+              {(status === 'submitted' || status === 'streaming') && (
                 <div className="flex items-center gap-2 sm:gap-3">
                   <Image
                     src="/otherdev-chat-logo.svg"
