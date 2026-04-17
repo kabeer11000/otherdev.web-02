@@ -259,15 +259,19 @@ function buildContext(similarDocs: SimilarDocument[], queryQuality: QueryQuality
       .join('\n---\n\n')
   }
 
+  // Always inject minimal Other Dev facts even when no docs match to prevent hallucination
+  const baseFacts =
+    'Other Dev is a web development and design studio based in Karachi, Pakistan. Specializations: fashion, e-commerce, real estate, legal tech, SaaS, enterprise systems. Website: https://otherdev.com'
+
   if (queryQuality.isConversational) {
-    return 'User sent a conversational message. Respond naturally and helpfully, offering to answer questions about Other Dev.'
+    return `Context: ${baseFacts}. User sent a conversational message. Respond naturally and helpfully.`
   }
 
   if (queryQuality.isLowQuality || queryQuality.hasRepeatedWords) {
-    return "User query is unclear. Respond naturally, acknowledge their message, and offer to help with information about Other Dev's work, services, or projects."
+    return `Context: ${baseFacts}. User query is unclear. Respond naturally and offer to help with information about Other Dev's work, services, or projects.`
   }
 
-  return 'Provide helpful general information about Other Dev based on common topics: projects (fashion, e-commerce, real estate, legal tech, SaaS), web development services, design capabilities, and technologies used.'
+  return `Context: ${baseFacts}. Provide helpful general information about Other Dev's projects, services, and capabilities based on common topics.`
 }
 
 /**

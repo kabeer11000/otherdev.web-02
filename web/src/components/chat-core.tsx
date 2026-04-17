@@ -517,6 +517,19 @@ export function ChatCore({
   const [inputError, setInputError] = useState('')
   const [attachments, setAttachments] = useState<File[]>([])
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null)
+
+  // Persist chatId in localStorage for session continuity
+  const [chatId, setChatId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chatId') || crypto.randomUUID()
+    }
+    return crypto.randomUUID()
+  })
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('chatId', chatId)
+    }
+  }, [chatId])
   const [isRecording, setIsRecording] = useState(false)
   const [isRecordingProcessing, setIsRecordingProcessing] = useState(false)
 
@@ -543,7 +556,7 @@ export function ChatCore({
       prepareSendMessagesRequest({ id, messages }) {
         return {
           body: {
-            id,
+            id: chatId,
             message: messages[messages.length - 1],
             supportsArtifacts: true,
           },
@@ -574,7 +587,7 @@ export function ChatCore({
     },
   })
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: clear handler needs stable refs
+  // biome-ignore lint/correctness/useExhaustiveDependencies: abortControllerRef is a stable ref, accessed via .current
   const _handleClear = useCallback(() => {
     setMessages([])
     setSuggestion('')
@@ -584,7 +597,7 @@ export function ChatCore({
     if (_onClear) {
       _onClear()
     }
-  }, [setMessages, setSuggestion, abortControllerRef, _onClear])
+  }, [setMessages, setSuggestion, _onClear])
 
   const { showButton, scrollToBottom } = useScrollToBottom(contentRef)
 
