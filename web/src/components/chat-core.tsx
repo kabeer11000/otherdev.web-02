@@ -1,11 +1,9 @@
 'use client'
 
-import { useChat } from '@ai-sdk/react'
+import { useActions, useUIState } from '@ai-sdk/rsc'
 import {
-  DefaultChatTransport,
   getToolName,
   isToolUIPart,
-  lastAssistantMessageIsCompleteWithToolCalls,
   type UIMessage,
 } from 'ai'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -186,22 +184,14 @@ function ReasoningCollapsible({ reasoning }: { reasoning: string }) {
 function SuggestionButton({
   display,
   prompt,
-  sendMessage,
+  onPromptSubmit,
 }: {
   display: string
   prompt: string
-  sendMessage: (message: {
-    text: string
-    files?: Array<{
-      type: 'file'
-      mediaType: string
-      url: string
-      name: string
-    }>
-  }) => void
+  onPromptSubmit: (prompt: string) => void
 }) {
   const handleClick = () => {
-    sendMessage({ text: prompt })
+    onPromptSubmit(prompt)
   }
 
   return (
@@ -524,63 +514,23 @@ export function ChatCore({
   const recorderRef = useRef<VoiceRecorder | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const abortControllerRef = useRef<AbortController | null>(null)
 
   const _activeArtifact = externalActiveArtifact ?? internalActiveArtifact
   const setActiveArtifact = onArtifactOpen ?? setInternalActiveArtifact
 
   const greeting = useTimeBasedGreeting()
 
-  const { messages, sendMessage, status, setMessages, addToolOutput } = useChat<ChatUIMessage>({
-    dataPartSchemas: {
-      suggestion: suggestionDataSchema,
-    },
-    transport: new DefaultChatTransport({
-      api: '/api/chat/stream',
-      body: {
-        supportsArtifacts: true,
-      },
-      prepareSendMessagesRequest({ id, messages }) {
-        return {
-          body: {
-            id,
-            message: messages[messages.length - 1],
-            supportsArtifacts: true,
-          },
-        }
-      },
-    }),
-    experimental_throttle: 100,
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-    async onToolCall({ toolCall }) {
-      if (toolCall.dynamic) {
-        return
-      }
-      if (toolCall.toolName === 'createArtifact') {
-        addToolOutput({
-          tool: 'createArtifact',
-          toolCallId: toolCall.toolCallId,
-          output: { success: true },
-        })
-      }
-    },
-    onData(dataPart) {
-      if (dataPart.type === 'data-suggestion') {
-        const parsed = suggestionDataSchema.safeParse(dataPart.data)
-        if (parsed.success && parsed.data.suggestion) {
-          setSuggestion(parsed.data.suggestion)
-        }
-      }
-    },
-  })
+  const { continueConversation } = useActions()
+  const [messages, setMessages] = useUIState()
+  const [isLoading, setIsLoading] = useState(false)
+  const conversationIdRef = useRef<string>(crypto.randomUUID())
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: abortControllerRef is a stable ref, accessed via .current
+  // Persist conversationId across renders within a session
+  const conversationId = conversationIdRef.current
+
   const _handleClear = useCallback(() => {
     setMessages([])
     setSuggestion('')
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
     if (_onClear) {
       _onClear()
     }
@@ -665,34 +615,51 @@ export function ChatCore({
     }
   }
 
+  const onPromptSubmit = (prompt: string) => {
+    setInputValue(prompt)
+  }
+
   const handleSubmit = async () => {
-    if (isRecording || isRecordingProcessing) return
+    if (isLoading || isRecording || isRecordingProcessing) return
 
     const value = inputValue.trim()
     if (!value && attachments.length === 0) return
 
-    if (attachments.length === 0) {
-      sendMessage({ text: value })
-    } else {
-      const processed = await Promise.all(attachments.map(processAttachment))
-      const fileParts = processed.map(a => ({
-        type: 'file' as const,
-        mediaType: a.contentType,
-        url: a.url,
-        filename: a.name,
-      }))
-
-      sendMessage({
-        role: 'user',
-        parts: [...fileParts, { type: 'text' as const, text: value }],
-      })
-    }
-
+    setIsLoading(true)
     setSuggestion('')
-    setInputValue('')
-    setAttachments([])
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+
+    try {
+      let messageParts: Array<{ type: 'text'; text: string } | { type: 'file'; mediaType: string; url: string; filename: string }> = [{ type: 'text', text: value }]
+
+      if (attachments.length > 0) {
+        const processed = await Promise.all(attachments.map(processAttachment))
+        const fileParts = processed.map(a => ({
+          type: 'file' as const,
+          mediaType: a.contentType,
+          url: a.url,
+          filename: a.name,
+        }))
+        messageParts = [...fileParts, { type: 'text' as const, text: value }]
+      }
+
+      // Call server action instead of HTTP
+      const response = await continueConversation(conversationId, {
+        role: 'user',
+        parts: messageParts,
+      })
+
+      // Add the response UI to messages
+      setMessages((prev: unknown[]) => [...prev, response])
+
+      setInputValue('')
+      setAttachments([])
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } catch (error) {
+      setInputError(error instanceof Error ? error.message : 'Failed to send message')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -780,7 +747,7 @@ export function ChatCore({
                         key={suggestionItem.label}
                         display={suggestionItem.label}
                         prompt={suggestionItem.prompt}
-                        sendMessage={sendMessage}
+                        onPromptSubmit={onPromptSubmit}
                       />
                     ))}
                   </div>
@@ -790,7 +757,8 @@ export function ChatCore({
 
             <div className="absolute bottom-0 w-screen h-30 bg-gradient-to-t from-background to-transparent pointer-events-none" />
             <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-4xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-12">
-              {messages.map(message =>
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              {messages.map((message: any) =>
                 message.role === 'user' ? (
                   <UserMessage key={message.id} message={message} />
                 ) : (
@@ -802,7 +770,7 @@ export function ChatCore({
                 )
               )}
 
-              {(status === 'submitted' || status === 'streaming') && (
+              {isLoading && (
                 <div className="flex items-center gap-2 sm:gap-3">
                   <Image
                     src="/otherdev-chat-logo.svg"
