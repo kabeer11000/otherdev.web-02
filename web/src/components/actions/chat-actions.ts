@@ -78,6 +78,67 @@ function extractUserText(message: UIMessage | undefined): string {
     .join(' ')
 }
 
+// Convert UIMessage[] (with parts) to ModelMessage[] (with content) for streamText
+type ModelMessageContent = { type: 'text'; text: string } | { type: 'image'; image: string }
+
+interface ModelMessage {
+  role: 'user' | 'assistant' | 'system'
+  content: ModelMessageContent[]
+}
+
+function extractBase64(dataUri: string): string {
+  return dataUri.includes(',') ? dataUri.split(',')[1] : dataUri
+}
+
+function sanitizeInput(text: string): string {
+  return text.replace(/\[INST\]|\[\/INST\]|<\|im_start\|>|<\|im_end\|>|<\|system\|>|<\|user\|>|<\|assistant\|>/gi, '').slice(0, 500)
+}
+
+function convertToModelMessages(uiMessages: UIMessage[]): ModelMessage[] {
+  return uiMessages
+    .map((msg: UIMessage) => {
+      const content: ModelMessageContent[] = []
+
+      // Process text parts
+      const textParts =
+        msg.parts?.filter(
+          (p): p is { type: 'text'; text: string } => p.type === 'text' && 'text' in p
+        ) || []
+      for (const part of textParts) {
+        if (part.text?.trim()) {
+          content.push({ type: 'text' as const, text: sanitizeInput(part.text) })
+        }
+      }
+
+      // Process file/image parts - convert to Groq-compatible format
+      const fileParts = msg.parts?.filter(p => p.type === 'file') || []
+      for (const part of fileParts) {
+        const mediaType =
+          'mediaType' in part ? (part as { mediaType?: string }).mediaType : undefined
+        if (mediaType?.startsWith('image/')) {
+          const dataUri =
+            ('url' in part ? (part as { url?: string }).url : undefined) ||
+            ('data' in part ? (part as { data?: string }).data : undefined)
+
+          if (dataUri && typeof dataUri === 'string') {
+            content.push({
+              type: 'image' as const,
+              image: extractBase64(dataUri),
+            })
+          }
+        }
+      }
+
+      if (content.length === 0) return null
+
+      return {
+        role: msg.role as 'user' | 'assistant' | 'system',
+        content,
+      }
+    })
+    .filter((msg): msg is ModelMessage => msg !== null)
+}
+
 interface SimilarDocument {
   similarity: number
   metadata: { title: string }
@@ -146,6 +207,9 @@ export async function continueConversation(
     }
   }
 
+  // Convert UIMessage[] to ModelMessage[] for streamText
+  const modelMessages = convertToModelMessages(messages)
+
   // Streaming with sliding window truncation via prepareStep
   const stream = createUIMessageStream({
     originalMessages: messages,
@@ -160,7 +224,7 @@ export async function continueConversation(
       const result = streamText({
         model: groqAI(CHAT_MODEL),
         system: selectedPrompt,
-        messages: messages as any,
+        messages: modelMessages as any,
         temperature: 0.7,
         maxOutputTokens: 1024,
         stopWhen: stepCountIs(5),
