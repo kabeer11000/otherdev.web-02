@@ -1,7 +1,5 @@
 'use client'
 
-import type * as LabelPrimitive from '@radix-ui/react-label'
-import { Slot } from '@radix-ui/react-slot'
 import * as React from 'react'
 import {
   Controller,
@@ -12,6 +10,7 @@ import {
   useFormContext,
   useFormState,
 } from 'react-hook-form'
+
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
@@ -78,7 +77,7 @@ function FormItem({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
-function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
+function FormLabel({ className, ...props }: React.ComponentProps<'label'>) {
   const { error, formItemId } = useFormField()
 
   return (
@@ -92,18 +91,25 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPri
   )
 }
 
-function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
+function FormControl({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
 
-  return (
-    <Slot
-      data-slot="form-control"
-      id={formItemId}
-      aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
-      aria-invalid={!!error}
-      {...props}
-    />
-  )
+  const controlProps = {
+    id: formItemId,
+    'aria-describedby': !error ? formDescriptionId : `${formDescriptionId} ${formMessageId}`,
+    'aria-invalid': !!error || undefined,
+    'data-slot': 'form-control',
+    ...props,
+  }
+
+  if (React.isValidElement(children)) {
+    return React.cloneElement(
+      children as React.ReactElement<Record<string, unknown>>,
+      controlProps
+    )
+  }
+
+  return <div {...(controlProps as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>
 }
 
 function FormDescription({ className, ...props }: React.ComponentProps<'p'>) {
