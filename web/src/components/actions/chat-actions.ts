@@ -2,11 +2,11 @@
 
 import { createGroq } from '@ai-sdk/groq'
 import {
-  createUIMessageStream,
   streamText,
   stepCountIs,
   type UIMessage,
 } from 'ai'
+import { createStreamableValue } from '@ai-sdk/rsc'
 import { loadChatMessages, saveChatMessages } from '@/server/lib/chat-cache-store'
 import { generateEmbedding } from '@/server/lib/rag/embeddings'
 import { searchSimilarDocuments } from '@/server/lib/rag/vector-search'
@@ -20,7 +20,6 @@ import { CHAT_MODEL } from '@/app/api/chat/stream/helpers'
 const groqAI = createGroq({ apiKey: process.env.GROQ_API_KEY })
 const MAX_MESSAGES = 20
 
-// System prompts (from existing route.ts)
 const SYSTEM_PROMPT_DOMAIN = `You are a helpful assistant representing Other Dev, a web development and design studio based in Karachi, Pakistan.
 
 Answer questions about Other Dev's projects, services, technologies, and capabilities in a professional, conversational tone.
@@ -47,7 +46,7 @@ GUIDELINES
 5. Use Markdown formatting when it helps clarity.
 6. Focus on being helpful, engaging, and client-friendly.
 7. For conversational inputs like "sure", "ok", "thanks", respond naturally and ask how you can help further.
-8. IMPORTANT: After your main response, add a new line with "SUGGESTION:" followed by a short, relevant question or prompt (max 60 characters) that the user might want to ask next. It MUST be phrased from the USER's perspective as if they are typing it — never from the AI's perspective.
+8. IMPORTANT: After your main response, add a new line with "SUGGESTION:" followed by a short, relevant question or prompt (max 60 characters) that the user might want to ask next.
 
 CONTACT INFORMATION
 - Website: https://otherdev.com
@@ -62,7 +61,7 @@ Provide direct, accurate answers for general topics in a concise conversational 
 
 RULES
 1. Do not pretend to have live access to breaking events unless the user provides context.
-2. For high-stakes or time-sensitive topics (news, wars, laws, finance), provide a best-effort current status first when web search context is available, include concrete dates when relevant, and avoid fabricated specifics.
+2. For high-stakes or time-sensitive topics (news, wars, laws, finance), provide best-effort current status and avoid fabricated specifics.
 3. Keep answers practical and clear.
 4. For short conversational inputs, reply naturally.
 5. After your main response, add a new line with "SUGGESTION:" followed by one short next question from the user's perspective (max 60 characters).`
@@ -78,7 +77,6 @@ function extractUserText(message: UIMessage | undefined): string {
     .join(' ')
 }
 
-// Convert UIMessage[] (with parts) to ModelMessage[] (with content) for streamText
 type ModelMessageContent = { type: 'text'; text: string } | { type: 'image'; image: string }
 
 interface ModelMessage {
@@ -99,7 +97,6 @@ function convertToModelMessages(uiMessages: UIMessage[]): ModelMessage[] {
     .map((msg: UIMessage) => {
       const content: ModelMessageContent[] = []
 
-      // Process text parts
       const textParts =
         msg.parts?.filter(
           (p): p is { type: 'text'; text: string } => p.type === 'text' && 'text' in p
@@ -110,7 +107,6 @@ function convertToModelMessages(uiMessages: UIMessage[]): ModelMessage[] {
         }
       }
 
-      // Process file/image parts - convert to Groq-compatible format
       const fileParts = msg.parts?.filter(p => p.type === 'file') || []
       for (const part of fileParts) {
         const mediaType =
@@ -162,12 +158,12 @@ function buildContext(similarDocs: SimilarDocument[], isConversational: boolean)
     return `Context: ${baseFacts}. User sent a conversational message. Respond naturally and helpfully.`
   }
 
-  return `Context: ${baseFacts}. Provide helpful general information about Other Dev's projects, services, and capabilities based on common topics.`
+  return `Context: ${baseFacts}. Provide helpful general information about Other Dev's projects, services, and capabilities.`
 }
 
 export async function continueConversation(
   conversationId: string,
-  message: { role: 'user'; parts: Array<{ type: 'text'; text: string }> }
+  message: { id: string; role: 'user'; parts: Array<{ type: 'text'; text: string }> }
 ) {
   // Load existing history from Redis
   const history = await loadChatMessages(conversationId)
@@ -207,21 +203,15 @@ export async function continueConversation(
     }
   }
 
-  // Convert UIMessage[] to ModelMessage[] for streamText
+  // Convert to model messages for streamText
   const modelMessages = convertToModelMessages(messages)
 
-  // Streaming with sliding window truncation via prepareStep
-  const stream = createUIMessageStream({
-    originalMessages: messages,
-    generateId: () => crypto.randomUUID(),
-    onFinish: async ({ messages: updatedMessages }) => {
-      // Save updated history to Redis
-      await saveChatMessages(conversationId, updatedMessages as UIMessage[])
-    },
-    execute: async ({ writer }) => {
-      let accumulatedText = ''
+  // Create streamable value for progressive updates
+  const stream = createStreamableValue<string>({ initialValue: '' })
 
-      const result = streamText({
+  ;(async () => {
+    try {
+      const result = await streamText({
         model: groqAI(CHAT_MODEL),
         system: selectedPrompt,
         messages: modelMessages as any,
@@ -233,30 +223,31 @@ export async function continueConversation(
           if (stepMessages.length > MAX_MESSAGES + 1) {
             return {
               messages: [
-                stepMessages[0], // keep system
+                stepMessages[0],
                 ...stepMessages.slice(-MAX_MESSAGES),
               ],
             }
           }
           return {}
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        experimental_transform: () =>
-          new TransformStream({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            transform(chunk: any, controller) {
-              controller.enqueue(chunk)
-              if (chunk.type === 'text-delta') {
-                accumulatedText += chunk.textDelta ?? ''
-              }
-            },
-          }),
       })
 
-      writer.merge(result.toUIMessageStream())
-      await result.consumeStream()
-    },
-  })
+      // Stream text updates
+      for await (const delta of result.fullStream) {
+        if (delta.type === 'text-delta') {
+          stream.update(delta.textDelta)
+        }
+      }
 
-  return stream
+      // Save to Redis
+      await saveChatMessages(conversationId, messages as UIMessage[])
+    } catch (error) {
+      console.error('[Chat] Error:', error)
+    } finally {
+      stream.done()
+    }
+  })()
+
+  // Return the stream value (the text content)
+  return stream.value
 }
