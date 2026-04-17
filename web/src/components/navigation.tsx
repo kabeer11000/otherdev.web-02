@@ -34,20 +34,18 @@ export function Navigation({
   const router = useRouter()
   const isAIVariant = variant === 'ai'
 
+  // Restore mobile menu state from sessionStorage
   useEffect(() => {
     const saved = sessionStorage.getItem('mobileMenuOpen')
     if (saved === 'true') {
       setIsOpen(true)
     }
-  }, [])
+  }, []) // Intentionally empty - only restore on mount
 
+  // Persist mobile menu state to sessionStorage
   useEffect(() => {
     sessionStorage.setItem('mobileMenuOpen', isOpen.toString())
   }, [isOpen])
-
-  useEffect(() => {
-    setIsOpen(false)
-  }, [])
 
   const _handleContactClick = () => {
     setContactDialogOpen(true)
