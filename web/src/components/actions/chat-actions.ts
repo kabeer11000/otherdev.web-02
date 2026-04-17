@@ -149,6 +149,7 @@ export async function continueConversation(
   // Streaming with sliding window truncation via prepareStep
   const stream = createUIMessageStream({
     originalMessages: messages,
+    generateId: () => crypto.randomUUID(),
     onFinish: async ({ messages: updatedMessages }) => {
       // Save updated history to Redis
       await saveChatMessages(conversationId, updatedMessages as UIMessage[])

@@ -642,14 +642,22 @@ export function ChatCore({
         messageParts = [...fileParts, { type: 'text' as const, text: value }]
       }
 
-      // Call server action instead of HTTP
-      const response = await continueConversation(conversationId, {
+      // 1. Add user message to UI state manually
+      const userMsgId = crypto.randomUUID()
+      setMessages((prev: unknown[]) => [
+        ...prev,
+        { id: userMsgId, role: 'user' as const, display: value, parts: messageParts },
+      ])
+
+      // 2. Call server action - returns AI response stream
+      const aiResponse = await continueConversation(conversationId, {
+        id: userMsgId,
         role: 'user',
         parts: messageParts,
       })
 
-      // Add the response UI to messages
-      setMessages((prev: unknown[]) => [...prev, response])
+      // 3. Add AI response to UI state
+      setMessages((prev: unknown[]) => [...prev, aiResponse])
 
       setInputValue('')
       setAttachments([])
@@ -757,7 +765,7 @@ export function ChatCore({
 
             <div className="absolute bottom-0 w-screen h-30 bg-gradient-to-t from-background to-transparent pointer-events-none" />
             <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-4xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-12">
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {messages.map((message: any) =>
                 message.role === 'user' ? (
                   <UserMessage key={message.id} message={message} />
