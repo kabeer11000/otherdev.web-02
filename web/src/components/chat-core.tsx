@@ -659,7 +659,9 @@ export function ChatCore({
       // 3. Add AI response to UI state
       setMessages((prev: unknown[]) => [...prev, aiResponse])
 
+      // Clear input and attachments
       setInputValue('')
+      setSuggestion('')
       setAttachments([])
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
