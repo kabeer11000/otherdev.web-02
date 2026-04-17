@@ -574,7 +574,7 @@ export function ChatCore({
     },
   })
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: clear handler needs stable refs
+  // biome-ignore lint/correctness/useExhaustiveDependencies: abortControllerRef is a stable ref, accessed via .current
   const _handleClear = useCallback(() => {
     setMessages([])
     setSuggestion('')
@@ -584,7 +584,7 @@ export function ChatCore({
     if (_onClear) {
       _onClear()
     }
-  }, [setMessages, setSuggestion, abortControllerRef, _onClear])
+  }, [setMessages, setSuggestion, _onClear])
 
   const { showButton, scrollToBottom } = useScrollToBottom(contentRef)
 

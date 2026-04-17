@@ -1,15 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { OtherDevLoomThread } from '../otherdev-loom-thread'
+import { ChatCore } from '../chat-core'
 
-jest.mock('@ai-sdk/react', () => ({
-  useChat: jest.fn(() => ({
-    messages: [],
-    sendMessage: jest.fn(),
-    status: 'ready',
-    setMessages: jest.fn(),
-  })),
-  DefaultChatTransport: jest.fn().mockImplementation(config => config),
+// Mock the ChatCore component for testing
+jest.mock('../chat-core', () => ({
+  ChatCore: jest.fn(() => null),
 }))
 
 describe('OtherDevLoomThread', () => {
@@ -18,20 +13,20 @@ describe('OtherDevLoomThread', () => {
   })
 
   it('renders FileAttachmentButton component', () => {
-    render(<OtherDevLoomThread setActiveArtifact={jest.fn()} />)
+    render(<ChatCore showGreeting={false} onArtifactOpen={jest.fn()} />)
     const attachmentButton = screen.getByLabelText(/attach file/i)
     expect(attachmentButton).toBeInTheDocument()
   })
 
   it('renders VoiceRecorderButton component', () => {
-    render(<OtherDevLoomThread setActiveArtifact={jest.fn()} />)
+    render(<ChatCore showGreeting={false} onArtifactOpen={jest.fn()} />)
     const voiceButton = screen.getByLabelText(/record voice message/i)
     expect(voiceButton).toBeInTheDocument()
   })
 
   it('displays FilePreview when files are attached', async () => {
     const user = userEvent.setup()
-    render(<OtherDevLoomThread setActiveArtifact={jest.fn()} />)
+    render(<ChatCore showGreeting={false} onArtifactOpen={jest.fn()} />)
 
     const file = new File(['test content'], 'test.txt', { type: 'text/plain' })
     const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -45,7 +40,7 @@ describe('OtherDevLoomThread', () => {
 
   it('allows removing attached files', async () => {
     const user = userEvent.setup()
-    render(<OtherDevLoomThread setActiveArtifact={jest.fn()} />)
+    render(<ChatCore showGreeting={false} onArtifactOpen={jest.fn()} />)
 
     const file = new File(['test content'], 'test.txt', { type: 'text/plain' })
     const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -66,7 +61,7 @@ describe('OtherDevLoomThread', () => {
 
   it('allows clearing all attached files', async () => {
     const user = userEvent.setup()
-    render(<OtherDevLoomThread setActiveArtifact={jest.fn()} />)
+    render(<ChatCore showGreeting={false} onArtifactOpen={jest.fn()} />)
 
     const file = new File(['test content'], 'test.txt', { type: 'text/plain' })
     const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -87,7 +82,7 @@ describe('OtherDevLoomThread', () => {
 
   it('disables buttons while processing files', async () => {
     const user = userEvent.setup()
-    render(<OtherDevLoomThread setActiveArtifact={jest.fn()} />)
+    render(<ChatCore showGreeting={false} onArtifactOpen={jest.fn()} />)
 
     const file = new File(['test content'], 'test.txt', { type: 'text/plain' })
     const input = document.querySelector('input[type="file"]') as HTMLInputElement

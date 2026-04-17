@@ -1,4 +1,5 @@
 import { cert, getApps, initializeApp } from 'firebase-admin/app'
+import type { DocumentData, QuerySnapshot } from 'firebase-admin/firestore'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { cache } from 'react'
 
@@ -66,7 +67,21 @@ export const searchSimilarDocuments = cache(async function searchSimilarDocument
     distanceThreshold: 1 - matchThreshold,
   })
 
-  const snapshot = await vectorQuery.get()
+  // Apply timeout to prevent hanging on Firebase latency spikes
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Firestore vector search timed out after 10s')), 10000)
+  })
+
+  let snapshot: QuerySnapshot<DocumentData>
+  try {
+    snapshot = await Promise.race([vectorQuery.get(), timeoutPromise])
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('timed out')) {
+      console.error('[VectorSearch] Query timed out:', error.message)
+      return []
+    }
+    throw error
+  }
 
   if (snapshot.empty) {
     return []
