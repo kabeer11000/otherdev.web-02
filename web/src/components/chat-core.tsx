@@ -642,25 +642,17 @@ export function ChatCore({
         messageParts = [...fileParts, { type: 'text' as const, text: value }]
       }
 
-      // 1. Add user message to UI state manually
-      const userMsgId = crypto.randomUUID()
+      // 1. Add user message to UI
       setMessages((prev: unknown[]) => [
         ...prev,
-        { id: userMsgId, role: 'user' as const, display: value, parts: messageParts },
+        { id: crypto.randomUUID(), role: 'user' as const, display: value },
       ])
 
-      // 2. Call server action - returns streaming text
-      const aiText = await continueConversation(conversationId, {
-        id: userMsgId,
-        role: 'user',
-        parts: messageParts,
-      })
+      // 2. Call server action - returns ClientMessage with ReactNode display
+      const message = await continueConversation(value)
 
-      // 3. Add AI response to UI state (wrap string in JSX)
-      setMessages((prev: unknown[]) => [
-        ...prev,
-        { id: crypto.randomUUID(), role: 'assistant', display: <span>{aiText}</span> },
-      ])
+      // 3. Add AI response to UI
+      setMessages((prev: unknown[]) => [...prev, message])
 
       // Clear input and attachments
       setInputValue('')
