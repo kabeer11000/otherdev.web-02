@@ -68,9 +68,10 @@ pids
 *.seed
 *.pid.lock
 
-# Claude Code instructions
+# Claude Code / Superpowers
 CLAUDE.md
 otherdev-complete-claude-instructions.md
+docs/superpowers
 
 # Qwen Code instructions
 QWEN.md
