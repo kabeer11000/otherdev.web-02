@@ -1,0 +1,47 @@
+{
+  "name": "qwik-astro-app",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@ai-sdk/groq": "^3.0.35",
+    "@ai-sdk/react": "^3.0.170",
+    "@builder.io/qwik": "^1.19.2",
+    "@builder.io/qwik-react": "^0.5.8",
+    "@qwikdev/astro": "^0.8.3",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@tailwindcss/vite": "^4.2.2",
+    "@tanstack/react-query": "^5.99.1",
+    "@trpc/client": "^11.16.0",
+    "@trpc/server": "^11.16.0",
+    "@upstash/redis": "^1.37.0",
+    "ai": "^6.0.168",
+    "astro": "^5.16.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "firebase-admin": "^13.8.0",
+    "googleapis": "^171.4.0",
+    "groq": "^5.21.0",
+    "lucide-react": "^1.8.0",
+    "motion": "^12.38.0",
+    "nodemailer": "^8.0.5",
+    "react": "18",
+    "react-dom": "18",
+    "superjson": "^2.2.6",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "4",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@types/react": "18",
+    "@types/react-dom": "18"
+  }
+}
