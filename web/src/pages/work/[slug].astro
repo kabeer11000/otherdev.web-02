@@ -5,6 +5,8 @@ import { ProjectCard } from '../../components/project-card'
 import { Footer } from '../../components/footer'
 import { projects } from '../../lib/projects'
 
+export const prerender = true
+
 export function getStaticPaths() {
   return projects.map(project => ({
     params: { slug: project.slug },
