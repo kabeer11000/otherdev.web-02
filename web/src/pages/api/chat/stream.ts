@@ -15,17 +15,17 @@ function extractBase64(dataUri: string): string {
   return dataUri.includes(',') ? dataUri.split(',')[1] : dataUri
 }
 
-import { createJsonResponse } from './api-helpers'
+import { createJsonResponse } from '../api-helpers'
 import {
   type ChatRoute,
   classifyChatRoute,
   detectQueryQuality,
   type QueryQuality,
   shouldUseRagFromDecision,
-} from './chat-routing'
-import { generateEmbedding } from './embeddings'
-import { searchSimilarDocuments } from './vector-search'
-import { checkRateLimit, getClientIdentifier, REQUESTS_PER_WINDOW } from './rate-limit'
+} from '../chat-routing'
+import { generateEmbedding } from '../embeddings'
+import { searchSimilarDocuments } from '../vector-search'
+import { checkRateLimit, getClientIdentifier, REQUESTS_PER_WINDOW } from '../rate-limit'
 
 export const maxDuration = 30
 
