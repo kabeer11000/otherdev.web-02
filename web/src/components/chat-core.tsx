@@ -12,12 +12,16 @@ import { AnimatePresence, motion } from 'framer-motion'
 import {
   ArrowUp,
   AudioLines,
+  Briefcase,
   ChevronDown,
   ChevronRight,
+  Code2,
   FileCode2,
   FileText,
+  Globe,
   Paperclip,
   Square,
+  Users,
   X,
 } from 'lucide-react'
 import Image from 'next/image'
@@ -187,6 +191,7 @@ function SuggestionButton({
   display,
   prompt,
   sendMessage,
+  icon,
 }: {
   display: string
   prompt: string
@@ -199,10 +204,26 @@ function SuggestionButton({
       name: string
     }>
   }) => void
+  icon?: 'briefcase' | 'users' | 'code' | 'globe'
 }) {
   const handleClick = () => {
     sendMessage({ text: prompt })
   }
+
+  const IconComponent = useMemo(() => {
+    switch (icon) {
+      case 'briefcase':
+        return Briefcase
+      case 'users':
+        return Users
+      case 'code':
+        return Code2
+      case 'globe':
+        return Globe
+      default:
+        return undefined
+    }
+  }, [icon])
 
   return (
     <Button
@@ -211,7 +232,10 @@ function SuggestionButton({
       onClick={handleClick}
       className="h-auto justify-start rounded-xl bg-card p-4 text-left text-xs transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-md active:scale-[0.98] sm:p-4 sm:text-sm whitespace-normal break-words"
     >
-      {display}
+      <div className="flex items-start gap-3">
+        {IconComponent && <IconComponent className="h-5 w-5 mt-0.5 shrink-0 text-muted-foreground" />}
+        <span className="flex-1">{display}</span>
+      </div>
     </Button>
   )
 }
@@ -794,6 +818,7 @@ export function ChatCore({
                         display={suggestionItem.label}
                         prompt={suggestionItem.prompt}
                         sendMessage={sendMessage}
+                        icon={suggestionItem.icon}
                       />
                     ))}
                   </div>
