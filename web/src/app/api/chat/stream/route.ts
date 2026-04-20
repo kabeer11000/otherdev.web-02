@@ -1,4 +1,5 @@
 import { createGroq } from '@ai-sdk/groq'
+import { minimax } from 'vercel-minimax-ai-provider'
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -45,6 +46,10 @@ export const maxDuration = 30
 const groqAI = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 })
+
+// AI SDK MiniMax instance (primary, falls back to Groq)
+// Uses MINIMAX_API_KEY env var automatically
+const minimaxAI = minimax
 
 // Type definitions for model messages sent to Groq
 type ModelMessageContent = { type: 'text'; text: string } | { type: 'image'; image: string }
@@ -596,43 +601,68 @@ export async function POST(request: Request): Promise<Response> {
 
         let accumulatedText = ''
 
-        const result = streamText({
-          model: groqAI(selectedModel),
-          system: selectedPrompt,
-          // biome-ignore lint/suspicious/noExplicitAny: AI SDK message type conversion
-          messages: sanitized as any,
-          temperature: 0.7,
-          maxOutputTokens: 1024,
-          stopWhen: stepCountIs(5),
-          toolChoice: enableBrowserSearch ? 'required' : 'auto',
-          experimental_repairToolCall: enableArtifacts
-            ? // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool repair
-              (repairToolCall as any)
-            : undefined,
-          tools: (enableArtifacts
-            ? {
-                createArtifact: createArtifactTool(),
-              }
-            : enableBrowserSearch
+        // MiniMax primary with Groq fallback
+        // browser_search only works with Groq, so use Groq for that case
+        const useMinimax = !enableBrowserSearch && !enableArtifacts
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const streamTextWithModel = async (ai: any, model: string, label: string) => {
+          console.log(`[LLM] Using ${label} (model: ${model})`)
+          return streamText({
+            model: ai(model),
+            system: selectedPrompt,
+            // biome-ignore lint/suspicious/noExplicitAny: AI SDK message type conversion
+            messages: sanitized as any,
+            temperature: 0.7,
+            maxOutputTokens: 1024,
+            stopWhen: stepCountIs(5),
+            // MiniMax doesn't respond well to 'required' - use 'auto'
+            toolChoice: 'auto',
+            experimental_repairToolCall: enableArtifacts
+              ? // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool repair
+                (repairToolCall as any)
+              : undefined,
+            tools: (enableArtifacts
               ? {
-                  browser_search: groqAI.tools.browserSearch({}),
+                  createArtifact: createArtifactTool(),
                 }
-              : // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool type
-                {}) as any,
-          timeout: {
-            totalMs: 30000,
-          },
-          experimental_transform: () =>
-            new TransformStream({
-              transform(chunk, controller) {
-                controller.enqueue(chunk)
-                if (chunk.type === 'text-delta') {
-                  accumulatedText += chunk.text
-                }
-              },
-            }),
-          onFinish: async _event => {},
-        })
+              : enableBrowserSearch
+                ? {
+                    browser_search: groqAI.tools.browserSearch({}),
+                  }
+                : // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool type
+                  {}) as any,
+            timeout: {
+              totalMs: 30000,
+            },
+            experimental_transform: () =>
+              new TransformStream({
+                transform(chunk, controller) {
+                  controller.enqueue(chunk)
+                  if (chunk.type === 'text-delta') {
+                    accumulatedText += chunk.text
+                  }
+                },
+              }),
+            onFinish: async _event => {},
+          })
+        }
+
+        let result: ReturnType<typeof streamText>
+        if (useMinimax) {
+          // Try MiniMax first
+          try {
+            console.log('[LLM] Trying MiniMax-M2.7...')
+            result = await streamTextWithModel(minimaxAI, 'MiniMax-M2.7', 'MiniMax-M2.7')
+          } catch (minimaxError) {
+            console.warn('[LLM] MiniMax failed, falling back to Groq:', minimaxError instanceof Error ? minimaxError.message : minimaxError)
+            accumulatedText = ''
+            result = await streamTextWithModel(groqAI, selectedModel, 'Groq')
+          }
+        } else {
+          // Use Groq directly (browser_search or artifacts mode)
+          result = await streamTextWithModel(groqAI, selectedModel, 'Groq')
+        }
 
         writer.merge(result.toUIMessageStream())
         await result.consumeStream()
