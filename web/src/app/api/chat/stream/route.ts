@@ -1,5 +1,6 @@
 import { createGroq } from '@ai-sdk/groq'
 import { minimax } from 'vercel-minimax-ai-provider'
+import { tavily } from '@tavily/core'
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -50,6 +51,54 @@ const groqAI = createGroq({
 // AI SDK MiniMax instance (primary, falls back to Groq)
 // Uses MINIMAX_API_KEY env var automatically
 const minimaxAI = minimax
+
+// Tavily client for web search
+const tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY })
+
+// Web search tool using Tavily (for general chat with web grounding)
+const webSearchTool = tool({
+  description: 'Search the web for current information, news, and facts. Use this when you need real-time or up-to-date information that may not be in your training data.',
+  inputSchema: z.object({
+    query: z.string().describe('The search query to find relevant web information'),
+  }),
+  execute: async ({ query }: { query: string }) => {
+    type SearchResult = { id: number; title: string; url: string; snippet: string; score: number }
+    type WebSearchResult = { query: string; results: SearchResult[]; answer: string | null; error?: string }
+
+    try {
+      console.log(`[WebSearch] Searching for: ${query}`)
+      const response = await tavilyClient.search(query, {
+        searchDepth: 'basic',
+        maxResults: 5,
+        includeAnswer: false,
+        includeRawContent: false,
+      })
+
+      const results: SearchResult[] = response.results.map((result, i) => ({
+        id: i + 1,
+        title: result.title,
+        url: result.url,
+        snippet: result.content,
+        score: result.score,
+      }))
+
+      console.log(`[WebSearch] Found ${results.length} results for: ${query}`)
+      return {
+        query,
+        results,
+        answer: response.answer ?? null,
+      } as WebSearchResult
+    } catch (error) {
+      console.error('[WebSearch] Tavily error:', error instanceof Error ? error.message : error)
+      return {
+        query,
+        results: [] as SearchResult[],
+        answer: null,
+        error: 'Web search failed',
+      } as WebSearchResult
+    }
+  },
+})
 
 // Type definitions for model messages sent to Groq
 type ModelMessageContent = { type: 'text'; text: string } | { type: 'image'; image: string }
@@ -142,16 +191,28 @@ CONTACT INFORMATION
 
 Be professional, friendly, and focused on helping potential clients learn about Other Dev. Always be helpful and engaging, never claim to lack information.`
 
+function getCurrentDateString(): string {
+  return new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
 const SYSTEM_PROMPT_GENERAL = `You are a helpful, neutral AI assistant.
+Current date: ${getCurrentDateString()}
 
 Provide direct, accurate answers for general topics in a concise conversational tone.
 
 RULES
-1. Do not pretend to have live access to breaking events unless the user provides context.
-2. For high-stakes or time-sensitive topics (news, wars, laws, finance), provide a best-effort current status first when web search context is available, include concrete dates when relevant, and avoid fabricated specifics.
-3. Keep answers practical and clear.
-4. For short conversational inputs, reply naturally.
-5. After your main response, add a new line with "SUGGESTION:" followed by one short next question from the user's perspective (max 60 characters).`
+1. ALWAYS be aware of today\'s date above — do not say "current" events are from previous years.
+2. Use web search tool when asked about current events, news, or real-time information.
+3. Do not pretend to have live access to breaking events unless the user provides context.
+4. For high-stakes or time-sensitive topics (news, wars, laws, finance), provide a best-effort current status first when web search context is available, include concrete dates when relevant, and avoid fabricated specifics.
+5. Keep answers practical and clear.
+6. For short conversational inputs, reply naturally.
+7. After your main response, add a new line with "SUGGESTION:" followed by one short next question from the user's perspective (max 60 characters).`
 
 function sanitizeInput(text: string): string {
   return text.replace(INJECTION_PATTERN, '').slice(0, RAG_MAX_MESSAGE_LENGTH)
@@ -601,12 +662,8 @@ export async function POST(request: Request): Promise<Response> {
 
         let accumulatedText = ''
 
-        // MiniMax primary with Groq fallback
-        // browser_search only works with Groq, so use Groq for that case
-        const useMinimax = !enableBrowserSearch && !enableArtifacts
-
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const streamTextWithModel = async (ai: any, model: string, label: string) => {
+        const streamTextWithModel = async (ai: any, model: string, label: string, tools: Record<string, unknown> = {}) => {
           console.log(`[LLM] Using ${label} (model: ${model})`)
           return streamText({
             model: ai(model),
@@ -622,16 +679,7 @@ export async function POST(request: Request): Promise<Response> {
               ? // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool repair
                 (repairToolCall as any)
               : undefined,
-            tools: (enableArtifacts
-              ? {
-                  createArtifact: createArtifactTool(),
-                }
-              : enableBrowserSearch
-                ? {
-                    browser_search: groqAI.tools.browserSearch({}),
-                  }
-                : // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool type
-                  {}) as any,
+            tools: tools as any,
             timeout: {
               totalMs: 30000,
             },
@@ -649,19 +697,41 @@ export async function POST(request: Request): Promise<Response> {
         }
 
         let result: ReturnType<typeof streamText>
-        if (useMinimax) {
-          // Try MiniMax first
+
+        // MiniMax is always tried first (primary with Tavily web search)
+        // Groq browser_search is only fallback if MiniMax+Tavily fails
+        const minimaxTools = {
+          webSearch: webSearchTool,
+        }
+
+        if (enableArtifacts) {
+          // Groq required for artifacts (MiniMax doesn't support it)
+          const groqArtifactTools = {
+            createArtifact: createArtifactTool(),
+          }
+          console.log('[LLM] Using Groq with artifacts...')
+          result = await streamTextWithModel(groqAI, selectedModel, 'Groq', groqArtifactTools)
+        } else {
+          // Try MiniMax first (works with Tavily web search tool)
           try {
-            console.log('[LLM] Trying MiniMax-M2.7...')
-            result = await streamTextWithModel(minimaxAI, 'MiniMax-M2.7', 'MiniMax-M2.7')
+            console.log(`[LLM] Trying MiniMax-M2.7 with web search...`)
+            result = await streamTextWithModel(minimaxAI, 'MiniMax-M2.7', 'MiniMax-M2.7', minimaxTools)
           } catch (minimaxError) {
             console.warn('[LLM] MiniMax failed, falling back to Groq:', minimaxError instanceof Error ? minimaxError.message : minimaxError)
             accumulatedText = ''
-            result = await streamTextWithModel(groqAI, selectedModel, 'Groq')
+
+            if (enableBrowserSearch) {
+              // Groq's browser_search is a fallback for when Tavily fails
+              const groqBrowserTools = {
+                browser_search: groqAI.tools.browserSearch({}),
+              }
+              console.log('[LLM] Using Groq with browser search (fallback)...')
+              result = await streamTextWithModel(groqAI, selectedModel, 'Groq', groqBrowserTools)
+            } else {
+              console.log('[LLM] Using Groq without tools (fallback)...')
+              result = await streamTextWithModel(groqAI, selectedModel, 'Groq')
+            }
           }
-        } else {
-          // Use Groq directly (browser_search or artifacts mode)
-          result = await streamTextWithModel(groqAI, selectedModel, 'Groq')
         }
 
         writer.merge(result.toUIMessageStream())

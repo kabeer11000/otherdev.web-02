@@ -36,22 +36,26 @@ export const Z_INDEX = {
 export const SUGGESTED_PROMPTS = [
   {
     label: 'What services does Other Dev offer?',
+    icon: 'briefcase',
     prompt:
       "Provide a comprehensive overview of Other Dev's services and capabilities. Include:\n- Core service offerings (web development, design, e-commerce, etc.)\n- Industries and sectors you specialize in\n- Key differentiators and unique value propositions\n- Types of projects you typically handle\n- Technologies and methodologies used in service delivery\nFormat the response in a clear, structured way that's easy to understand for potential clients.",
   },
   {
     label: "Who are the founders and what's the company story?",
+    icon: 'users',
     prompt:
       "Tell me about Other Dev's founding story and the people behind the company. Please include:\n- Founders' names, backgrounds, and expertise\n- The inspiration and motivation for starting Other Dev\n- Company mission, vision, and core values\n- Key milestones and achievements since founding\n- Team culture and what makes Other Dev unique as an organization\nProvide a compelling narrative that showcases the human side of the business.",
   },
   {
     label: 'What technologies do you use?',
+    icon: 'code',
     prompt:
       "Provide a detailed breakdown of Other Dev's technology stack and development approach. Include:\n- Frontend technologies and frameworks (React, Next.js, TypeScript, etc.)\n- Backend technologies and infrastructure\n- Design and prototyping tools\n- Development workflows and methodologies\n- Quality assurance and testing approaches\n- Deployment and DevOps practices\nExplain why these technologies were chosen and how they benefit clients' projects.",
   },
   {
-    label: 'What are the latest AI releases this week?',
+    label: 'Get live AI news from the web',
+    icon: 'globe',
     prompt:
-      'Search the web for the latest AI and technology news from this week. Provide current headlines, recent product launches, and any breaking announcements from major companies. Include source links and dates to show the information is up to date.',
+      'Search the web for the latest AI news, product launches, and breakthroughs from the past 7 days. Include company names, product details, dates, and links to source articles. Focus on news that would matter to someone tracking the AI industry.',
   },
 ] as const
