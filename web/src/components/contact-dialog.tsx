@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { trpc } from '@/lib/trpc'
 
 const contactFormSchema = z.object({
   name: z.string().min(2, {
@@ -49,19 +48,33 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
     },
   })
 
-  const submitMutation = trpc.contact.submit.useMutation({
-    onSuccess: () => {
+  const [isPending, setIsPending] = useState(false)
+
+  const onSubmit = async (data: ContactFormValues) => {
+    setIsPending(true)
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const error = await res.json()
+        if (res.status === 429) {
+          form.setError('root', { message: error.error })
+        } else {
+          form.setError('root', { message: error.error?.formErrors?.[0]?.message || 'Failed to submit.' })
+        }
+        return
+      }
       form.reset()
       setStep('intro')
       onOpenChange(false)
-    },
-    onError: error => {
-      console.error('Error submitting form:', error)
-    },
-  })
-
-  const onSubmit = (data: ContactFormValues) => {
-    submitMutation.mutate(data)
+    } catch {
+      form.setError('root', { message: 'Something went wrong. Please try again.' })
+    } finally {
+      setIsPending(false)
+    }
   }
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -179,9 +192,9 @@ We will reach out to you with the next steps as soon as possible.`}
                 <button
                   type="submit"
                   className="w-full mt-[12px] sm:mt-[15px] h-8 sm:h-9 flex items-center justify-center rounded-md backdrop-blur-sm bg-card text-[11px] font-twk font-normal text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={submitMutation.isPending}
+                  disabled={isPending}
                 >
-                  <p>{submitMutation.isPending ? 'Submitting...' : 'Submit'}</p>
+                  <p>{isPending ? 'Submitting...' : 'Submit'}</p>
                 </button>
               </form>
             </Form>
