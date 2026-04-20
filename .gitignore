@@ -68,3 +68,6 @@ pids
 # Claude Code instructions
 CLAUDE.md
 otherdev-complete-claude-instructions.md
+
+# Worktrees
+.worktrees/
