@@ -1,4 +1,6 @@
 ---
+import { QChatWidget } from '../components/chat-widget'
+
 interface Props {
   title: string
   description?: string
@@ -58,6 +60,7 @@ const { title, description = 'Digital platforms for pioneering creatives' } = As
   </head>
   <body class="min-h-screen">
     <slot />
+    <QChatWidget qwik:visible />
   </body>
 </html>
 
