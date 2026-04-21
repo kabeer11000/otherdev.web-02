@@ -52,6 +52,7 @@
         "use-stick-to-bottom": "^1.1.1",
         "vaul": "^1.1.2",
         "vercel": "^51.8.0",
+        "vercel-minimax-ai-provider": "^0.0.2",
         "voyage-ai-provider": "^3.0.0",
         "zod": "^4.3.5",
         "zustand": "^5.0.9",
@@ -85,6 +86,8 @@
   },
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.4.4", "", {}, "sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg=="],
+
+    "@ai-sdk/anthropic": ["@ai-sdk/anthropic@3.0.6", "", { "dependencies": { "@ai-sdk/provider": "3.0.1", "@ai-sdk/provider-utils": "4.0.3" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-Ns5OOPHXbODzitvqCySnAFZCAm9ldpx+fdbC0c/f9QwX5b4MQtQJIQ0xZyKm+tB/ynBoeV6zhtyWDXjYeVEWIw=="],
 
     "@ai-sdk/gateway": ["@ai-sdk/gateway@3.0.80", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@ai-sdk/provider-utils": "4.0.21", "@vercel/oidc": "3.1.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-uM7kpZB5l977lW7+2X1+klBUxIZQ78+1a9jHlaHFEzcOcmmslTl3sdP0QqfuuBcO0YBM2gwOiqVdp8i4TRQYcw=="],
 
@@ -2324,6 +2327,8 @@
 
     "vercel": ["vercel@51.8.0", "", { "dependencies": { "@vercel/backends": "0.1.2", "@vercel/blob": "2.3.0", "@vercel/build-utils": "13.19.1", "@vercel/detect-agent": "1.2.3", "@vercel/elysia": "0.1.70", "@vercel/express": "0.1.80", "@vercel/fastify": "0.1.73", "@vercel/fun": "1.3.0", "@vercel/go": "3.5.0", "@vercel/h3": "0.1.79", "@vercel/hono": "0.2.73", "@vercel/hydrogen": "1.3.6", "@vercel/koa": "0.1.53", "@vercel/nestjs": "0.2.74", "@vercel/next": "4.16.8", "@vercel/node": "5.7.12", "@vercel/prepare-flags-definitions": "0.2.1", "@vercel/python": "6.35.0", "@vercel/redwood": "2.4.12", "@vercel/remix-builder": "5.7.2", "@vercel/ruby": "2.3.2", "@vercel/rust": "1.1.1", "@vercel/static-build": "2.9.20", "chokidar": "4.0.0", "esbuild": "0.27.0", "form-data": "^4.0.0", "jose": "5.9.6", "luxon": "^3.4.0", "proxy-agent": "6.4.0", "sandbox": "2.5.6", "smol-toml": "1.5.2" }, "bin": { "vc": "dist/vc.js", "vercel": "dist/vc.js" } }, "sha512-0NVtnfF/7y2b/lEh3MFDpsaSkxdTQEbs58ORJT2orixPDyu67tq/6THvds269JguMWpQui4h7BedYunZXy7d3A=="],
 
+    "vercel-minimax-ai-provider": ["vercel-minimax-ai-provider@0.0.2", "", { "dependencies": { "@ai-sdk/anthropic": "3.0.6", "@ai-sdk/provider": "3.0.2", "@ai-sdk/provider-utils": "4.0.4" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-h9QzLL7RBmOreqWfr2fcoFVNTJgusENJVagVm8vAi+DBfd+1t+sVJZ/hAhKrtuCKCrm33BlOSWVdJehQFju5jQ=="],
+
     "vfile": ["vfile@6.0.3", "", { "dependencies": { "@types/unist": "^3.0.0", "vfile-message": "^4.0.0" } }, "sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q=="],
 
     "vfile-location": ["vfile-location@5.0.3", "", { "dependencies": { "@types/unist": "^3.0.0", "vfile": "^6.0.0" } }, "sha512-5yXvWDEgqeiYiBe1lbxYF7UMAIm/IcopxMHrMQDq3nvKcjPKIhZklUKL+AE7J7uApI4kwe2snsK+eI6UTj9EHg=="],
@@ -2399,6 +2404,10 @@
     "zustand": ["zustand@5.0.9", "", { "peerDependencies": { "@types/react": ">=18.0.0", "immer": ">=9.0.6", "react": ">=18.0.0", "use-sync-external-store": ">=1.2.0" }, "optionalPeers": ["@types/react", "immer", "react", "use-sync-external-store"] }, "sha512-ALBtUj0AfjJt3uNRQoL1tL2tMvj6Gp/6e39dnfT6uzpelGru8v1tPOGBzayOWbPJvujM8JojDk3E1LxeFisBNg=="],
 
     "zwitch": ["zwitch@2.0.4", "", {}, "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A=="],
+
+    "@ai-sdk/anthropic/@ai-sdk/provider": ["@ai-sdk/provider@3.0.1", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-2lR4w7mr9XrydzxBSjir4N6YMGdXD+Np1Sh0RXABh7tWdNFFwIeRI1Q+SaYZMbfL8Pg8RRLcrxQm51yxTLhokg=="],
+
+    "@ai-sdk/anthropic/@ai-sdk/provider-utils": ["@ai-sdk/provider-utils@4.0.3", "", { "dependencies": { "@ai-sdk/provider": "3.0.1", "@standard-schema/spec": "^1.1.0", "eventsource-parser": "^3.0.6" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-Vo2p61dDld8Dy/O66zKQpE4nqHojiEEYEjZcSbICjE7h8Z6QmHzBfd+ss/paIDdyXyS0yHmC1GoRYYKo89cqZQ=="],
 
     "@ai-sdk/gateway/@ai-sdk/provider": ["@ai-sdk/provider@3.0.8", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-oGMAgGoQdBXbZqNG0Ze56CHjDZ1IDYOwGYxYjO5KLSlz5HiNQ9udIXsPZ61VWaHGZ5XW/jyjmr6t2xz2jGVwbQ=="],
 
