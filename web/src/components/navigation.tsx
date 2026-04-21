@@ -76,7 +76,7 @@ export function Navigation({
                   className={cn('flex items-center bg-transparent gap-1.5 rounded-full')}
                 >
                   <Image
-                    src="/otherdev-chat-logo.svg"
+                    src="/otherdev-chat-logo-32.webp"
                     alt="Other Dev"
                     width={16}
                     height={16}
@@ -265,31 +265,53 @@ export function Navigation({
       {!isAIVariant && (
         <div className="hidden sm:flex items-center gap-1.5 pointer-events-auto">
           {isLoomPage ? (
-            <div className={cn('group flex items-center bg-transparent gap-1.5 ')}>
-              <Button
-                variant="nav"
-                size="nav-default"
-                onClick={() => router.push('/')}
-                className={
-                  'cursor-pointer group-hover:w-full w-0 opacity-0 group-hover:opacity-100 ' +
-                  (pathname === '/' ? 'text-foreground' : '')
-                }
+            <motion.div
+              className="group flex items-center bg-transparent"
+              whileHover="hover"
+              initial="idle"
+            >
+              <motion.div
+                className="overflow-hidden"
+                variants={{
+                  idle: { width: 0, opacity: 0, marginRight: 0 },
+                  hover: { width: 'auto', opacity: 1, marginRight: 6 },
+                }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
               >
-                other dev
-              </Button>
+                <Button
+                  variant="nav"
+                  size="nav-default"
+                  onClick={() => router.push('/')}
+                  className={cn(
+                    'cursor-pointer whitespace-nowrap ' +
+                      (pathname === '/' ? 'text-foreground' : '')
+                  )}
+                >
+                  other dev
+                </Button>
+              </motion.div>
 
-              <Link href="/" data-slot="nav-item">
-                <Image
-                  src="/otherdev-chat-logo.svg"
-                  alt="Other Dev"
-                  width={16}
-                  height={16}
-                  className="mr-2 group-hover:opacity-0 object-contain rounded-circle"
-                  priority
-                  style={{ width: 'auto', height: 'auto' }}
-                />
-              </Link>
-            </div>
+              <motion.div
+                className="relative"
+                variants={{
+                  idle: { opacity: 1 },
+                  hover: { opacity: 0 },
+                }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+              >
+                <Link href="/" data-slot="nav-item">
+                  <Image
+                    src="/otherdev-chat-logo-32.webp"
+                    alt="Other Dev"
+                    width={16}
+                    height={16}
+                    className="object-contain"
+                    priority
+                    style={{ width: 'auto', height: 'auto' }}
+                  />
+                </Link>
+              </motion.div>
+            </motion.div>
           ) : (
             <Button
               asChild
