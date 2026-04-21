@@ -2,22 +2,21 @@ import { createGroq } from '@ai-sdk/groq'
 import { minimax } from 'vercel-minimax-ai-provider'
 import { tavily } from '@tavily/core'
 import {
+  convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
   stepCountIs,
   streamText,
   TypeValidationError,
   tool,
+  type LanguageModel,
+  type ModelMessage,
+  type ToolSet,
   type UIMessage,
   validateUIMessages,
 } from 'ai'
+import { after } from 'next/server'
 import { z } from 'zod'
-
-// Helper to extract raw base64 from data URI
-// Groq provider expects raw base64, not "data:image/jpeg;base64,..." format
-function extractBase64(dataUri: string): string {
-  return dataUri.includes(',') ? dataUri.split(',')[1] : dataUri
-}
 
 import { createJsonResponse } from '@/server/lib/api-helpers'
 import {
@@ -100,14 +99,6 @@ const webSearchTool = tool({
   },
 })
 
-// Type definitions for model messages sent to Groq
-type ModelMessageContent = { type: 'text'; text: string } | { type: 'image'; image: string }
-
-interface ModelMessage {
-  role: 'user' | 'assistant' | 'system'
-  content: ModelMessageContent[]
-}
-
 /**
  * Repairs malformed tool calls from Groq models.
  * Groq sometimes returns tool arguments with formatting issues.
@@ -119,27 +110,17 @@ async function repairToolCall({
   toolCall: { input: string; toolCallId: string; toolName: string }
   error: unknown
   system?: string | { content: string } | { content: string }[]
-  messages?: UIMessage[]
+  messages?: ModelMessage[]
   tools?: Record<string, unknown>
   inputSchema?: z.ZodType
 }): Promise<{ input: string; toolCallId: string; toolName: string } | null> {
   try {
-    // Try to fix common JSON issues
     let fixedInput = toolCall.input
-
-    // Remove markdown code blocks if present
     fixedInput = fixedInput.replace(/^```json\s*/i, '').replace(/\s*```$/, '')
     fixedInput = fixedInput.replace(/^```\s*/i, '').replace(/\s*```$/, '')
-
-    // Trim whitespace
     fixedInput = fixedInput.trim()
-
-    // Try to parse the fixed input
     const parsed = JSON.parse(fixedInput)
-    return {
-      ...toolCall,
-      input: JSON.stringify(parsed),
-    }
+    return { ...toolCall, input: JSON.stringify(parsed) }
   } catch (_parseError) {
     return null
   }
@@ -200,19 +181,22 @@ function getCurrentDateString(): string {
   })
 }
 
-const SYSTEM_PROMPT_GENERAL = `You are a helpful, neutral AI assistant.
+// Called per-request so the date is never stale from module-load time
+function getGeneralSystemPrompt(): string {
+  return `You are a helpful, neutral AI assistant.
 Current date: ${getCurrentDateString()}
 
 Provide direct, accurate answers for general topics in a concise conversational tone.
 
 RULES
-1. ALWAYS be aware of today\'s date above — do not say "current" events are from previous years.
+1. ALWAYS be aware of today's date above — do not say "current" events are from previous years.
 2. Use web search tool when asked about current events, news, or real-time information.
 3. Do not pretend to have live access to breaking events unless the user provides context.
 4. For high-stakes or time-sensitive topics (news, wars, laws, finance), provide a best-effort current status first when web search context is available, include concrete dates when relevant, and avoid fabricated specifics.
 5. Keep answers practical and clear.
 6. For short conversational inputs, reply naturally.
 7. After your main response, add a new line with "SUGGESTION:" followed by one short next question from the user's perspective (max 60 characters).`
+}
 
 function sanitizeInput(text: string): string {
   return text.replace(INJECTION_PATTERN, '').slice(0, RAG_MAX_MESSAGE_LENGTH)
@@ -257,7 +241,6 @@ function scopeMessagesForRoute(messages: UIMessage[], activeRoute: ChatRoute): U
   return scoped.length > 0 ? scoped : [messages[messages.length - 1]]
 }
 
-// Extract suggestion from text and return clean text + suggestion
 function extractSuggestion(text: string): {
   cleanText: string
   suggestion: string | null
@@ -325,7 +308,6 @@ function buildContext(similarDocs: SimilarDocument[], queryQuality: QueryQuality
       .join('\n---\n\n')
   }
 
-  // Always inject minimal Other Dev facts even when no docs match to prevent hallucination
   const baseFacts =
     'Other Dev is a web development and design studio based in Karachi, Pakistan. Specializations: fashion, e-commerce, real estate, legal tech, SaaS, enterprise systems. Website: https://otherdev.com'
 
@@ -340,13 +322,98 @@ function buildContext(similarDocs: SimilarDocument[], queryQuality: QueryQuality
   return `Context: ${baseFacts}. Provide helpful general information about Other Dev's projects, services, and capabilities based on common topics.`
 }
 
-/**
- * POST handler for chat streaming endpoint.
- *
- * Implementation (Phase 3): Uses AI SDK's streamText() with Groq provider.
- * Provides unified streaming interface, built-in tool calling, and standardized
- * response format compatible with AI SDK frontend hooks.
- */
+// Sanitize user message text parts in standard ModelMessage[] (injection protection + length cap)
+function sanitizeModelMessages(messages: ModelMessage[]): ModelMessage[] {
+  return messages.map(msg => {
+    if (msg.role !== 'user' || !Array.isArray(msg.content)) return msg
+
+    const content = msg.content.map(part => {
+      if (part.type === 'text') {
+        return { ...part, text: sanitizeInput(part.text) }
+      }
+      return part
+    })
+
+    const hasText = content.some(
+      p => p.type === 'text' && (p as { type: 'text'; text: string }).text.trim()
+    )
+
+    if (!hasText) {
+      return { ...msg, content: [...content, { type: 'text' as const, text: ' ' }] }
+    }
+
+    return { ...msg, content }
+  })
+}
+
+// convertToModelMessages maps FileUIPart.url → FilePart.data, so a data: URI becomes
+// { type: 'file', data: 'data:image/webp;base64,...' }. The AI SDK's downloadAssets
+// calls new URL(data) on strings, which succeeds for data: URIs, then tries to fetch
+// them as HTTP resources and fails. Converting to Buffer bypasses the download path.
+function resolveDataURIs(messages: ModelMessage[]): ModelMessage[] {
+  return messages.map(msg => {
+    if (!Array.isArray(msg.content)) return msg
+    const content = msg.content.map(part => {
+      if (part.type === 'image') {
+        const imgPart = part as { type: 'image'; image: string | URL | Uint8Array; mediaType?: string }
+        if (typeof imgPart.image === 'string' && imgPart.image.startsWith('data:')) {
+          const commaIdx = imgPart.image.indexOf(',')
+          const header = imgPart.image.slice(0, commaIdx)
+          const base64 = imgPart.image.slice(commaIdx + 1)
+          return {
+            type: 'image' as const,
+            image: Buffer.from(base64, 'base64'),
+            mediaType: imgPart.mediaType ?? (header.match(/data:([^;]+)/)?.[1] ?? undefined),
+          }
+        }
+      }
+      if (part.type === 'file') {
+        const filePart = part as {
+          type: 'file'
+          data: string | Uint8Array
+          mediaType: string
+          filename?: string
+        }
+        if (typeof filePart.data === 'string' && filePart.data.startsWith('data:')) {
+          const commaIdx = filePart.data.indexOf(',')
+          const base64 = filePart.data.slice(commaIdx + 1)
+          return {
+            type: 'file' as const,
+            data: Buffer.from(base64, 'base64'),
+            mediaType: filePart.mediaType,
+            ...(filePart.filename ? { filename: filePart.filename } : {}),
+          }
+        }
+      }
+      return part
+    })
+    return { ...msg, content }
+  })
+}
+
+// Inject RAG context into the last user message's first text part
+function injectRagContext(messages: ModelMessage[], ragContext: string): ModelMessage[] {
+  if (!messages.length) return messages
+
+  const result = [...messages]
+  const lastIdx = result.length - 1
+  const lastMsg = result[lastIdx]
+
+  if (lastMsg.role !== 'user' || !Array.isArray(lastMsg.content)) return result
+
+  const content = [...lastMsg.content]
+  const textIdx = content.findIndex(p => p.type === 'text')
+  if (textIdx < 0) return result
+
+  const textPart = content[textIdx] as { type: 'text'; text: string }
+  content[textIdx] = {
+    type: 'text',
+    text: `=== CONTEXT ===\n${ragContext}\n=== END CONTEXT ===\n\n${textPart.text}`,
+  }
+  result[lastIdx] = { ...lastMsg, content }
+  return result
+}
+
 export async function POST(request: Request): Promise<Response> {
   try {
     const clientId = getClientIdentifier(request)
@@ -386,7 +453,6 @@ export async function POST(request: Request): Promise<Response> {
       return createJsonResponse({ error: 'No messages provided' }, 400)
     }
 
-    // Filter out malformed empty messages before strict schema validation.
     candidateMessages = candidateMessages.filter(m => {
       if (m.role === 'user') {
         if (!m.parts || m.parts.length === 0) {
@@ -406,6 +472,9 @@ export async function POST(request: Request): Promise<Response> {
       return createJsonResponse({ error: 'No valid messages provided' }, 400)
     }
 
+    // Create artifact tool once per request — shared for validation and tool calling
+    const artifactTool = createArtifactTool()
+
     let uiMessages: UIMessage[]
     try {
       uiMessages = (await validateUIMessages({
@@ -415,7 +484,7 @@ export async function POST(request: Request): Promise<Response> {
         },
         tools: {
           // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool validation
-          createArtifact: createArtifactTool() as any,
+          createArtifact: artifactTool as any,
         },
       })) as UIMessage[]
     } catch (error) {
@@ -426,7 +495,6 @@ export async function POST(request: Request): Promise<Response> {
       throw error
     }
 
-    // Extract text from the last user message for routing and RAG.
     const lastUserMessage = uiMessages.filter((m: UIMessage) => m.role === 'user').pop()
     const lastUserText = extractUserText(lastUserMessage)
     const sanitizedQuery = sanitizeInput(lastUserText)
@@ -437,7 +505,7 @@ export async function POST(request: Request): Promise<Response> {
     const ragEnabled = shouldUseRagFromDecision(routeDecision)
     const enableArtifacts = supportsArtifacts && queryQuality.needsArtifact
     const selectedPrompt =
-      routeDecision.route === 'general_chat' ? SYSTEM_PROMPT_GENERAL : SYSTEM_PROMPT_DOMAIN
+      routeDecision.route === 'general_chat' ? getGeneralSystemPrompt() : SYSTEM_PROMPT_DOMAIN
     const scopedUIMessages = scopeMessagesForRoute(uiMessages, routeDecision.route)
 
     if (routeDecision.route === 'clarify') {
@@ -477,7 +545,6 @@ export async function POST(request: Request): Promise<Response> {
       })
     }
 
-    // Detect if user sent images
     const hasImageContent = scopedUIMessages.some((m: UIMessage) =>
       m.parts?.some(
         p =>
@@ -486,75 +553,6 @@ export async function POST(request: Request): Promise<Response> {
           (p as { mediaType?: string }).mediaType?.startsWith('image/')
       )
     )
-
-    // Manually convert UIMessage[] to ModelMessage[] format for Groq
-    // convertToModelMessages has issues with file parts and data URIs
-    const modelMessages: ModelMessage[] = scopedUIMessages
-      .map((msg: UIMessage) => {
-        const content: ModelMessageContent[] = []
-
-        // Process text parts
-        const textParts =
-          msg.parts?.filter(
-            (p): p is { type: 'text'; text: string } => p.type === 'text' && 'text' in p
-          ) || []
-        for (const part of textParts) {
-          if (part.text?.trim()) {
-            content.push({ type: 'text' as const, text: part.text })
-          }
-        }
-
-        // Process file/image parts - convert to Groq-compatible format
-        const fileParts = msg.parts?.filter(p => p.type === 'file') || []
-        for (const part of fileParts) {
-          const mediaType =
-            'mediaType' in part ? (part as { mediaType?: string }).mediaType : undefined
-          if (mediaType?.startsWith('image/')) {
-            const dataUri =
-              ('url' in part ? (part as { url?: string }).url : undefined) ||
-              ('data' in part ? (part as { data?: string }).data : undefined)
-
-            if (dataUri && typeof dataUri === 'string') {
-              content.push({
-                type: 'image' as const,
-                image: extractBase64(dataUri), // Strip "data:...;base64," prefix
-              })
-            }
-          }
-        }
-
-        if (content.length === 0) return null
-
-        return {
-          role: msg.role as 'user' | 'assistant' | 'system',
-          content,
-        }
-      })
-      .filter((msg): msg is ModelMessage => msg !== null)
-
-    // Sanitize messages for Groq compatibility
-    const sanitized: ModelMessage[] = modelMessages.map((msg: ModelMessage) => {
-      if (msg.role !== 'user' || !Array.isArray(msg.content)) return msg
-
-      const sanitizedContent = msg.content.map((part: ModelMessageContent) => {
-        // Sanitize text parts
-        if (part.type === 'text' && typeof part.text === 'string') {
-          return { ...part, text: sanitizeInput(part.text) }
-        }
-        return part
-      })
-
-      // Ensure there's always text content (Groq rejects image-only messages)
-      const hasText = sanitizedContent.some(
-        (p: ModelMessageContent) => p.type === 'text' && p.text && p.text.trim()
-      )
-
-      if (!hasText) {
-        sanitizedContent.push({ type: 'text' as const, text: ' ' })
-      }
-
-      return { ...msg, content: sanitizedContent }
-    })
 
     const selectedModel = hasImageContent ? VISION_MODEL : CHAT_MODEL
     const isSearchLikeQuery = !queryQuality.isConversational && queryQuality.tokenCount >= 3
@@ -566,17 +564,13 @@ export async function POST(request: Request): Promise<Response> {
     const enableResponseCache =
       ragEnabled && !hasImageContent && !enableArtifacts && !enableBrowserSearch
 
-    // Fetch RAG context BEFORE starting stream (must complete before streamText is called)
+    // Fetch RAG context before starting stream
     let ragContext: string | null = null
-    let _retrievalCacheHit = false
-    let _retrievalDocCount = 0
-    const _ragStartTimeMs = Date.now()
     if (ragEnabled) {
       try {
         const cachedContext = await getCachedRetrievalContext(normalizedQuery)
         if (cachedContext) {
           ragContext = cachedContext
-          _retrievalCacheHit = true
         } else {
           const queryEmbedding = await generateEmbedding(normalizedQuery)
           const adaptiveThreshold = getAdaptiveThreshold(queryQuality)
@@ -585,52 +579,47 @@ export async function POST(request: Request): Promise<Response> {
             adaptiveThreshold,
             RAG_MATCH_COUNT
           )
-          _retrievalDocCount = similarDocs.length
           ragContext = buildContext(similarDocs, queryQuality)
-          await setCachedRetrievalContext(normalizedQuery, ragContext)
+          after(() => setCachedRetrievalContext(normalizedQuery, ragContext as string))
         }
       } catch (error) {
         console.error(
           '[RAG] Error during RAG pipeline:',
           error instanceof Error ? error.message : error
         )
-        // Embedding service unavailable — proceed without RAG context
       }
     }
 
-    // Inject RAG context into the last user message
-    if (ragContext && sanitized.length > 0) {
-      const lastMsg = sanitized[sanitized.length - 1]
-      if (lastMsg.role === 'user' && Array.isArray(lastMsg.content)) {
-        const textPartIndex = lastMsg.content.findIndex(
-          (p: ModelMessageContent) => p.type === 'text'
-        )
-        if (textPartIndex >= 0) {
-          const part = lastMsg.content[textPartIndex]
-          const originalText = part.type === 'text' ? part.text : ''
-          lastMsg.content[textPartIndex] = {
-            type: 'text',
-            text: `=== CONTEXT ===\n${ragContext}\n=== END CONTEXT ===\n\n${originalText}`,
-          }
-        }
-      }
-    }
+    // Convert UIMessages to standard AI SDK ModelMessage[] format.
+    // Both Groq and MiniMax (Anthropic-compatible) accept this format directly —
+    // each provider's internal adapter handles the wire-format conversion.
+    const rawModelMessages = await convertToModelMessages(scopedUIMessages, {
+      tools: { createArtifact: artifactTool },
+    })
+
+    // Sanitize user text, decode data URI images to Buffer, then inject RAG context
+    const sanitizedMessages = sanitizeModelMessages(rawModelMessages)
+    const resolvedMessages = resolveDataURIs(sanitizedMessages)
+    const modelMessages = ragContext
+      ? injectRagContext(resolvedMessages, ragContext)
+      : resolvedMessages
 
     let responseTextForCache = ''
     let responseSuggestionForCache: string | null = null
 
-    // Use createUIMessageStream to properly handle data parts and persistence mode.
     const stream = createUIMessageStream({
       originalMessages: uiMessages,
       onFinish: async ({ messages }) => {
         await saveChatMessages(chatId, messages as UIMessage[])
 
         if (enableResponseCache && responseTextForCache.trim().length > 0) {
-          await setCachedResponse(
-            normalizedQuery,
-            selectedModel,
-            responseTextForCache,
-            responseSuggestionForCache
+          after(() =>
+            setCachedResponse(
+              normalizedQuery,
+              selectedModel,
+              responseTextForCache,
+              responseSuggestionForCache
+            )
           )
         }
       },
@@ -660,76 +649,64 @@ export async function POST(request: Request): Promise<Response> {
           }
         }
 
-        let accumulatedText = ''
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const streamTextWithModel = async (ai: any, model: string, label: string, tools: Record<string, unknown> = {}) => {
+        const streamTextWithModel = async (
+          modelFactory: (modelId: string) => LanguageModel,
+          model: string,
+          label: string,
+          tools: ToolSet = {}
+        ) => {
           console.log(`[LLM] Using ${label} (model: ${model})`)
           return streamText({
-            model: ai(model),
+            model: modelFactory(model),
             system: selectedPrompt,
-            // biome-ignore lint/suspicious/noExplicitAny: AI SDK message type conversion
-            messages: sanitized as any,
+            messages: modelMessages,
             temperature: 0.7,
             maxOutputTokens: 1024,
             stopWhen: stepCountIs(5),
-            // MiniMax doesn't respond well to 'required' - use 'auto'
             toolChoice: 'auto',
             experimental_repairToolCall: enableArtifacts
               ? // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool repair
                 (repairToolCall as any)
               : undefined,
-            tools: tools as any,
-            timeout: {
-              totalMs: 30000,
-            },
-            experimental_transform: () =>
-              new TransformStream({
-                transform(chunk, controller) {
-                  controller.enqueue(chunk)
-                  if (chunk.type === 'text-delta') {
-                    accumulatedText += chunk.text
-                  }
-                },
-              }),
-            onFinish: async _event => {},
+            tools,
+            timeout: { totalMs: 30000 },
           })
         }
 
         let result: ReturnType<typeof streamText>
 
-        // MiniMax is always tried first (primary with Tavily web search)
-        // Groq browser_search is only fallback if MiniMax+Tavily fails
-        const minimaxTools = {
-          webSearch: webSearchTool,
-        }
+        const minimaxTools: ToolSet = { webSearch: webSearchTool }
 
         if (enableArtifacts) {
-          // Groq required for artifacts (MiniMax doesn't support it)
-          const groqArtifactTools = {
-            createArtifact: createArtifactTool(),
-          }
+          // Groq required for artifacts (MiniMax doesn't support createArtifact)
           console.log('[LLM] Using Groq with artifacts...')
-          result = await streamTextWithModel(groqAI, selectedModel, 'Groq', groqArtifactTools)
+          result = await streamTextWithModel(groqAI, selectedModel, 'Groq', {
+            createArtifact: artifactTool,
+          })
         } else {
-          // Try MiniMax first (works with Tavily web search tool)
+          // Try MiniMax first (primary)
           try {
-            console.log(`[LLM] Trying MiniMax-M2.7 with web search...`)
-            result = await streamTextWithModel(minimaxAI, 'MiniMax-M2.7', 'MiniMax-M2.7', minimaxTools)
+            console.log('[LLM] Trying MiniMax-M2.7 with web search...')
+            result = await streamTextWithModel(
+              minimaxAI,
+              'MiniMax-M2.7',
+              'MiniMax-M2.7',
+              minimaxTools
+            )
           } catch (minimaxError) {
-            console.warn('[LLM] MiniMax failed, falling back to Groq:', minimaxError instanceof Error ? minimaxError.message : minimaxError)
-            accumulatedText = ''
+            console.warn(
+              '[LLM] MiniMax failed, falling back to Groq:',
+              minimaxError instanceof Error ? minimaxError.message : minimaxError
+            )
 
             if (enableBrowserSearch) {
-              // Groq's browser_search is a fallback for when Tavily fails
-              const groqBrowserTools = {
-                browser_search: groqAI.tools.browserSearch({}),
-              }
               console.log('[LLM] Using Groq with browser search (fallback)...')
-              result = await streamTextWithModel(groqAI, selectedModel, 'Groq', groqBrowserTools)
+              result = await streamTextWithModel(groqAI, selectedModel, 'Groq', {
+                browser_search: groqAI.tools.browserSearch({}),
+              })
             } else {
               console.log('[LLM] Using Groq without tools (fallback)...')
-              result = await streamTextWithModel(groqAI, selectedModel, 'Groq')
+              result = await streamTextWithModel(groqAI, selectedModel, 'Groq', {})
             }
           }
         }
@@ -737,14 +714,16 @@ export async function POST(request: Request): Promise<Response> {
         writer.merge(result.toUIMessageStream())
         await result.consumeStream()
 
-        const { cleanText, suggestion } = extractSuggestion(accumulatedText)
+        // result.text resolves after consumeStream() — no TransformStream accumulator needed
+        const fullText = await result.text
+        const { cleanText, suggestion } = extractSuggestion(fullText)
         if (suggestion) {
           writer.write({
             type: 'data-suggestion',
             data: { suggestion },
           })
         }
-        responseTextForCache = cleanText || accumulatedText
+        responseTextForCache = cleanText || fullText
         responseSuggestionForCache = suggestion
       },
       onError: error => {
