@@ -382,11 +382,12 @@ function AssistantMessage({
     return (
       <div className="flex justify-start items-start gap-2 mt-12">
         <Image
-          src="/otherdev-chat-logo.svg"
+          src="/otherdev-chat-logo-32.webp"
           alt="OtherDev Loom"
           width={32}
           height={32}
           className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
+          style={{ width: 'auto', height: 'auto' }}
         />
         <div className="w-full max-w-full gap-2 sm:gap-3 lg:max-w-5xl flex flex-col">
           <div className="flex-1 space-y-3 min-w-0">
@@ -440,11 +441,12 @@ function AssistantMessage({
   return (
     <div className="flex justify-start items-start gap-2">
       <Image
-        src="/otherdev-chat-logo.svg"
+        src="/otherdev-chat-logo-32.webp"
         alt="OtherDev Loom"
         width={32}
         height={32}
         className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
+        style={{ width: 'auto', height: 'auto' }}
       />
       <div className="w-full max-w-full gap-2 sm:gap-3 lg:max-w-5xl flex flex-col">
         <div className="flex-1 space-y-2 min-w-0">
@@ -786,11 +788,12 @@ export function ChatCore({
                   <div className="space-y-3 text-center sm:space-y-4">
                     <div className="flex justify-center">
                       <Image
-                        src="/otherdev-chat-logo.svg"
+                        src="/otherdev-chat-logo-32.webp"
                         alt="Other Dev Loom"
                         width={32}
                         height={32}
                         className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
+                        style={{ width: 'auto', height: 'auto' }}
                       />
                     </div>
                     {greeting ? (
@@ -844,11 +847,12 @@ export function ChatCore({
               {(status === 'submitted' || status === 'streaming') && (
                 <div className="flex items-center gap-2 sm:gap-3">
                   <Image
-                    src="/otherdev-chat-logo.svg"
+                    src="/otherdev-chat-logo-32.webp"
                     alt="Other Dev Loom"
                     width={32}
                     height={32}
                     className="h-6 w-6 flex-shrink-0 animate-spin sm:h-6 sm:w-6"
+                    style={{ width: 'auto', height: 'auto' }}
                   />
                   <div className="flex items-center gap-2 font-sans text-xs text-muted-foreground sm:text-sm">
                     <span className="text-sm">Thinking </span>
