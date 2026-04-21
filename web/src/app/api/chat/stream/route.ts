@@ -37,7 +37,11 @@ import {
 import { generateEmbedding } from '@/server/lib/rag/embeddings'
 import { searchSimilarDocuments } from '@/server/lib/rag/vector-search'
 import { checkRateLimit, getClientIdentifier, REQUESTS_PER_WINDOW } from '@/server/lib/rate-limit'
-import { CHAT_MODEL, VISION_MODEL } from './helpers'
+import {
+  CHAT_MODEL,
+  MINIMAX_CHAT_MODEL,
+  VISION_MODEL,
+} from './helpers'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -351,44 +355,35 @@ function sanitizeModelMessages(messages: ModelMessage[]): ModelMessage[] {
 // calls new URL(data) on strings, which succeeds for data: URIs, then tries to fetch
 // them as HTTP resources and fails. Converting to Buffer bypasses the download path.
 function resolveDataURIs(messages: ModelMessage[]): ModelMessage[] {
-  return messages.map(msg => {
+  // biome-ignore lint/suspicious/noExplicitAny: ModelMessage union content arrays resist narrow inference
+  return messages.map((msg): any => {
     if (!Array.isArray(msg.content)) return msg
-    const content = msg.content.map(part => {
+    const content = (msg.content as Array<{ type: string; [k: string]: unknown }>).map(part => {
       if (part.type === 'image') {
-        const imgPart = part as { type: 'image'; image: string | URL | Uint8Array; mediaType?: string }
-        if (typeof imgPart.image === 'string' && imgPart.image.startsWith('data:')) {
-          const commaIdx = imgPart.image.indexOf(',')
-          const header = imgPart.image.slice(0, commaIdx)
-          const base64 = imgPart.image.slice(commaIdx + 1)
+        const image = part.image as string | URL | Uint8Array
+        if (typeof image === 'string' && image.startsWith('data:')) {
+          const commaIdx = image.indexOf(',')
+          const header = image.slice(0, commaIdx)
+          const base64 = image.slice(commaIdx + 1)
           return {
-            type: 'image' as const,
+            ...part,
             image: Buffer.from(base64, 'base64'),
-            mediaType: imgPart.mediaType ?? (header.match(/data:([^;]+)/)?.[1] ?? undefined),
+            mediaType: (part.mediaType as string | undefined) ?? header.match(/data:([^;]+)/)?.[1],
           }
         }
       }
       if (part.type === 'file') {
-        const filePart = part as {
-          type: 'file'
-          data: string | Uint8Array
-          mediaType: string
-          filename?: string
-        }
-        if (typeof filePart.data === 'string' && filePart.data.startsWith('data:')) {
-          const commaIdx = filePart.data.indexOf(',')
-          const base64 = filePart.data.slice(commaIdx + 1)
-          return {
-            type: 'file' as const,
-            data: Buffer.from(base64, 'base64'),
-            mediaType: filePart.mediaType,
-            ...(filePart.filename ? { filename: filePart.filename } : {}),
-          }
+        const data = part.data as string | Uint8Array
+        if (typeof data === 'string' && data.startsWith('data:')) {
+          const commaIdx = data.indexOf(',')
+          const base64 = data.slice(commaIdx + 1)
+          return { ...part, data: Buffer.from(base64, 'base64') }
         }
       }
       return part
     })
     return { ...msg, content }
-  })
+  }) as ModelMessage[]
 }
 
 // Inject RAG context into the last user message's first text part
@@ -683,13 +678,19 @@ export async function POST(request: Request): Promise<Response> {
           result = await streamTextWithModel(groqAI, selectedModel, 'Groq', {
             createArtifact: artifactTool,
           })
+        } else if (hasImageContent) {
+          // MiniMax M-series models block image input via AI SDK (all API modes).
+          // MiniMax-Text-01 supports vision but requires a higher plan tier.
+          // Use Groq Llama-4-Scout directly — it supports multimodal natively.
+          console.log('[LLM] Image detected, routing to Groq vision (Llama-4-Scout)...')
+          result = await streamTextWithModel(groqAI, VISION_MODEL, 'Groq-vision', {})
         } else {
-          // Try MiniMax first (primary)
+          // Text/general: MiniMax-M2.7 (Anthropic-compatible) as primary
           try {
             console.log('[LLM] Trying MiniMax-M2.7 with web search...')
             result = await streamTextWithModel(
               minimaxAI,
-              'MiniMax-M2.7',
+              MINIMAX_CHAT_MODEL,
               'MiniMax-M2.7',
               minimaxTools
             )
@@ -702,7 +703,8 @@ export async function POST(request: Request): Promise<Response> {
             if (enableBrowserSearch) {
               console.log('[LLM] Using Groq with browser search (fallback)...')
               result = await streamTextWithModel(groqAI, selectedModel, 'Groq', {
-                browser_search: groqAI.tools.browserSearch({}),
+                // biome-ignore lint/suspicious/noExplicitAny: Groq browser_search tool type
+                browser_search: groqAI.tools.browserSearch({}) as any,
               })
             } else {
               console.log('[LLM] Using Groq without tools (fallback)...')
