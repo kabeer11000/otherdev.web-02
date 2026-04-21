@@ -835,7 +835,7 @@ export function ChatCore({
               {messages.map(message =>
                 message.role === 'user' ? (
                   <UserMessage key={message.id} message={message} />
-                ) : (
+                ) : status === 'streaming' || status === 'submitted' ? null : (
                   <AssistantMessage
                     key={message.id}
                     message={message}
