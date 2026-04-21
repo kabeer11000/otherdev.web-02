@@ -47,7 +47,7 @@ const groqAI = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 })
 
-// AI SDK MiniMax instance (primary, falls back to Groq)
+// AI SDK MiniMax instance (fallback when Groq fails or rate-limits)
 // Uses MINIMAX_API_KEY env var automatically
 const minimaxAI = minimax
 
@@ -552,14 +552,7 @@ export async function POST(request: Request): Promise<Response> {
     )
 
     const selectedModel = hasImageContent ? VISION_MODEL : CHAT_MODEL
-    const isSearchLikeQuery = !queryQuality.isConversational && queryQuality.tokenCount >= 3
-    const enableBrowserSearch =
-      routeDecision.route === 'general_chat' &&
-      isSearchLikeQuery &&
-      !hasImageContent &&
-      !enableArtifacts
-    const enableResponseCache =
-      ragEnabled && !hasImageContent && !enableArtifacts && !enableBrowserSearch
+    const enableResponseCache = ragEnabled && !hasImageContent && !enableArtifacts
 
     // Fetch RAG context before starting stream
     let ragContext: string | null = null
@@ -689,41 +682,33 @@ export async function POST(request: Request): Promise<Response> {
           console.log('[LLM] Image detected, routing to Groq vision (Llama-4-Scout)...')
           result = await streamTextWithModel(groqAI, VISION_MODEL, 'Groq-vision', {})
         } else {
-          // Text/general: MiniMax-M2.7 (Anthropic-compatible) as primary
-          // Race MiniMax against a 9s timeout so Groq fallback starts promptly
-          const minimaxAbort = new AbortController()
-          const minimaxTimeout = setTimeout(() => minimaxAbort.abort(), 9_000)
+          // Text/general: Groq as primary, MiniMax-M2.7 fallback on failure/rate-limit
+          const groqAbort = new AbortController()
+          const groqTimeout = setTimeout(() => groqAbort.abort(), 9_000)
 
           try {
-            console.log('[LLM] Trying MiniMax-M2.7 with web search...')
+            console.log('[LLM] Using Groq with web search...')
+            result = await streamTextWithModel(
+              groqAI,
+              selectedModel,
+              'Groq',
+              { webSearch: webSearchTool },
+              groqAbort.signal
+            )
+            clearTimeout(groqTimeout)
+          } catch (groqError) {
+            clearTimeout(groqTimeout)
+            console.warn(
+              '[LLM] Groq failed, falling back to MiniMax:',
+              groqError instanceof Error ? groqError.message : groqError
+            )
+            console.log('[LLM] Using MiniMax-M2.7 with web search (fallback)...')
             result = await streamTextWithModel(
               minimaxAI,
               MINIMAX_CHAT_MODEL,
               'MiniMax-M2.7',
-              minimaxTools,
-              minimaxAbort.signal
+              minimaxTools
             )
-            clearTimeout(minimaxTimeout)
-          } catch (minimaxError) {
-            clearTimeout(minimaxTimeout)
-            console.warn(
-              '[LLM] MiniMax failed, falling back to Groq:',
-              minimaxError instanceof Error ? minimaxError.message : minimaxError
-            )
-
-            const groqTools: ToolSet = enableBrowserSearch
-              ? {
-                  // biome-ignore lint/suspicious/noExplicitAny: Groq browser_search tool type
-                  browser_search: groqAI.tools.browserSearch({}) as any,
-                }
-              : {}
-
-            if (enableBrowserSearch) {
-              console.log('[LLM] Using Groq with browser search (fallback)...')
-            } else {
-              console.log('[LLM] Using Groq without tools (fallback)...')
-            }
-            result = await streamTextWithModel(groqAI, selectedModel, 'Groq', groqTools)
           }
         }
 
