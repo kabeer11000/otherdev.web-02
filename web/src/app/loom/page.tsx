@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     description:
       "Chat with Loom, Other Dev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
     path: '/loom',
-    imagePath: '/otherdev-chat-logo.svg',
+    imagePath: '/otherdev-chat-logo-32.webp',
     imageAlt: 'Other Dev Loom',
   }),
   robots: {

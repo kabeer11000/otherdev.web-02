@@ -45,12 +45,13 @@ export function ChatWidget() {
           aria-label="Open chat"
         >
           <Image
-            src="/otherdev-chat-logo.svg"
+            src="/otherdev-chat-logo-32.webp"
             alt="Other Dev AI"
             width={32}
             height={32}
             loading="eager"
             className="h-8 w-8 object-contain"
+            style={{ width: 'auto', height: 'auto' }}
           />
         </button>
       ) : null}
@@ -75,11 +76,12 @@ export function ChatWidget() {
           <div className={cn('flex-shrink-0 flex items-center justify-between border-b p-4')}>
             <div className="flex items-center gap-2">
               <Image
-                src="/otherdev-chat-logo.svg"
+                src="/otherdev-chat-logo-32.webp"
                 alt="Other Dev AI"
                 width={24}
                 height={24}
                 className="h-6 w-6 object-contain"
+                style={{ width: 'auto', height: 'auto' }}
               />
               <h3 className="text-sm font-medium text-foreground">Other Dev AI</h3>
             </div>
