@@ -55,11 +55,11 @@ const minimaxAI = minimax
 const tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY })
 
 // Web search tool using Tavily (for general chat with web grounding)
-const webSearchTool = tool({
+const tavilySearchTool = tool({
   description:
-    'Search the web for current information, news, and facts. Use this when you need real-time or up-to-date information that may not be in your training data.',
+    'Search the web for current information, news, and facts. Use this when you need real-time or up-to-date information. Returns all results immediately in a single response. Do NOT call more than twice per conversation. Do NOT pass id, cursor, or pagination parameters — only the query field is accepted.',
   inputSchema: z.object({
-    query: z.string().describe('The search query to find relevant web information'),
+    query: z.string().describe('The plain text search query. No id, cursor, or pagination fields — query only.'),
   }),
   execute: async ({ query }: { query: string }) => {
     type SearchResult = { id: number; title: string; url: string; snippet: string; score: number }
@@ -74,7 +74,7 @@ const webSearchTool = tool({
       console.log(`[WebSearch] Searching for: ${query}`)
       const response = await tavilyClient.search(query, {
         searchDepth: 'basic',
-        maxResults: 5,
+        maxResults: 3,
         includeAnswer: false,
         includeRawContent: false,
       })
@@ -83,7 +83,7 @@ const webSearchTool = tool({
         id: i + 1,
         title: result.title,
         url: result.url,
-        snippet: result.content,
+        snippet: result.content.slice(0, 300),
         score: result.score,
       }))
 
@@ -105,21 +105,18 @@ const webSearchTool = tool({
   },
 })
 
-/**
- * Repairs malformed tool calls from Groq models.
- * Groq sometimes returns tool arguments with formatting issues.
- */
-async function repairToolCall({
-  toolCall,
-  error: _error,
-}: {
-  toolCall: { input: string; toolCallId: string; toolName: string }
+type ToolCallArg = { input: string; toolCallId: string; toolName: string }
+type RepairArgs = {
+  toolCall: ToolCallArg
   error: unknown
-  system?: string | { content: string } | { content: string }[]
+  system?: unknown
   messages?: ModelMessage[]
   tools?: Record<string, unknown>
   inputSchema?: z.ZodType
-}): Promise<{ input: string; toolCallId: string; toolName: string } | null> {
+}
+
+// Repairs malformed JSON-wrapped tool calls (e.g. Groq wraps args in ```json blocks)
+async function repairToolCall({ toolCall, error: _error }: RepairArgs): Promise<ToolCallArg | null> {
   try {
     let fixedInput = toolCall.input
     fixedInput = fixedInput.replace(/^```json\s*/i, '').replace(/\s*```$/, '')
@@ -127,10 +124,11 @@ async function repairToolCall({
     fixedInput = fixedInput.trim()
     const parsed = JSON.parse(fixedInput)
     return { ...toolCall, input: JSON.stringify(parsed) }
-  } catch (_parseError) {
+  } catch {
     return null
   }
 }
+
 
 const RAG_MAX_MESSAGE_LENGTH = Number.parseInt(process.env.RAG_MAX_MESSAGE_LENGTH || '500', 10)
 const RAG_SIMILARITY_THRESHOLD = Number.parseFloat(process.env.RAG_SIMILARITY_THRESHOLD || '0.1')
@@ -482,6 +480,8 @@ export async function POST(request: Request): Promise<Response> {
         tools: {
           // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool validation
           createArtifact: artifactTool as any,
+          // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool validation
+          tavilySearch: tavilySearchTool as any,
         },
       })) as UIMessage[]
     } catch (error) {
@@ -552,7 +552,13 @@ export async function POST(request: Request): Promise<Response> {
     )
 
     const selectedModel = hasImageContent ? VISION_MODEL : CHAT_MODEL
-    const enableResponseCache = ragEnabled && !hasImageContent && !enableArtifacts
+    const isSearchLikeQuery = !queryQuality.isConversational && queryQuality.tokenCount >= 3
+    const enableBrowserSearch =
+      routeDecision.route === 'general_chat' &&
+      isSearchLikeQuery &&
+      !hasImageContent &&
+      !enableArtifacts
+    const enableResponseCache = ragEnabled && !hasImageContent && !enableArtifacts && !enableBrowserSearch
 
     // Fetch RAG context before starting stream
     let ragContext: string | null = null
@@ -644,7 +650,9 @@ export async function POST(request: Request): Promise<Response> {
           model: string,
           label: string,
           tools: ToolSet = {},
-          abortSignal?: AbortSignal
+          abortSignal?: AbortSignal,
+          // biome-ignore lint/suspicious/noExplicitAny: AI SDK repair fn signature
+          repairFn?: (args: any) => Promise<ToolCallArg | null>
         ) => {
           console.log(`[LLM] Using ${label} (model: ${model})`)
           return streamText({
@@ -653,79 +661,84 @@ export async function POST(request: Request): Promise<Response> {
             messages: modelMessages,
             temperature: 0.7,
             maxOutputTokens: 1024,
-            stopWhen: stepCountIs(5),
+            stopWhen: stepCountIs(3),
             toolChoice: 'auto',
-            experimental_repairToolCall: enableArtifacts
-              ? // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool repair
-                (repairToolCall as any)
-              : undefined,
+            // biome-ignore lint/suspicious/noExplicitAny: AI SDK repair fn signature mismatch
+            experimental_repairToolCall: repairFn as any,
             tools,
             abortSignal,
             timeout: { totalMs: 30000 },
           })
         }
 
-        let result: ReturnType<typeof streamText>
+        const minimaxTools: ToolSet = { tavilySearch: tavilySearchTool }
 
-        const minimaxTools: ToolSet = { webSearch: webSearchTool }
+        // Runs a stream result through to completion and extracts suggestion/cache data.
+        // Keeping merge+consume together ensures rate-limit errors (thrown on first consume)
+        // are catchable in the same try-catch that initiated the streamText call.
+        const runStream = async (streamResult: ReturnType<typeof streamText>) => {
+          writer.merge(streamResult.toUIMessageStream())
+          await streamResult.consumeStream()
+          const fullText = await streamResult.text
+          const { cleanText, suggestion } = extractSuggestion(fullText)
+          if (suggestion) {
+            writer.write({ type: 'data-suggestion', data: { suggestion } })
+          }
+          responseTextForCache = cleanText || fullText
+          responseSuggestionForCache = suggestion
+        }
 
         if (enableArtifacts) {
           // Groq required for artifacts (MiniMax doesn't support createArtifact)
           console.log('[LLM] Using Groq with artifacts...')
-          result = await streamTextWithModel(groqAI, selectedModel, 'Groq', {
-            createArtifact: artifactTool,
-          })
-        } else if (hasImageContent) {
-          // MiniMax M-series models block image input via AI SDK (all API modes).
-          // MiniMax-Text-01 supports vision but requires a higher plan tier.
-          // Use Groq Llama-4-Scout directly — it supports multimodal natively.
-          console.log('[LLM] Image detected, routing to Groq vision (Llama-4-Scout)...')
-          result = await streamTextWithModel(groqAI, VISION_MODEL, 'Groq-vision', {})
-        } else {
-          // Text/general: Groq as primary, MiniMax-M2.7 fallback on failure/rate-limit
-          const groqAbort = new AbortController()
-          const groqTimeout = setTimeout(() => groqAbort.abort(), 9_000)
-
-          try {
-            console.log('[LLM] Using Groq with web search...')
-            result = await streamTextWithModel(
+          await runStream(
+            await streamTextWithModel(
               groqAI,
               selectedModel,
               'Groq',
-              { webSearch: webSearchTool },
-              groqAbort.signal
+              { createArtifact: artifactTool },
+              undefined,
+              repairToolCall
+            )
+          )
+        } else if (hasImageContent) {
+          // MiniMax M-series models block image input via AI SDK (all API modes).
+          // Use Groq Llama-4-Scout directly — it supports multimodal natively.
+          console.log('[LLM] Image detected, routing to Groq vision (Llama-4-Scout)...')
+          await runStream(await streamTextWithModel(groqAI, VISION_MODEL, 'Groq-vision', {}))
+        } else {
+          // Text/general: Groq as primary, MiniMax-M2.7 with browsing as fallback.
+          // wrap runStream inside the try-catch so rate-limit errors thrown during
+          // stream consumption (not streamText init) also trigger the MiniMax fallback.
+          const groqAbort = new AbortController()
+          const groqTimeout = setTimeout(() => groqAbort.abort(), 9_000)
+          // biome-ignore lint/suspicious/noExplicitAny: Groq browser_search tool type
+          const groqTools: ToolSet = enableBrowserSearch ? { browser_search: groqAI.tools.browserSearch({}) as any } : {}
+
+          try {
+            console.log(enableBrowserSearch ? '[LLM] Using Groq with browser search...' : '[LLM] Using Groq...')
+            const groqResult = await streamTextWithModel(
+              groqAI,
+              selectedModel,
+              'Groq',
+              groqTools,
+              groqAbort.signal,
+              repairToolCall
             )
             clearTimeout(groqTimeout)
+            await runStream(groqResult)
           } catch (groqError) {
             clearTimeout(groqTimeout)
             console.warn(
               '[LLM] Groq failed, falling back to MiniMax:',
               groqError instanceof Error ? groqError.message : groqError
             )
-            console.log('[LLM] Using MiniMax-M2.7 with web search (fallback)...')
-            result = await streamTextWithModel(
-              minimaxAI,
-              MINIMAX_CHAT_MODEL,
-              'MiniMax-M2.7',
-              minimaxTools
+            console.log('[LLM] Using MiniMax-M2.7 with browsing (fallback)...')
+            await runStream(
+              await streamTextWithModel(minimaxAI, MINIMAX_CHAT_MODEL, 'MiniMax-M2.7', minimaxTools)
             )
           }
         }
-
-        writer.merge(result.toUIMessageStream())
-        await result.consumeStream()
-
-        // result.text resolves after consumeStream() — no TransformStream accumulator needed
-        const fullText = await result.text
-        const { cleanText, suggestion } = extractSuggestion(fullText)
-        if (suggestion) {
-          writer.write({
-            type: 'data-suggestion',
-            data: { suggestion },
-          })
-        }
-        responseTextForCache = cleanText || fullText
-        responseSuggestionForCache = suggestion
       },
       onError: error => {
         console.error('[STREAM] Error:', error instanceof Error ? error.message : error)
