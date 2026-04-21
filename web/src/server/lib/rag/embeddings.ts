@@ -17,7 +17,7 @@ export const generateEmbedding = cache(async function generateEmbedding(
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const response = await client.embed({
-        model: 'voyage-3-large',
+        model: 'voyage-4-lite',
         input: [text],
         inputType,
       })
