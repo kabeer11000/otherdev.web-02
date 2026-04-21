@@ -1,21 +1,21 @@
 import { createGroq } from '@ai-sdk/groq'
-import { minimax } from 'vercel-minimax-ai-provider'
 import { tavily } from '@tavily/core'
 import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
-  stepCountIs,
-  streamText,
-  TypeValidationError,
-  tool,
   type LanguageModel,
   type ModelMessage,
+  stepCountIs,
+  streamText,
   type ToolSet,
+  TypeValidationError,
+  tool,
   type UIMessage,
   validateUIMessages,
 } from 'ai'
 import { after } from 'next/server'
+import { minimax } from 'vercel-minimax-ai-provider'
 import { z } from 'zod'
 
 import { createJsonResponse } from '@/server/lib/api-helpers'
@@ -37,11 +37,7 @@ import {
 import { generateEmbedding } from '@/server/lib/rag/embeddings'
 import { searchSimilarDocuments } from '@/server/lib/rag/vector-search'
 import { checkRateLimit, getClientIdentifier, REQUESTS_PER_WINDOW } from '@/server/lib/rate-limit'
-import {
-  CHAT_MODEL,
-  MINIMAX_CHAT_MODEL,
-  VISION_MODEL,
-} from './helpers'
+import { CHAT_MODEL, MINIMAX_CHAT_MODEL, VISION_MODEL } from './helpers'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -60,13 +56,19 @@ const tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY })
 
 // Web search tool using Tavily (for general chat with web grounding)
 const webSearchTool = tool({
-  description: 'Search the web for current information, news, and facts. Use this when you need real-time or up-to-date information that may not be in your training data.',
+  description:
+    'Search the web for current information, news, and facts. Use this when you need real-time or up-to-date information that may not be in your training data.',
   inputSchema: z.object({
     query: z.string().describe('The search query to find relevant web information'),
   }),
   execute: async ({ query }: { query: string }) => {
     type SearchResult = { id: number; title: string; url: string; snippet: string; score: number }
-    type WebSearchResult = { query: string; results: SearchResult[]; answer: string | null; error?: string }
+    type WebSearchResult = {
+      query: string
+      results: SearchResult[]
+      answer: string | null
+      error?: string
+    }
 
     try {
       console.log(`[WebSearch] Searching for: ${query}`)
@@ -648,7 +650,8 @@ export async function POST(request: Request): Promise<Response> {
           modelFactory: (modelId: string) => LanguageModel,
           model: string,
           label: string,
-          tools: ToolSet = {}
+          tools: ToolSet = {},
+          abortSignal?: AbortSignal
         ) => {
           console.log(`[LLM] Using ${label} (model: ${model})`)
           return streamText({
@@ -664,6 +667,7 @@ export async function POST(request: Request): Promise<Response> {
                 (repairToolCall as any)
               : undefined,
             tools,
+            abortSignal,
             timeout: { totalMs: 30000 },
           })
         }
@@ -686,30 +690,40 @@ export async function POST(request: Request): Promise<Response> {
           result = await streamTextWithModel(groqAI, VISION_MODEL, 'Groq-vision', {})
         } else {
           // Text/general: MiniMax-M2.7 (Anthropic-compatible) as primary
+          // Race MiniMax against a 9s timeout so Groq fallback starts promptly
+          const minimaxAbort = new AbortController()
+          const minimaxTimeout = setTimeout(() => minimaxAbort.abort(), 9_000)
+
           try {
             console.log('[LLM] Trying MiniMax-M2.7 with web search...')
             result = await streamTextWithModel(
               minimaxAI,
               MINIMAX_CHAT_MODEL,
               'MiniMax-M2.7',
-              minimaxTools
+              minimaxTools,
+              minimaxAbort.signal
             )
+            clearTimeout(minimaxTimeout)
           } catch (minimaxError) {
+            clearTimeout(minimaxTimeout)
             console.warn(
               '[LLM] MiniMax failed, falling back to Groq:',
               minimaxError instanceof Error ? minimaxError.message : minimaxError
             )
 
+            const groqTools: ToolSet = enableBrowserSearch
+              ? {
+                  // biome-ignore lint/suspicious/noExplicitAny: Groq browser_search tool type
+                  browser_search: groqAI.tools.browserSearch({}) as any,
+                }
+              : {}
+
             if (enableBrowserSearch) {
               console.log('[LLM] Using Groq with browser search (fallback)...')
-              result = await streamTextWithModel(groqAI, selectedModel, 'Groq', {
-                // biome-ignore lint/suspicious/noExplicitAny: Groq browser_search tool type
-                browser_search: groqAI.tools.browserSearch({}) as any,
-              })
             } else {
               console.log('[LLM] Using Groq without tools (fallback)...')
-              result = await streamTextWithModel(groqAI, selectedModel, 'Groq', {})
             }
+            result = await streamTextWithModel(groqAI, selectedModel, 'Groq', groqTools)
           }
         }
 

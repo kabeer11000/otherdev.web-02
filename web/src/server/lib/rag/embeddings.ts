@@ -1,58 +1,35 @@
 import { cache } from 'react'
+import { VoyageAIClient } from 'voyageai'
 
-const MODEL = 'mistral-embed'
-const MAX_RETRIES = 5
-const INITIAL_DELAY_MS = 1000
+const MAX_RETRIES = 2
+const INITIAL_DELAY_MS = 300
 
 // Cache embedding generation per-request to avoid duplicate API calls
 // for the same text within a single request (e.g., retry logic)
 export const generateEmbedding = cache(async function generateEmbedding(
-  text: string
+  text: string,
+  inputType: 'query' | 'document' = 'query'
 ): Promise<number[]> {
-  const controller = new AbortController()
-  const _timeoutId = setTimeout(() => controller.abort(), 30_000)
+  const client = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY })
 
   let lastError: Error | undefined
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const response = await fetch('https://api.mistral.ai/v1/embeddings', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ model: MODEL, input: [text] }),
-        signal: controller.signal,
+      const response = await client.embed({
+        model: 'voyage-3-large',
+        input: [text],
+        inputType,
       })
 
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After')
-        const waitMs = retryAfter
-          ? parseInt(retryAfter, 10) * 1000
-          : INITIAL_DELAY_MS * 2 ** attempt + Math.random() * 1000
-
-        if (attempt === MAX_RETRIES) {
-          throw new Error(`Mistral API rate limit exceeded after ${MAX_RETRIES} retries`)
-        }
-
-        await new Promise(resolve => setTimeout(resolve, waitMs))
-        continue
+      if (!response.data?.[0]) {
+        throw new Error('Voyage AI returned no embedding data')
       }
-
-      if (!response.ok) {
-        const errorBody = await response.text().catch(() => 'unknown')
-        throw new Error(`Mistral API error: ${response.status} - ${errorBody}`)
-      }
-
-      const data = (await response.json()) as {
-        data: { embedding: number[] }[]
-      }
-      return data.data[0].embedding
+      return response.data[0].embedding as number[]
     } catch (error) {
       lastError = error as Error
       if (attempt < MAX_RETRIES) {
-        const waitMs = INITIAL_DELAY_MS * 2 ** attempt + Math.random() * 1000
+        const waitMs = INITIAL_DELAY_MS * 2 ** attempt + Math.random() * 100
         await new Promise(resolve => setTimeout(resolve, waitMs))
       }
     }
