@@ -1,484 +1,161 @@
-# RSC & Caching Optimizations Implementation Plan
+# Chat Latency Fix + Voyage AI Embeddings Migration
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+**Goal:** Fix slow chat response times by (1) fast-failing MiniMax before Groq fallback, and (2) replacing Mistral embeddings with Voyage AI for better RAG quality and lower latency. Reduce the 5-retry embedding loop that can exceed the 30s route budget.
 
-**Goal:** Apply Next.js 16 `'use cache'` directive to CMS-fetched pages and split `ProjectCard` into server/client components to reduce unnecessary client JS.
+**Root causes diagnosed:**
+- MiniMax primary → Groq fallback has no per-provider timeout. If MiniMax is slow/down, the full 30s maxDuration is consumed before Groq even starts.
+- Mistral `generateEmbedding` has MAX_RETRIES=5 with exponential backoff (1+2+4+8+16 = 31s total sleep) — longer than the route's `maxDuration = 30`.
+- Two sequential Redis round-trips before streaming starts (can be batched).
 
-**Architecture:** Enable `cacheComponents` in next.config.ts, extract cached data-fetching functions for blog pages (eliminating a double-fetch on the post detail page), and split `ProjectCard` so the work-page variant renders as a pure server component while the hover tooltip stays client-only.
+**Why Voyage AI over Mistral for embeddings:**
+- Voyage AI's `voyage-3-large` consistently tops MTEB retrieval benchmarks.
+- The `input_type: "query"` vs `"document"` asymmetric encoding is a significant RAG quality improvement — Mistral `mistral-embed` has no equivalent.
+- Official Node.js/TypeScript SDK (`voyageai`) vs raw fetch with manual retry logic.
+- Same 1024 dimensions as current Mistral setup → no Firestore index rebuild needed.
 
-**Tech Stack:** Next.js 16.2.1, React 19, TypeScript, `cacheLife` / `cacheTag` / `revalidateTag` from `next/cache`, Biome for formatting, bun for running commands.
+**What stays unchanged:**
+- `@ai-sdk/mistral` is kept — `process-document/route.ts` uses it for OCR (Mistral vision). Only the raw fetch in `embeddings.ts` is replaced.
+- `MISTRAL_API_KEY` env var stays (still required for OCR route).
+- Firestore vector index stays — `voyage-3-large` defaults to 1024 dims, matching the current index.
+
+**Re-ingestion is required:** Voyage AI and Mistral vectors are incompatible even at the same 1024 dimensions. Run `bun ingest` after migration.
 
 ---
 
-## Files Changed
+## Files Touched
 
 | File | Action | Why |
 |---|---|---|
-| `web/next.config.ts` | Modify | Add `cacheComponents: true` to unlock `'use cache'` directive |
-| `web/src/app/blog/page.tsx` | Modify | Wrap Canvas fetch in `'use cache'` cached function |
-| `web/src/app/blog/[slug]/page.tsx` | Modify | Single cached function shared by `generateMetadata` + page, eliminating double fetch |
-| `web/src/components/project-card.tsx` | Modify | Remove `'use client'`, make server component shell |
-| `web/src/components/project-card-hover.tsx` | Create | Client component — mouse handlers + AnimatePresence tooltip |
+| `web/src/server/lib/rag/embeddings.ts` | Rewrite | Switch to Voyage AI SDK, add `inputType`, reduce retries to 2 |
+| `web/scripts/ingest-documents.ts` | Modify | Pass `inputType: 'document'` for knowledge base ingestion |
+| `web/src/app/api/chat/stream/route.ts` | Modify | Add AbortController fast-fail for MiniMax (~9s timeout) |
+| `web/package.json` | Modify | Add `voyageai` dependency |
 
 ---
 
-## Task 1: Enable cacheComponents in next.config.ts
+## Task 1: Install `voyageai` package
 
-**Files:**
-- Modify: `web/next.config.ts`
-
-- [ ] **Step 1: Add `cacheComponents: true`**
-
-  In `web/next.config.ts`, add `cacheComponents: true` alongside `reactCompiler: true`:
-
-  ```ts
-  const nextConfig: NextConfig = {
-    typescript: {
-      ignoreBuildErrors: true,
-    },
-    reactCompiler: true,
-    cacheComponents: true,   // <-- add this
-    images: { ... },
-    ...
-  }
-  ```
-
-- [ ] **Step 2: Verify build still passes**
-
-  Run from `web/`:
-  ```bash
-  bun run build
-  ```
-  Expected: build completes with no errors. If `cacheComponents` is unrecognized, check Next.js version (`bun next --version`) — needs 16+.
-
-- [ ] **Step 3: Commit**
+- [ ] **Step 1:** Install the Voyage AI Node.js SDK
 
   ```bash
-  git add web/next.config.ts
-  git commit -m "feat: enable cacheComponents for Next.js 16 PPR support"
+  cd web && bun add voyageai
   ```
+
+- [ ] **Step 2:** Verify it appears in `package.json` dependencies
 
 ---
 
-## Task 2: Cache the blog list page
+## Task 2: Rewrite `embeddings.ts` with Voyage AI
 
-**Files:**
-- Modify: `web/src/app/blog/page.tsx`
+**File:** `web/src/server/lib/rag/embeddings.ts`
 
-**Context:** The page calls `canvas.getPublicDocuments()` on every request. Blog posts change infrequently. Caching for 1 hour eliminates CMS round-trips on every pageview. The `cacheTag('blog-posts')` enables on-demand invalidation later if needed.
+**Changes:**
+- Replace the raw Mistral `fetch` loop with `VoyageAIClient.embed()`
+- Add `inputType: 'query' | 'document'` parameter (default `'query'`)
+- Reduce `MAX_RETRIES` from 5 → 2 (covers transient blips; RAG pipeline already silently skips on error at `route.ts:582`)
+- Reduce `INITIAL_DELAY_MS` from 1000 → 300ms (shorter baseline backoff)
+- Keep React `cache()` for per-request deduplication
+- Model: `voyage-3-large` (1024 dims, MTEB top-ranked for retrieval)
+- Env var: `VOYAGE_API_KEY`
 
-- [ ] **Step 1: Extract cached fetch function**
+**Key pattern from Voyage AI docs:**
+```ts
+const client = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY })
 
-  Replace the inline try/catch fetch in `BlogPage` with a top-level cached function. The `CanvasClient` instantiation moves inside it (it's cheap). Full replacement for `web/src/app/blog/page.tsx` data section:
+const response = await client.embed({
+  model: 'voyage-3-large',
+  input: [text],
+  inputType,         // 'query' for runtime lookups, 'document' for ingestion
+})
 
-  ```ts
-  import { cacheLife, cacheTag } from 'next/cache'
-  import { CanvasClient } from '@od-canvas/sdk'
+return response.data[0].embedding as number[]
+```
 
-  async function getBlogPosts(): Promise<CanvasDocument[]> {
-    'use cache'
-    cacheLife('hours')
-    cacheTag('blog-posts')
-
-    const canvas = new CanvasClient({
-      baseUrl: process.env.CANVAS_API_URL,
-      apiKey: process.env.CANVAS_API_KEY,
-    })
-
-    try {
-      const documents =
-        (await canvas.getPublicDocuments(
-          parseInt(process.env.CANVAS_PROJECT_ID || '4'),
-        )) ?? []
-      return documents.sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      )
-    } catch {
-      return []
-    }
-  }
-  ```
-
-  Then in `BlogPage`:
-  ```ts
-  export default async function BlogPage() {
-    const posts = await getBlogPosts()
-    // rest of the component unchanged
-  }
-  ```
-
-- [ ] **Step 2: Remove the now-unused inline CanvasClient + fetch**
-
-  Delete the module-level `const canvas = new CanvasClient(...)` and the inline try/catch inside `BlogPage`. The component body should just be `const posts = await getBlogPosts()` followed by the JSX.
-
-- [ ] **Step 3: Run build to verify**
-
-  ```bash
-  cd web && bun run build
-  ```
-  Expected: no errors. The build output should show `/blog` as a cached route.
-
-- [ ] **Step 4: Commit**
-
-  ```bash
-  git add web/src/app/blog/page.tsx
-  git commit -m "perf: cache blog list CMS fetch with use cache (1h TTL)"
-  ```
+- [ ] **Step 1:** Rewrite `embeddings.ts` using the pattern above, keeping `cache()` wrapper and 2-retry loop
+- [ ] **Step 2:** Verify the function signature is backward-compatible: `generateEmbedding(text: string, inputType?: 'query' | 'document')`
+- [ ] **Step 3:** Run `bun run type-check` from `web/` — must pass with no new errors
 
 ---
 
-## Task 3: Fix double fetch + cache the blog post page
+## Task 3: Update ingest script to use `input_type: "document"`
 
-**Files:**
-- Modify: `web/src/app/blog/[slug]/page.tsx`
+**File:** `web/scripts/ingest-documents.ts`
 
-**Context:** Both `generateMetadata` and `BlogPostPage` currently instantiate `CanvasClient` and call `getPublicDocument` independently — that's 2 network requests for the same data on every page load. A single cached function fixes both issues at once.
+Currently calls `generateEmbedding(doc.content)` with no `inputType` — defaults to `'query'`, which is wrong for stored documents and degrades retrieval quality.
 
-- [ ] **Step 1: Extract single cached fetch function**
-
-  Add this above `generateMetadata` in `web/src/app/blog/[slug]/page.tsx`:
-
-  ```ts
-  import { cacheLife, cacheTag } from 'next/cache'
-  import { CanvasClient } from '@od-canvas/sdk'
-
-  async function getBlogPost(id: number) {
-    'use cache'
-    cacheLife('hours')
-    cacheTag('blog-posts', `blog-post-${id}`)
-
-    const canvas = new CanvasClient({
-      baseUrl: process.env.CANVAS_API_URL,
-      apiKey: process.env.CANVAS_API_KEY,
-    })
-
-    try {
-      return await canvas.getPublicDocument(id)
-    } catch {
-      return null
-    }
-  }
-  ```
-
-- [ ] **Step 2: Update `generateMetadata` to use cached function**
-
-  ```ts
-  export async function generateMetadata({ params }: PageProps) {
-    const { slug } = await params
-    const post = await getBlogPost(parseInt(slug))
-
-    if (!post) {
-      return { title: 'Blog Post Not Found | Other Dev' }
-    }
-
-    return {
-      title: `${post.title} | Other Dev Blog`,
-      description: post.content.replace(/<[^>]*>/g, '').substring(0, 160),
-    }
-  }
-  ```
-
-- [ ] **Step 3: Update `BlogPostPage` to use cached function**
-
-  ```ts
-  export default async function BlogPostPage({ params }: PageProps) {
-    const { slug } = await params
-    const post = await getBlogPost(parseInt(slug))
-    // rest of JSX unchanged — remove the console.log(post) while here
-  }
-  ```
-
-  Remove the `console.log(post)` on line 40 while touching this file.
-
-- [ ] **Step 4: Run build to verify**
-
-  ```bash
-  cd web && bun run build
-  ```
-  Expected: no errors.
-
-- [ ] **Step 5: Commit**
-
-  ```bash
-  git add web/src/app/blog/[slug]/page.tsx
-  git commit -m "perf: fix double CMS fetch and cache blog post page with use cache"
-  ```
+- [ ] **Step 1:** Change `generateEmbedding(doc.content)` → `generateEmbedding(doc.content, 'document')`
+- [ ] **Step 2:** The dimension check `embedding.length !== 1024` stays — `voyage-3-large` defaults to 1024
 
 ---
 
-## Task 4: Split ProjectCard into server + client components
+## Task 4: Add MiniMax fast-fail (AbortController) in route.ts
 
-**Files:**
-- Create: `web/src/components/project-card-hover.tsx`
-- Modify: `web/src/components/project-card.tsx`
+**File:** `web/src/app/api/chat/stream/route.ts`
 
-**Context:** `ProjectCard` is `'use client'` only because `variant="home"` and `variant="broll"` need a mouse-tracking tooltip (useState + framer-motion). `variant="work"` (used on `/work` page with 15+ cards) never uses the tooltip — but currently ships all the hover JS. After this split, the work page grid is fully server-rendered.
+**Problem (lines 688–714):** If MiniMax is slow to respond, `await streamTextWithModel(minimaxAI, ...)` blocks for up to 30s before the catch fires and Groq starts. The route's `maxDuration = 30` means the entire request times out.
 
-**Design:**
-- `project-card-hover.tsx` — client component. Owns `isHovered`, `mousePosition`, mouse event handlers, and the `AnimatePresence` tooltip. Renders the `<Link>` with handlers + the floating tooltip.
-- `project-card.tsx` — server component (no directive). Renders card structure. For `variant="work"` or `showText`-only: renders a plain `<Link>`. For hover variants, renders `<ProjectCardHover>`.
+**Fix:** Thread an `AbortSignal` through `streamTextWithModel` and race MiniMax against a 9s timeout. AI SDK's `streamText` accepts `abortSignal` natively.
 
-- [ ] **Step 1: Create `project-card-hover.tsx`**
+**Changes:**
+1. Add optional `abortSignal?: AbortSignal` param to `streamTextWithModel` and pass it to `streamText`
+2. Wrap the MiniMax attempt with `AbortController` + `setTimeout(..., 9_000)`
+3. Call `clearTimeout` on success to prevent aborting a healthy in-progress stream
 
-  Create `web/src/components/project-card-hover.tsx`:
+```ts
+// Inside the text/general branch
+const minimaxAbort = new AbortController()
+const minimaxTimeout = setTimeout(() => minimaxAbort.abort(), 9_000)
 
-  ```tsx
-  'use client'
-
-  import Image from 'next/image'
-  import Link from 'next/link'
-  import { useState } from 'react'
-  import { motion, AnimatePresence } from 'motion/react'
-  import { cva } from 'class-variance-authority'
-
-  const cardVariants = cva(
-    'relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center',
-    {
-      variants: {
-        variant: {
-          home: 'bg-stone-200 -hover:shadow-lg',
-          broll: '',
-        },
-      },
-      defaultVariants: { variant: 'home' },
-    },
+try {
+  result = await streamTextWithModel(
+    minimaxAI, MINIMAX_CHAT_MODEL, 'MiniMax-M2.7', minimaxTools, minimaxAbort.signal
   )
+  clearTimeout(minimaxTimeout)
+} catch (minimaxError) {
+  clearTimeout(minimaxTimeout)
+  // Groq fallback now starts within 9s instead of up to 30s
+  ...
+}
+```
 
-  const imageContainerVariants = cva('relative w-full h-full bg-stone-200', {
-    variants: {
-      variant: {
-        home: 'px-[24px] py-[36px]',
-        broll: '',
-      },
-    },
-    defaultVariants: { variant: 'home' },
-  })
-
-  const imageVariants = cva('transition-transform duration-300', {
-    variants: {
-      variant: {
-        home: 'object-contain group-hover:scale-[1.02] p-6',
-        broll: 'object-cover',
-      },
-    },
-    defaultVariants: { variant: 'home' },
-  })
-
-  interface ProjectCardHoverProps {
-    title: string
-    slug: string
-    image: string
-    variant: 'home' | 'broll'
-    priority?: boolean
-    sizes?: string
-  }
-
-  export function ProjectCardHover({
-    title,
-    slug,
-    image,
-    variant,
-    priority = false,
-    sizes = '(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw',
-  }: ProjectCardHoverProps) {
-    const [isHovered, setIsHovered] = useState(false)
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-
-    return (
-      <>
-        <Link
-          href={variant === 'broll' ? (slug ?? '#') : `/work/${slug}`}
-          className="block group"
-          onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          <div className={cardVariants({ variant })}>
-            <div className={imageContainerVariants({ variant })}>
-              <Image
-                src={image}
-                alt={title}
-                fill
-                sizes={sizes}
-                className={imageVariants({ variant })}
-                priority={priority}
-              />
-            </div>
-          </div>
-        </Link>
-
-        <AnimatePresence>
-          {isHovered && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              className="fixed pointer-events-none z-50"
-              style={{
-                left: `${mousePosition.x + 15}px`,
-                top: `${mousePosition.y + 15}px`,
-              }}
-            >
-              <div className="rounded-md backdrop-blur-sm bg-stone-200/70 px-3 py-1.5">
-                <p className="text-[#686868] text-[11px] font-normal leading-[14px] whitespace-nowrap">
-                  {title}
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </>
-    )
-  }
-  ```
-
-- [ ] **Step 2: Rewrite `project-card.tsx` as a server component**
-
-  Replace the entire file with:
-
-  ```tsx
-  import Link from 'next/link'
-  import Image from 'next/image'
-  import { cva, type VariantProps } from 'class-variance-authority'
-  import { ProjectCardHover } from './project-card-hover'
-
-  const cardVariants = cva(
-    'relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center',
-    {
-      variants: {
-        variant: {
-          home: 'bg-stone-200 -hover:shadow-lg',
-          work: 'bg-stone-200',
-          broll: '',
-        },
-      },
-      defaultVariants: { variant: 'home' },
-    },
-  )
-
-  const imageContainerVariants = cva('relative w-full h-full bg-stone-200', {
-    variants: {
-      variant: {
-        home: 'px-[24px] py-[36px]',
-        work: 'px-[50px] py-[60px]',
-        broll: '',
-      },
-    },
-    defaultVariants: { variant: 'home' },
-  })
-
-  const imageVariants = cva('transition-transform duration-300', {
-    variants: {
-      variant: {
-        home: 'object-contain group-hover:scale-[1.02] p-6',
-        work: 'object-contain group-hover:scale-[0.99] p-6',
-        broll: 'object-cover',
-      },
-    },
-    defaultVariants: { variant: 'home' },
-  })
-
-  interface ProjectCardProps extends VariantProps<typeof cardVariants> {
-    title: string
-    slug: string
-    image: string
-    description?: string
-    showText?: boolean
-    priority?: boolean
-    sizes?: string
-  }
-
-  export function ProjectCard({
-    title,
-    slug,
-    image,
-    description,
-    variant,
-    showText = false,
-    priority = false,
-    sizes = '(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw',
-  }: ProjectCardProps) {
-    const useHover = variant === 'home' || variant === 'broll'
-
-    return (
-      <div className="flex flex-col gap-[13px]">
-        {useHover ? (
-          <ProjectCardHover
-            title={title}
-            slug={slug}
-            image={image}
-            variant={variant}
-            priority={priority}
-            sizes={sizes}
-          />
-        ) : (
-          <Link href={`/work/${slug}`} className="block group">
-            <div className={cardVariants({ variant })}>
-              <div className={imageContainerVariants({ variant })}>
-                <Image
-                  src={image}
-                  alt={title}
-                  fill
-                  sizes={sizes}
-                  className={imageVariants({ variant })}
-                  priority={priority}
-                />
-              </div>
-            </div>
-          </Link>
-        )}
-
-        {showText && (
-          <Link
-            href={`/work/${slug}`}
-            className="box-border flex flex-col items-start pb-[3px] pt-0 px-0 relative shrink-0"
-          >
-            <div className="box-border flex flex-col items-start mb-[-3px] relative shrink-0 w-full">
-              <div className="flex flex-col font-normal justify-center leading-[0] not-italic relative shrink-0 text-[11.4px] text-black tracking-[-0.24px] w-full">
-                <p className="leading-[14px] whitespace-pre-wrap">{title}</p>
-              </div>
-            </div>
-            <div className="box-border flex flex-col items-start mb-[-3px] pb-0 pt-[9px] px-0 relative shrink-0 w-full">
-              <div className="flex flex-col font-normal justify-center leading-[14px] not-italic relative shrink-0 text-[#686868] text-[11.1px] tracking-[-0.24px] w-full whitespace-pre-wrap">
-                <p className="mb-0">{description}</p>
-              </div>
-            </div>
-          </Link>
-        )}
-      </div>
-    )
-  }
-  ```
-
-- [ ] **Step 3: Run build and lint**
-
-  ```bash
-  cd web && bun lint && bun run build
-  ```
-  Expected: no lint errors, no build errors.
-
-- [ ] **Step 4: Smoke-test visually**
-
-  Start dev server:
-  ```bash
-  cd web && bun dev
-  ```
-  - Visit `/work` — cards render with images and text, no hover tooltip (correct for `variant="work"`)
-  - Visit `/` (home) — hover over cards, tooltip appears following mouse cursor (correct for `variant="home"`)
-  - Visit a broll card — hover tooltip appears (correct for `variant="broll"`)
-
-- [ ] **Step 5: Commit**
-
-  ```bash
-  git add web/src/components/project-card.tsx web/src/components/project-card-hover.tsx
-  git commit -m "perf: split ProjectCard into server/client — work variant now server-rendered"
-  ```
+- [ ] **Step 1:** Add `abortSignal?: AbortSignal` to `streamTextWithModel` signature and forward it to `streamText`
+- [ ] **Step 2:** Add `AbortController` + 9s `setTimeout` wrapping the MiniMax `streamTextWithModel` call
+- [ ] **Step 3:** Call `clearTimeout` in both the success path and catch block
+- [ ] **Step 4:** Run `bun run type-check` — must pass
 
 ---
 
-## Review
+## Task 5: Re-ingest knowledge base with Voyage AI
 
-- [ ] Run full build one final time: `cd web && bun run build`
-- [ ] Confirm `/work`, `/`, `/blog`, `/blog/[slug]` all render correctly in production build (`bun run start`)
+This step is mandatory — Mistral and Voyage AI vectors are in different embedding spaces.
+
+- [ ] **Step 1:** Add `VOYAGE_API_KEY` to `.env.local`
+- [ ] **Step 2:** Run `bun ingest` from `web/` — clears Firestore and re-ingests all documents with Voyage AI `document` embeddings
+- [ ] **Step 3:** Verify ingestion completed with 0 errors
+
+---
+
+## Task 6: Verify end-to-end
+
+- [ ] **Step 1:** Start dev server: `bun dev` from `web/`
+- [ ] **Step 2:** Send a domain query ("tell me about Other Dev") — verify RAG retrieval returns relevant documents (check console logs)
+- [ ] **Step 3:** Send a general query — verify Groq responds within a few seconds (not 9s+)
+- [ ] **Step 4:** (Optional) Temporarily set an invalid `MINIMAX_API_KEY` to force fallback — verify Groq starts within ~9s
+- [ ] **Step 5:** Run `bun run type-check` one final time
+
+---
+
+## Deferred (not in this plan)
+
+- **Batch Redis reads:** Replace two sequential `redis.get()` calls with `redis.mget()` to save one round-trip. Low impact compared to above — defer to separate task.
+- **Voyage AI reranker:** `voyage-rerank-2` could further improve RAG quality post-retrieval. Out of scope here.
+
+---
+
+## Review checklist
+
+- [ ] No `any` types introduced without justification
+- [ ] `VOYAGE_API_KEY` documented in CLAUDE.md env vars section (or noted for the user)
+- [ ] `MISTRAL_API_KEY` still present (needed for OCR route)
+- [ ] Ingest script run and verified
+- [ ] Type check passes
