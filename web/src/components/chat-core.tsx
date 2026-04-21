@@ -301,11 +301,12 @@ function UserMessage({ message }: { message: UIMessage }) {
         </div>
       </div>
       <Image
-        src="/loom-avatar.svg"
+        src="/loom-avatar-64.webp"
         alt="User"
         width={32}
         height={32}
         className="h-7 w-7 flex-shrink-0 rounded-full sm:h-8 sm:w-8"
+        style={{ width: 'auto', height: 'auto' }}
       />
     </div>
   )
