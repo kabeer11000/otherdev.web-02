@@ -31,7 +31,7 @@ async function main() {
     const _progress = `[${i + 1}/${knowledgeBase.length}]`
 
     try {
-      const embedding = await generateEmbedding(doc.content)
+      const embedding = await generateEmbedding(doc.content, 'document')
 
       if (!embedding || embedding.length !== 1024) {
         throw new Error(`Invalid embedding dimension: ${embedding?.length || 0} (expected 1024)`)
