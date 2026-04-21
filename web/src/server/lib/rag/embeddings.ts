@@ -1,9 +1,13 @@
-import { VoyageAIClient } from 'voyageai'
+import { createVoyage } from 'voyage-ai-provider'
+import { embedMany } from 'ai'
 
-const MAX_RETRIES = 2
-const INITIAL_DELAY_MS = 300
+const voyage = createVoyage({
+  apiKey: process.env.VOYAGE_API_KEY,
+})
 
-const client = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY })
+const embeddingModel = voyage.textEmbeddingModel('voyage-4-lite', {
+  inputType: 'document',
+})
 
 // Simple memo cache for embeddings — works in all JS environments
 const embeddingCache = new Map<string, Promise<number[]>>()
@@ -31,65 +35,25 @@ async function doGenerateEmbedding(
   text: string,
   inputType: 'query' | 'document' = 'query'
 ): Promise<number[]> {
-  let lastError: Error | undefined
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const response = await client.embed({
-        model: 'voyage-4-lite',
-        input: [text],
-        inputType,
-      })
-
-      if (!response.data?.[0]) {
-        throw new Error('Voyage AI returned no embedding data')
-      }
-      return response.data[0].embedding as number[]
-    } catch (error) {
-      lastError = error as Error
-      if (attempt < MAX_RETRIES) {
-        const waitMs = INITIAL_DELAY_MS * 2 ** attempt + Math.random() * 100
-        await new Promise(resolve => setTimeout(resolve, waitMs))
-      }
-    }
-  }
-
-  throw new Error('Failed to generate embedding', { cause: lastError })
+  const model = voyage.textEmbeddingModel('voyage-4-lite', { inputType })
+  const { embeddings } = await embedMany({
+    model,
+    values: [text],
+  })
+  return embeddings[0]
 }
 
 // Batch embedding — sends multiple texts in one API call to reduce RPM usage
-// Stays under voyage-4-lite rate limits: 10K TPM, 3 RPM
-// At ~200-400 tokens/doc, batching 10 docs ≈ 2-4K tokens per call (well under 10K TPM)
 export async function generateEmbeddingBatch(
   texts: string[],
   inputType: 'query' | 'document' = 'document'
 ): Promise<number[][]> {
   if (texts.length === 0) return []
 
-  let lastError: Error | undefined
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const response = await client.embed({
-        model: 'voyage-4-lite',
-        input: texts,
-        inputType,
-      })
-
-      if (!response.data || response.data.length !== texts.length) {
-        throw new Error(
-          `Voyage AI returned ${response.data?.length ?? 0} embeddings, expected ${texts.length}`
-        )
-      }
-      return response.data.map(d => d.embedding as number[])
-    } catch (error) {
-      lastError = error as Error
-      if (attempt < MAX_RETRIES) {
-        const waitMs = INITIAL_DELAY_MS * 2 ** attempt + Math.random() * 100
-        await new Promise(resolve => setTimeout(resolve, waitMs))
-      }
-    }
-  }
-
-  throw new Error('Failed to generate batch embedding', { cause: lastError })
+  const model = voyage.textEmbeddingModel('voyage-4-lite', { inputType })
+  const { embeddings } = await embedMany({
+    model,
+    values: texts,
+  })
+  return embeddings
 }
