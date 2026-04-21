@@ -832,10 +832,10 @@ export function ChatCore({
 
             <div className="absolute bottom-0 w-screen h-30 bg-gradient-to-t from-background to-transparent pointer-events-none" />
             <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-4xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-12">
-              {messages.map(message =>
+              {messages.map((message, index) =>
                 message.role === 'user' ? (
                   <UserMessage key={message.id} message={message} />
-                ) : status === 'streaming' || status === 'submitted' ? null : (
+                ) : status === 'streaming' && index === messages.length - 1 ? null : (
                   <AssistantMessage
                     key={message.id}
                     message={message}
