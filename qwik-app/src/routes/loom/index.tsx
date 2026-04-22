@@ -2,6 +2,7 @@ import { component$, useSignal, $, useVisibleTask$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { Navigation } from "~/components/navigation";
 import { ChatWidget } from "~/components/chat-widget";
+import { MarkdownRenderer } from "~/components/markdown-renderer";
 import { SUGGESTED_PROMPTS } from "~/lib/constants";
 
 interface Message {
@@ -186,14 +187,18 @@ export default component$(() => {
                     : "bg-stone-100 text-stone-700 rounded-tl-none"
                 }`}
               >
-                <p class="font-[var(--twk-lausanne)] text-sm whitespace-pre-wrap">
-                  {msg.content}
-                  {i === messages.value.length - 1 &&
-                    isLoading.value &&
-                    msg.role === "assistant" && (
-                      <span class="inline-block ml-1 animate-pulse">...</span>
-                    )}
-                </p>
+                {msg.role === "assistant" ? (
+                  <MarkdownRenderer content={msg.content} />
+                ) : (
+                  <p class="font-[var(--twk-lausanne)] text-sm whitespace-pre-wrap">
+                    {msg.content}
+                  </p>
+                )}
+                {i === messages.value.length - 1 &&
+                  isLoading.value &&
+                  msg.role === "assistant" && (
+                    <span class="inline-block ml-1 animate-pulse">...</span>
+                  )}
               </div>
             </div>
           ))}
