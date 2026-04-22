@@ -184,7 +184,8 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-@utility scrollbar-hide::-webkit-scrollbar {
+
+.scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
