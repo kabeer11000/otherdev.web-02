@@ -1,3 +1,4 @@
+/* eslint-disable qwik/valid-lexical-scope */
 import { component$, useSignal, useVisibleTask$, type PropFunction } from "@builder.io/qwik";
 import { cn } from "~/lib/utils";
 

@@ -17,7 +17,6 @@ import { SUGGESTED_PROMPTS } from "~/lib/constants";
 import { getGreeting } from "~/lib/greetings";
 import { VoiceRecorder } from "~/lib/voice-recorder";
 import { parseSSEStream, type SSEEvent } from "~/lib/sse";
-import { processAttachment } from "~/lib/attachments";
 
 interface WidgetMessage {
   id: string;
@@ -232,37 +231,6 @@ export default component$(() => {
     ];
 
     try {
-      // Process attachments if any
-      let processedAttachments: Array<{
-        type: "file";
-        mediaType: string;
-        url: string;
-        filename: string;
-      }> = [];
-
-      if (userMessage.attachments && userMessage.attachments.length > 0) {
-        processedAttachments = await Promise.all(
-          userMessage.attachments.map(processAttachment)
-        );
-      }
-
-      const body = {
-        id: chatIdRef.value,
-        message: {
-          role: "user",
-          parts: [
-            ...processedAttachments.map((att) => ({
-              type: "file" as const,
-              data: att.url,
-              mediaType: att.mediaType,
-              filename: att.filename,
-            })),
-            { type: "text" as const, text: text },
-          ],
-        },
-        supportsArtifacts: true,
-      };
-
       const response = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
