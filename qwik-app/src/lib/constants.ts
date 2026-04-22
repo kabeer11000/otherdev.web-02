@@ -1,7 +1,7 @@
 /**
  * Site configuration constants
  */
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://otherdev.com'
+export const SITE_URL = 'https://otherdev.com'
 
 /**
  * Generate absolute URL from path
