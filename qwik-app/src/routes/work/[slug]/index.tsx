@@ -16,7 +16,7 @@ export default component$(() => {
 
   if (!project) {
     return (
-      <main class="min-h-screen bg-white">
+      <main class="container -mx-auto px-3 pr-3 md:pr-[8%] lg:pr-[15%] pt-[60px] pb-12 bg-white min-h-screen">
         <Navigation />
         <section class="px-3 py-6">
           <p class="font-[var(--twk-lausanne)] text-[11px] text-stone-500">
@@ -30,7 +30,7 @@ export default component$(() => {
   }
 
   return (
-    <main class="min-h-screen bg-white">
+    <main class="container -mx-auto px-3 pr-3 md:pr-[8%] lg:pr-[15%] pt-[60px] pb-12 bg-white min-h-screen">
       <Navigation />
 
       {/* Hero Section */}
