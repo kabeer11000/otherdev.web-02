@@ -1,6 +1,7 @@
 import { component$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { routeLoader$, Link } from "@builder.io/qwik-city";
+import sanitizeHtml from "sanitize-html";
 import { Navigation } from "~/components/navigation";
 import { Footer } from "~/components/footer";
 import { ChatWidget } from "~/components/chat-widget";
@@ -89,7 +90,7 @@ export default component$(() => {
 
         <div
           class="font-[var(--twk-lausanne)] text-base text-stone-700 leading-relaxed"
-          dangerouslySetInnerHTML={post.value.content}
+          dangerouslySetInnerHTML={sanitizeHtml(post.value.content)}
         />
 
         <footer class="mt-12 pt-8 border-t border-stone-200">

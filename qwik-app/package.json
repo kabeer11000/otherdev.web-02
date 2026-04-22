@@ -32,6 +32,8 @@
     "@qwikest/icons": "0.0.13",
     "@tailwindcss/vite": "^4.1.4",
     "@types/node": "20.19.0",
+    "@types/nodemailer": "^8.0.0",
+    "@types/sanitize-html": "^2.16.1",
     "class-variance-authority": "0.7.1",
     "eslint": "9.32.0",
     "eslint-plugin-qwik": "^1.19.2",
@@ -49,5 +51,15 @@
     "vite": "7.3.1",
     "vite-tsconfig-paths": "^4.2.1"
   },
-  "nx": {}
+  "nx": {},
+  "dependencies": {
+    "@ai-sdk/groq": "^3.0.35",
+    "@ai-sdk/mistral": "^3.0.30",
+    "@ai-sdk/openai": "^3.0.53",
+    "@od-canvas/sdk": "^1.0.0",
+    "ai": "^6.0.168",
+    "googleapis": "^171.4.0",
+    "nodemailer": "^8.0.5",
+    "sanitize-html": "^2.17.3"
+  }
 }
