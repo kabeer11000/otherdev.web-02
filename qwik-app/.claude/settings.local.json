@@ -20,7 +20,8 @@
       "Bash(pkill -9 -f \"vite\")",
       "Bash(pkill -9 -f \"node\")",
       "Bash(pkill -9 -f \"bun\")",
-      "Bash(lsof -ti:5173,5174,5175,5176,5177,5178)"
+      "Bash(lsof -ti:5173,5174,5175,5176,5177,5178)",
+      "Skill(ralph-loop:ralph-loop)"
     ]
   }
 }

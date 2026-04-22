@@ -4,14 +4,22 @@ import { Link } from "@builder.io/qwik-city";
 interface ProjectCardProps {
   title: string;
   href?: string;
+  image?: string;
 }
 
-export const ProjectCard = component$<ProjectCardProps>(({ title, href }) => {
+export const ProjectCard = component$<ProjectCardProps>(({ title, href, image }) => {
   const cardContent = (
-    <div class="w-[255px] h-[255px] bg-stone-200 rounded-[5px] p-4 flex items-start">
-      <span class="font-[var(--twk-lausanne)] text-[8px] text-stone-400 tracking-tight">
-        {title}
-      </span>
+    <div class="w-[255px] h-[255px] bg-stone-200 rounded-[5px] overflow-hidden">
+      {image ? (
+        <img
+          src={image}
+          alt={title}
+          class="w-full h-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div class="w-full h-full" />
+      )}
     </div>
   );
 
