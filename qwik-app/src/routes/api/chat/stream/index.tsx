@@ -3,8 +3,6 @@ import { streamText } from 'ai'
 import type { RequestHandler } from '@builder.io/qwik-city'
 import { knowledgeBase } from '~/lib/knowledge-base'
 
-const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
-
 function buildRAGContext(query: string): string {
   const queryLower = query.toLowerCase()
   const relevantDocs = knowledgeBase.filter(doc => {
@@ -29,6 +27,14 @@ function buildRAGContext(query: string): string {
 }
 
 export const onPost: RequestHandler = async (requestEvent) => {
+  const groqApiKey = requestEvent.env.get('GROQ_API_KEY')
+  if (!groqApiKey) {
+    requestEvent.json(500, { error: 'GROQ_API_KEY not configured' })
+    return
+  }
+
+  const groq = createGroq({ apiKey: groqApiKey })
+
   const { messages } = await requestEvent.request.json()
 
   const lastUserMessage = messages.length > 0
@@ -51,12 +57,10 @@ export const onPost: RequestHandler = async (requestEvent) => {
     messages: messagesWithContext,
   })
 
-  // Set headers before getting writable stream
   requestEvent.headers.set('Content-Type', 'text/plain; charset=utf-8')
   requestEvent.headers.set('Cache-Control', 'no-cache')
   requestEvent.headers.set('Connection', 'keep-alive')
 
-  // Get the text stream from AI SDK result
   const textStream = result.textStream
   const encoder = new TextEncoder()
 

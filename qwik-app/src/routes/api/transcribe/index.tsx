@@ -3,9 +3,15 @@ import { experimental_transcribe as transcribe } from 'ai'
 
 import type { RequestHandler } from '@builder.io/qwik-city'
 
-const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
-
 export const onPost: RequestHandler = async (requestEvent) => {
+  const groqApiKey = requestEvent.env.get('GROQ_API_KEY')
+  if (!groqApiKey) {
+    requestEvent.json(500, { error: 'GROQ_API_KEY not configured' })
+    return
+  }
+
+  const groq = createGroq({ apiKey: groqApiKey })
+
   try {
     const formData = await requestEvent.request.formData()
     const audioFile = formData.get('audio') as File
