@@ -652,7 +652,8 @@ export async function POST(request: Request): Promise<Response> {
           tools: ToolSet = {},
           abortSignal?: AbortSignal,
           // biome-ignore lint/suspicious/noExplicitAny: AI SDK repair fn signature
-          repairFn?: (args: any) => Promise<ToolCallArg | null>
+          repairFn?: (args: any) => Promise<ToolCallArg | null>,
+          maxOutputTokens = 1024
         ) => {
           console.log(`[LLM] Using ${label} (model: ${model})`)
           return streamText({
@@ -660,7 +661,7 @@ export async function POST(request: Request): Promise<Response> {
             system: selectedPrompt,
             messages: modelMessages,
             temperature: 0.7,
-            maxOutputTokens: 1024,
+            maxOutputTokens,
             stopWhen: stepCountIs(3),
             toolChoice: 'auto',
             // biome-ignore lint/suspicious/noExplicitAny: AI SDK repair fn signature mismatch
@@ -677,7 +678,7 @@ export async function POST(request: Request): Promise<Response> {
         // Keeping merge+consume together ensures rate-limit errors (thrown on first consume)
         // are catchable in the same try-catch that initiated the streamText call.
         const runStream = async (streamResult: ReturnType<typeof streamText>) => {
-          writer.merge(streamResult.toUIMessageStream())
+          writer.merge(streamResult.toUIMessageStream({ onError: () => '' }))
           await streamResult.consumeStream()
           const fullText = await streamResult.text
           const { cleanText, suggestion } = extractSuggestion(fullText)
@@ -735,7 +736,7 @@ export async function POST(request: Request): Promise<Response> {
             )
             console.log('[LLM] Using MiniMax-M2.7 with browsing (fallback)...')
             await runStream(
-              await streamTextWithModel(minimaxAI, MINIMAX_CHAT_MODEL, 'MiniMax-M2.7', minimaxTools)
+              await streamTextWithModel(minimaxAI, MINIMAX_CHAT_MODEL, 'MiniMax-M2.7', minimaxTools, undefined, undefined, 4096)
             )
           }
         }
