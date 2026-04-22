@@ -6,6 +6,7 @@ import {
 } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { animate } from "motion";
+import ImgOtherdevChatLogo32 from "~/media/otherdev-chat-logo-32.webp?jsx";
 
 import { Navigation } from "~/components/navigation";
 import { UserMessage } from "~/components/user-message";
@@ -225,13 +226,14 @@ export default component$(() => {
       let currentReasoning = "";
 
       await parseSSEStream(reader, (event: SSEEvent) => {
-        // AI SDK UIMessageStream format
-        if (event.type === "text-delta" && typeof event.delta === "string") {
-          assistantContent += event.delta;
-        } else if (event.type === "reasoning-delta" && typeof event.delta === "string") {
-          currentReasoning += event.delta;
-        } else if (event.type === "data-suggestion" && event.data && typeof (event.data as { suggestion?: string }).suggestion === "string") {
-          suggestion.value = (event.data as { suggestion: string }).suggestion;
+        // AI SDK v6 text-delta format: { type: "text-delta", id: "txt-0", delta: "text" }
+        const delta = (event as any).delta;
+        if (event.type === "text-delta" && typeof delta === "string") {
+          assistantContent += delta;
+        } else if (event.type === "reasoning-delta" && typeof delta === "string") {
+          currentReasoning += delta;
+        } else if (event.type === "data-suggestion" && (event.data as any)?.suggestion) {
+          suggestion.value = (event.data as any).suggestion;
         }
 
         // Update the last message
@@ -271,8 +273,7 @@ export default component$(() => {
       <div class="w-full max-w-2xl space-y-6 sm:space-y-8">
         <div class="space-y-3 text-center sm:space-y-4">
           <div class="flex justify-center">
-            <img
-              src="/otherdev-chat-logo-32.webp"
+            <ImgOtherdevChatLogo32
               alt="Other Dev Loom"
               width={32}
               height={32}
@@ -338,8 +339,7 @@ export default component$(() => {
           {/* Loading indicator */}
           {isLoading.value && messages.value.length > 0 && (
             <div class="flex items-center gap-2 sm:gap-3">
-              <img
-                src="/otherdev-chat-logo-32.webp"
+              <ImgOtherdevChatLogo32
                 alt="Other Dev Loom"
                 width={32}
                 height={32}

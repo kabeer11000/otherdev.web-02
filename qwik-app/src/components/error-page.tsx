@@ -29,6 +29,8 @@ const ErrorPage = component$(() => {
           src="https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/error/image-1.png"
           alt="404 illustration"
           class="absolute top-1/2 left-1/2 h-[clamp(200px,40vw,406px)] -translate-x-1/2 -translate-y-1/2 lg:h-[clamp(260px,25vw,406px)]"
+          width={406}
+          height={406}
         />
       </div>
     </div>

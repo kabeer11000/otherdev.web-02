@@ -1,6 +1,7 @@
 import { component$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { Link, useLocation } from "@builder.io/qwik-city";
+import { LuDownload } from "@qwikest/icons/lucide";
 import { Navigation } from "~/components/navigation";
 import { Footer } from "~/components/footer";
 import { ChatWidget } from "~/components/chat-widget";
@@ -59,9 +60,7 @@ export default component$(() => {
               download
               class="inline-flex bg-neutral-200 hover:bg-neutral-300 transition-colors rounded-[5px] h-[32px] px-[16px] items-center mb-[64px] gap-2"
             >
-              <svg class="w-[14px] h-[14px] text-[#686868]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
+              <LuDownload class="w-[14px] h-[14px] text-[#686868]" />
               <span class="text-[13px] leading-[16px] tracking-[-0.24px] font-normal text-[#686868]">
                 Download Full Issue
               </span>
@@ -85,6 +84,8 @@ export default component$(() => {
                     alt={`${project.title} - Image ${index + 1}`}
                     class="w-full h-auto object-contain rounded-[5px] px-6"
                     loading={index === 0 ? "eager" : "lazy"}
+                    width={800}
+                    height={800}
                   />
                 </a>
               ))}

@@ -43,6 +43,8 @@ export const ChatWidget = component$(() => {
           alt="Other Dev AI"
           class="w-8 h-8 object-contain"
           loading="eager"
+          width={32}
+          height={32}
         />
       </button>
     </div>

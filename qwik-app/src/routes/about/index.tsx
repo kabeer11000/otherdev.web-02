@@ -1,5 +1,7 @@
 import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
+import ImgAboutTeamCombinedDesktop from "~/media/images/about-page/about-team-combined-desktop.webp?jsx";
+import ImgAboutTeamCombined from "~/media/images/about-page/about-team-combined.webp?jsx";
 import { Navigation } from "~/components/navigation";
 import { Footer } from "~/components/footer";
 import { ChatWidget } from "~/components/chat-widget";
@@ -59,13 +61,11 @@ export default component$(() => {
         <div ref={heroRef} class="grid grid-cols-12 gap-[12px]">
           <div class="col-span-12 sm:col-span-10">
             <div class="relative w-full aspect-[9/4] rounded-[5px] overflow-hidden">
-              <img
-                src="/images/about-page/about-team-combined-desktop.webp"
+              <ImgAboutTeamCombinedDesktop
                 alt="The members of otherdev"
                 class="hidden sm:block w-full h-full object-cover object-center bg-stone-200"
               />
-              <img
-                src="/images/about-page/about-team-combined.webp"
+              <ImgAboutTeamCombined
                 alt="The members of otherdev"
                 class="sm:hidden w-full h-full object-cover object-center bg-stone-200"
               />

@@ -4,6 +4,7 @@ import { CopyButton } from "~/components/copy-button";
 import { ReasoningCollapsible } from "~/components/reasoning-collapsible";
 import { cleanSuggestionMarkers } from "~/lib/utils";
 import { cn } from "~/lib/utils";
+import ImgOtherdevChatLogo32 from "~/media/otherdev-chat-logo-32.webp?jsx";
 
 interface ArtifactToolCall {
   toolCallId: string;
@@ -30,8 +31,7 @@ export const AssistantMessage = component$<AssistantMessageProps>((props) => {
 
   return (
     <div class="flex justify-start items-start gap-2 mt-12">
-      <img
-        src="/otherdev-chat-logo-32.webp"
+      <ImgOtherdevChatLogo32
         alt="OtherDev Loom"
         width={32}
         height={32}

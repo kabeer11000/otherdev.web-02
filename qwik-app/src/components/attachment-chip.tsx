@@ -63,6 +63,8 @@ export const AttachmentChip = component$<AttachmentChipProps>((props) => {
             src={previewUrl.value}
             alt={fileName}
             class="h-full w-full object-contain"
+            width={48}
+            height={48}
           />
         </div>
       ) : (

@@ -1,5 +1,6 @@
 import { component$, useSignal, useVisibleTask$, $, type PropFunction } from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
+import ImgOtherdevChatLogo32 from "~/media/otherdev-chat-logo-32.webp?jsx";
 
 interface NavigationProps {
   variant?: "default" | "ai";
@@ -90,8 +91,7 @@ export const Navigation = component$<NavigationProps>((props) => {
                 href="/"
                 class="flex items-center bg-transparent gap-1.5 rounded-full"
               >
-                <img
-                  src="/otherdev-chat-logo-32.webp"
+                <ImgOtherdevChatLogo32
                   alt="Other Dev"
                   width={16}
                   height={16}
@@ -236,8 +236,7 @@ export const Navigation = component$<NavigationProps>((props) => {
                   other dev
                 </button>
               </div>
-              <img
-                src="/otherdev-chat-logo-32.webp"
+              <ImgOtherdevChatLogo32
                 alt="Other Dev"
                 width={16}
                 height={16}

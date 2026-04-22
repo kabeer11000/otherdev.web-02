@@ -1,5 +1,6 @@
 import { component$ } from "@builder.io/qwik";
 import { AttachmentChip } from "~/components/attachment-chip";
+import ImgLoomAvatar64 from "~/media/loom-avatar-64.webp?jsx";
 
 interface UserMessageProps {
   content: string;
@@ -25,8 +26,7 @@ export const UserMessage = component$<UserMessageProps>((props) => {
           )}
         </div>
       </div>
-      <img
-        src="/loom-avatar-64.webp"
+      <ImgLoomAvatar64
         alt="User"
         width={32}
         height={32}

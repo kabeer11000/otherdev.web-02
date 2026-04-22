@@ -1,15 +1,58 @@
 import { component$, useSignal, $, useVisibleTask$ } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import { animate } from "motion";
+import { cva, type VariantProps } from "class-variance-authority";
+import { twMerge } from "tailwind-merge";
 
-interface ProjectCardProps {
+const cardVariants = cva(
+  "relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center bg-stone-200",
+  {
+    variants: {
+      variant: {
+        home: "-hover:shadow-lg group-hover:shadow-lg",
+        work: "",
+        broll: "group-hover:shadow-lg",
+      },
+    },
+    defaultVariants: {
+      variant: "home",
+    },
+  }
+);
+
+const imageContainerVariants = cva("relative w-full h-full bg-stone-200", {
+  variants: {
+    variant: {
+      home: "px-[24px] py-[36px]",
+      work: "px-[50px] py-[60px]",
+      broll: "",
+    },
+  },
+  defaultVariants: {
+    variant: "home",
+  },
+});
+
+const imageVariants = cva("transition-transform duration-300", {
+  variants: {
+    variant: {
+      home: "object-contain group-hover:scale-[1.02] p-6",
+      work: "object-contain group-hover:scale-[0.99] p-6",
+      broll: "object-cover",
+    },
+  },
+  defaultVariants: {
+    variant: "home",
+  },
+});
+
+interface ProjectCardProps extends VariantProps<typeof cardVariants> {
   title: string;
   slug?: string;
   image?: string;
   description?: string;
   showText?: boolean;
   priority?: boolean;
-  variant?: "home" | "work" | "broll";
 }
 
 export const ProjectCard = component$<ProjectCardProps>(({
@@ -26,7 +69,6 @@ export const ProjectCard = component$<ProjectCardProps>(({
 
   const useHover = variant === "home" || variant === "broll";
 
-  // Animate tooltip with spring effect on hover
   useVisibleTask$(({ track }) => {
     const hovered = track(() => isHovered.value);
     const tooltip = document.querySelector(".hover-tooltip") as HTMLElement;
@@ -51,29 +93,18 @@ export const ProjectCard = component$<ProjectCardProps>(({
     isHovered.value = false;
   });
 
+  const cardClasses = twMerge(cardVariants({ variant }));
+  const containerClasses = imageContainerVariants({ variant });
+  const imgClasses = imageVariants({ variant });
+
   const cardContent = (
-    <div class={[
-      "relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center bg-stone-200",
-      variant === "home" ? "-hover:shadow-lg group-hover:shadow-lg" : "",
-      variant === "broll" ? "group-hover:shadow-lg" : "",
-    ]}>
-      <div
-        class={[
-          "relative w-full h-full bg-stone-200",
-          variant === "home" ? "px-[24px] py-[36px]" : "",
-          variant === "work" ? "px-[50px] py-[60px]" : "",
-        ]}
-      >
+    <div class={cardClasses}>
+      <div class={containerClasses}>
         {image ? (
           <img
             src={image}
             alt={title}
-            class={[
-              "transition-transform duration-300",
-              variant === "home" ? "object-contain group-hover:scale-[1.02] p-6" : "",
-              variant === "work" ? "object-contain group-hover:scale-[0.99] p-6" : "",
-              variant === "broll" ? "object-cover" : "",
-            ]}
+            class={imgClasses}
             loading={priority ? "eager" : "lazy"}
           />
         ) : (
