@@ -1,5 +1,6 @@
-import { component$, useSignal, useVisibleTask$, $, type PropFunction } from "@builder.io/qwik";
+import { component$, useSignal, useVisibleTask$, $, useRef, type PropFunction } from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
+import { animate, stagger } from "motion";
 
 interface NavigationProps {
   variant?: "default" | "ai";
@@ -13,6 +14,7 @@ export const Navigation = component$<NavigationProps>((props) => {
   const location = useLocation();
   const isOpen = useSignal(false);
   const isAIVariant = variant === "ai";
+  const mobileMenuRef = useRef<HTMLDivElement>();
 
   // Restore mobile menu state from sessionStorage on mount
   useVisibleTask$(() => {
@@ -26,6 +28,26 @@ export const Navigation = component$<NavigationProps>((props) => {
   useVisibleTask$(({ track }) => {
     track(() => isOpen.value);
     sessionStorage.setItem("mobileMenuOpen", isOpen.value.toString());
+  });
+
+  // Animate mobile nav items with stagger when menu opens
+  useVisibleTask$(({ track }) => {
+    const open = track(() => isOpen.value);
+
+    if (open && mobileMenuRef.value) {
+      const items = mobileMenuRef.value.querySelectorAll(".nav-item-animated");
+      if (items.length > 0) {
+        animate(
+          items,
+          { opacity: [0, 1], x: [-10, 0] },
+          {
+            duration: 0.3,
+            delay: stagger(0.1),
+            easing: "easeOut",
+          }
+        );
+      }
+    }
   });
 
   const handleToggle = $(() => {
@@ -160,7 +182,7 @@ export const Navigation = component$<NavigationProps>((props) => {
         </button>
 
         {isOpen.value && (
-          <div class="flex items-center gap-1.5 flex-1 nav-slide-in">
+          <div ref={mobileMenuRef} class="flex items-center gap-1.5 flex-1 nav-slide-in">
             {navLinks.map((link, index) => (
               <Link
                 key={link.href}

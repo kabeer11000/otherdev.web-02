@@ -31,6 +31,25 @@ export default component$(() => {
     }
   });
 
+  useVisibleTask$(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    const revealElements = document.querySelectorAll(".reveal-on-scroll, .client-item");
+    revealElements.forEach((el) => observer.observe(el));
+
+    cleanup(() => observer.disconnect());
+  });
+
   return (
     <main class="min-h-screen bg-neutral-50">
       <Navigation />
@@ -55,7 +74,7 @@ export default component$(() => {
         </div>
 
         {/* About Section */}
-        <div class="mt-[30px] grid grid-cols-8 sm:grid-cols-12 gap-[6px] sm:gap-[12px]">
+        <div class="mt-[30px] grid grid-cols-8 sm:grid-cols-12 gap-[6px] sm:gap-[12px] reveal-on-scroll">
           <div class="col-span-7 sm:col-span-8 md:col-span-7 lg:col-span-6 xl:col-span-5">
             <p class="text-[#686868] text-[11px] font-normal leading-[14px] tracking-[-0.24px]">
               About
@@ -71,7 +90,7 @@ export default component$(() => {
         </div>
 
         {/* Clients Section */}
-        <div class="mt-[30px] grid grid-cols-12 gap-[12px]">
+        <div class="mt-[30px] grid grid-cols-12 gap-[12px] reveal-on-scroll">
           <div class="col-span-12 sm:col-span-8 md:col-span-7 lg:col-span-6">
             <p class="text-[#686868] text-[11px] font-normal leading-[14px] tracking-[-0.24px]">
               Clients
@@ -82,7 +101,7 @@ export default component$(() => {
                 row.map((client, colIndex) => (
                   <p
                     key={`desktop-${rowIndex}-${colIndex}`}
-                    class="hidden sm:block text-black text-[11px] font-normal leading-[14px] tracking-[-0.24px]"
+                    class="hidden sm:block text-black text-[11px] font-normal leading-[14px] tracking-[-0.24px] client-item"
                   >
                     {client}
                   </p>
@@ -93,7 +112,7 @@ export default component$(() => {
                 row.map((client, colIndex) => (
                   <p
                     key={`mobile-${rowIndex}-${colIndex}`}
-                    class="sm:hidden text-black text-[11px] font-normal leading-[14px] tracking-[-0.24px]"
+                    class="sm:hidden text-black text-[11px] font-normal leading-[14px] tracking-[-0.24px] client-item"
                   >
                     {client}
                   </p>

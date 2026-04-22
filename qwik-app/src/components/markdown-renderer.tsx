@@ -1,7 +1,5 @@
 import { component$ } from "@builder.io/qwik";
 import { marked } from "marked";
-import remarkGfm from "remark-gfm";
-import remarkBreaks from "remark-breaks";
 
 // Configure marked with plugins
 marked.use({
