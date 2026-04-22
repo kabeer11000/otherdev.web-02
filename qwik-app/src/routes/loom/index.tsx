@@ -176,10 +176,6 @@ export default component$(() => {
     attachments.value = attachments.value.filter((_, i) => i !== index);
   });
 
-  const handleSuggestionSelect = $((prompt: string) => {
-    handleSubmit(prompt);
-  });
-
   const handleSubmit = $(async (promptText?: string) => {
     const text = promptText || inputValue.value.trim();
     if (!text || isLoading.value) return;
@@ -263,6 +259,10 @@ export default component$(() => {
     } finally {
       isLoading.value = false;
     }
+  });
+
+  const handleSuggestionSelect = $((prompt: string) => {
+    handleSubmit(prompt);
   });
 
   const greetingEl = (
