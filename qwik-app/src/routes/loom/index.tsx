@@ -54,22 +54,10 @@ export default component$(() => {
 
   const chatIdRef = useSignal<string>("");
 
-  // Load messages from localStorage on mount
+  // Initialize on mount (chat resets on reload per user request)
   useVisibleTask$(() => {
-    const stored = localStorage.getItem("loom-messages");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        // Convert date strings back to Date objects
-        messages.value = parsed.map((m: WidgetMessage & { createdAt?: string }) => ({
-          ...m,
-          createdAt: m.createdAt ? new Date(m.createdAt) : new Date(),
-        }));
-      } catch {
-        // Ignore
-      }
-    }
-
+    // Don't load messages from localStorage - always start fresh
+    // Keep chat ID for continuity within session
     const storedChatId = localStorage.getItem("loom-chat-id");
     chatIdRef.value = storedChatId || crypto.randomUUID();
     localStorage.setItem("loom-chat-id", chatIdRef.value);
@@ -88,14 +76,6 @@ export default component$(() => {
     const el = document.querySelector(".greeting-text") as HTMLElement | null;
     if (el) {
       animate(el as HTMLElement, { opacity: [0, 1], y: [8, 0] }, { duration: 0.4, ease: "easeOut" });
-    }
-  });
-
-  // Persist messages to localStorage
-  useVisibleTask$(({ track }) => {
-    track(() => messages.value);
-    if (messages.value.length > 0) {
-      localStorage.setItem("loom-messages", JSON.stringify(messages.value));
     }
   });
 
