@@ -29,7 +29,7 @@ export const Footer = component$(() => {
               href={link.href}
               target="_blank"
               rel="noopener noreferrer"
-              class="h-[21px] px-1.5 bg-stone-200 rounded-md flex items-center justify-center text-[#686868] text-[10px] font-[var(--twk-lausanne)] font-normal leading-[14px] tracking-[-0.24px] hover:bg-stone-300 transition-colors"
+              class="social-link h-[21px] px-1.5 bg-stone-200 rounded-md flex items-center justify-center text-[#686868] text-[10px] font-[var(--twk-lausanne)] font-normal leading-[14px] tracking-[-0.24px] hover:bg-stone-300 transition-colors"
             >
               {link.label}
             </Link>

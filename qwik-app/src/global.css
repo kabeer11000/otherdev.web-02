@@ -297,6 +297,16 @@
 .client-item:nth-child(4) { transition-delay: 0.20s; }
 .client-item:nth-child(5) { transition-delay: 0.25s; }
 .client-item:nth-child(6) { transition-delay: 0.30s; }
+
+/* Footer social link hover micro-interactions */
+.social-link {
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.social-link:hover {
+  background-color: var(--color-stone-300, oklch(0.9 0 0));
+  transform: scale(1.05);
+}
 .client-item:nth-child(7) { transition-delay: 0.35s; }
 .client-item:nth-child(8) { transition-delay: 0.40s; }
 .client-item:nth-child(9) { transition-delay: 0.45s; }
