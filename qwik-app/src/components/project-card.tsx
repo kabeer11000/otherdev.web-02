@@ -29,17 +29,14 @@ export const ProjectCard = component$<ProjectCardProps>(({
   // Animate tooltip with spring effect on hover
   useVisibleTask$(({ track }) => {
     const hovered = track(() => isHovered.value);
-
-    if (!hovered) return;
-
     const tooltip = document.querySelector(".hover-tooltip") as HTMLElement;
-    if (tooltip) {
-      animate(
-        tooltip,
-        { opacity: [0, 1], scale: [0.8, 1] },
-        { type: "spring", stiffness: 400, damping: 25 }
-      );
+    if (!tooltip) return;
+
+    if (!hovered) {
+      animate(tooltip, { opacity: 0, scale: 0.8 }, { duration: 0.15 });
+      return;
     }
+    animate(tooltip, { opacity: [0, 1], scale: [0.8, 1] }, { type: "spring", stiffness: 400, damping: 25 });
   });
 
   const handleMouseMove = $((e: MouseEvent) => {
