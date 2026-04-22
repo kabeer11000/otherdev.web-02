@@ -1,4 +1,4 @@
-import { component$ } from "@builder.io/qwik";
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { Navigation } from "~/components/navigation";
 import { Footer } from "~/components/footer";
@@ -23,13 +23,21 @@ const clientsMobile = [
 ];
 
 export default component$(() => {
+  const heroRef = useSignal<HTMLDivElement>();
+
+  useVisibleTask$(() => {
+    if (heroRef.value) {
+      heroRef.value.classList.add("hero-container");
+    }
+  });
+
   return (
     <main class="min-h-screen bg-neutral-50">
       <Navigation />
 
       <div class="container mx-auto px-3 pt-[72px] pb-12 max-w-[1440px]">
         {/* Hero Image - Responsive grid layout matching Next.js */}
-        <div class="grid grid-cols-12 gap-[12px]">
+        <div ref={heroRef} class="grid grid-cols-12 gap-[12px]">
           <div class="col-span-12 sm:col-span-10">
             <div class="relative w-full aspect-[9/4] rounded-[5px] overflow-hidden">
               <img

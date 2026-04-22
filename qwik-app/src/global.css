@@ -246,6 +246,19 @@
 .nav-item-4 { animation-delay: 0.26s; }
 .nav-item-5 { animation-delay: 0.32s; }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.hero-container {
+  animation: fadeIn 0.5s ease-out 0.1s forwards;
+}
+
 .icon-x {
   animation: rotateIn 0.2s ease-out forwards;
 }

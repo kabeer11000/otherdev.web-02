@@ -1,5 +1,6 @@
-import { component$, useSignal, $ } from "@builder.io/qwik";
+import { component$, useSignal, $, useVisibleTask$ } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
+import { animate } from "motion";
 
 interface ProjectCardProps {
   title: string;
@@ -22,8 +23,22 @@ export const ProjectCard = component$<ProjectCardProps>(({
 }) => {
   const isHovered = useSignal(false);
   const mousePosition = useSignal({ x: 0, y: 0 });
+  const tooltipRef = useSignal<HTMLDivElement>();
 
   const useHover = variant === "home" || variant === "broll";
+
+  // Animate tooltip with spring effect on hover
+  useVisibleTask$(({ track }) => {
+    const hovered = track(() => isHovered.value);
+
+    if (hovered && tooltipRef.value) {
+      animate(
+        tooltipRef.value,
+        { opacity: [0, 1], scale: [0.8, 1] },
+        { type: "spring", stiffness: 400, damping: 25 }
+      );
+    }
+  });
 
   const handleMouseMove = $((e: MouseEvent) => {
     mousePosition.value = { x: e.clientX, y: e.clientY };
@@ -85,6 +100,7 @@ export const ProjectCard = component$<ProjectCardProps>(({
 
           {isHovered.value && (
             <div
+              ref={tooltipRef}
               class="fixed pointer-events-none z-50 rounded-md backdrop-blur-sm bg-stone-200/70 px-3 py-1.5"
               style={{
                 left: `${mousePosition.value.x + 15}px`,

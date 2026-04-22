@@ -1,84 +1,141 @@
-import { createGroq } from '@ai-sdk/groq'
-import { streamText } from 'ai'
-import type { RequestHandler } from '@builder.io/qwik-city'
-import { knowledgeBase } from '~/lib/knowledge-base'
+import { createGroq } from '@ai-sdk/groq';
+import { streamText } from 'ai';
+import type { RequestHandler } from '@builder.io/qwik-city';
+import { knowledgeBase } from '~/lib/knowledge-base';
+
+// Simple in-memory rate limiting (use Redis/KV in production)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60 * 1000;
+
+interface RateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  resetTime: number;
+}
+
+function checkRateLimit(clientId: string): RateLimitResult {
+  const now = Date.now();
+  const entry = rateLimitMap.get(clientId);
+
+  if (!entry || now > entry.resetTime) {
+    const resetTime = now + RATE_WINDOW_MS;
+    rateLimitMap.set(clientId, { count: 1, resetTime });
+    return { allowed: true, remaining: RATE_LIMIT - 1, resetTime };
+  }
+
+  if (entry.count >= RATE_LIMIT) {
+    return { allowed: false, remaining: 0, resetTime: entry.resetTime };
+  }
+
+  entry.count++;
+  return { allowed: true, remaining: RATE_LIMIT - entry.count, resetTime: entry.resetTime };
+}
+
+function getClientIp(headers: Headers): string {
+  const forwarded = headers.get('x-forwarded-for');
+  return forwarded?.split(',')[0]?.trim() ?? 'anonymous';
+}
 
 function buildRAGContext(query: string): string {
-  const queryLower = query.toLowerCase()
-  const relevantDocs = knowledgeBase.filter(doc => {
-    const content = doc.content.toLowerCase()
-    const title = doc.metadata.title.toLowerCase()
+  const queryLower = query.toLowerCase();
+  const relevantDocs = knowledgeBase.filter((doc) => {
+    const content = doc.content.toLowerCase();
+    const title = doc.metadata.title.toLowerCase();
     return (
       content.includes('other dev') ||
       title.includes('other dev') ||
-      (queryLower.includes('service') && (content.includes('service') || title.includes('service'))) ||
+      (queryLower.includes('service') &&
+        (content.includes('service') || title.includes('service'))) ||
       (queryLower.includes('project') && doc.metadata.type === 'project') ||
-      (queryLower.includes('founder') && (content.includes('kabeer') || content.includes('ossaid'))) ||
+      (queryLower.includes('founder') &&
+        (content.includes('kabeer') || content.includes('ossaid'))) ||
       (queryLower.includes('price') && content.includes('rs ')) ||
       (queryLower.includes('tech') && doc.content.includes('Tech Stack'))
-    )
-  }).slice(0, 5)
+    );
+  }).slice(0, 5);
 
-  if (relevantDocs.length === 0) return ''
+  if (relevantDocs.length === 0) return '';
 
   return relevantDocs
-    .map(doc => `[${doc.metadata.type.toUpperCase()} - ${doc.metadata.title}]\n${doc.content}`)
-    .join('\n\n')
+    .map(
+      (doc) =>
+        `[${doc.metadata.type.toUpperCase()} - ${doc.metadata.title}]\n${doc.content}`
+    )
+    .join('\n\n');
 }
 
 export const onPost: RequestHandler = async (requestEvent) => {
-  const groqApiKey = requestEvent.env.get('GROQ_API_KEY')
-  if (!groqApiKey) {
-    requestEvent.json(500, { error: 'GROQ_API_KEY not configured' })
-    return
+  const clientIp = getClientIp(requestEvent.request.headers);
+  const rateLimitResult = checkRateLimit(clientIp);
+
+  if (!rateLimitResult.allowed) {
+    const retryAfter = Math.ceil(
+      (rateLimitResult.resetTime - Date.now()) / 1000
+    );
+    requestEvent.json(429, {
+      error: 'Too many requests. Please try again later.',
+      retryAfter,
+    });
+    return;
   }
 
-  const groq = createGroq({ apiKey: groqApiKey })
+  const groqApiKey = requestEvent.env.get('GROQ_API_KEY');
+  if (!groqApiKey) {
+    requestEvent.json(500, { error: 'GROQ_API_KEY not configured' });
+    return;
+  }
 
-  const { messages } = await requestEvent.request.json()
+  const groq = createGroq({ apiKey: groqApiKey });
 
-  const lastUserMessage = messages.length > 0
-    ? messages.filter((m: { role: string }) => m.role === 'user').slice(-1)[0]?.content || ''
-    : ''
+  const { messages } = (await requestEvent.request.json()) as {
+    messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+  };
 
-  const ragContext = buildRAGContext(lastUserMessage)
+  const lastUserMessage =
+    messages.length > 0
+      ? messages.filter((m) => m.role === 'user').slice(-1)[0]?.content || ''
+      : '';
+
+  const ragContext = buildRAGContext(lastUserMessage);
 
   const systemPrompt = ragContext
-    ? `You are a helpful AI assistant for Other Dev, a Karachi-based software and design studio. Use the following context:\n\n${ragContext}\n\nBe specific with results and statistics.`
-    : `You are a helpful AI assistant for Other Dev, a Karachi-based software and design studio founded in 2021 by Kabeer Jaffri and Ossaid Qadri.`
+    ? `You are a helpful AI assistant for Other Dev, a Karachi-based software and design studio. Use the following context:
 
-  const messagesWithContext = [
-    { role: 'system', content: systemPrompt },
-    ...messages,
-  ]
+${ragContext}
+
+Be specific with results and statistics.
+IMPORTANT: After your response, add "SUGGESTION:" followed by a short relevant follow-up question (max 60 characters) from the user's perspective.`
+    : `You are a helpful AI assistant for Other Dev, a Karachi-based software and design studio founded in 2021 by Kabeer Jaffri and Ossaid Qadri.
+
+IMPORTANT: After your response, add "SUGGESTION:" followed by a short relevant follow-up question (max 60 characters) from the user's perspective.`;
 
   const result = await streamText({
     model: groq('llama-3.3-70b-versatile'),
-    messages: messagesWithContext,
-  })
+    messages: [
+      { role: 'system' as const, content: systemPrompt },
+      ...messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
+    ],
+    system: systemPrompt,
+  });
 
-  requestEvent.headers.set('Content-Type', 'text/plain; charset=utf-8')
-  requestEvent.headers.set('Cache-Control', 'no-cache')
-  requestEvent.headers.set('Connection', 'keep-alive')
+  // Send streaming response - AI SDK handles SSE formatting
+  const response = result.toUIMessageStreamResponse();
+  const responseBody = response.body;
 
-  const textStream = result.textStream
-  const encoder = new TextEncoder()
+  if (responseBody) {
+    // Create a new response with rate limit headers
+    const finalResponse = new Response(responseBody, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: {
+        ...Object.fromEntries(response.headers.entries()),
+        'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+        'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+      },
+    });
 
-  const writableStream = requestEvent.getWritableStream()
-  const writer = writableStream.getWriter()
-
-  const processStream = async () => {
-    try {
-      for await (const chunk of textStream) {
-        const encoded = encoder.encode(chunk)
-        await writer.write(encoded)
-      }
-      writer.close()
-    } catch (err: unknown) {
-      console.error('Stream error:', err)
-      writer.abort()
-    }
+    // Send the response using Qwik City's send method
+    requestEvent.send(finalResponse);
   }
-
-  processStream()
-}
+};

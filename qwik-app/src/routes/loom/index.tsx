@@ -1,32 +1,97 @@
-import { component$, useSignal, $, useVisibleTask$ } from "@builder.io/qwik";
+import {
+  component$,
+  useSignal,
+  useStore,
+  $,
+  useVisibleTask$,
+  type Signal,
+} from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
-import { Navigation } from "~/components/navigation";
-import { ChatWidget } from "~/components/chat-widget";
-import { MarkdownRenderer } from "~/components/markdown-renderer";
-import { SUGGESTED_PROMPTS } from "~/lib/constants";
+import { animate } from "motion";
 
-interface Message {
+import { Navigation } from "~/components/navigation";
+import { UserMessage } from "~/components/user-message";
+import { AssistantMessage } from "~/components/assistant-message";
+import { PromptInput } from "~/components/prompt-input";
+import { ScrollToBottomButton } from "~/components/scroll-to-bottom-button";
+import { SuggestionButton } from "~/components/suggestion-button";
+import { SUGGESTED_PROMPTS } from "~/lib/constants";
+import { getGreeting } from "~/lib/greetings";
+import { VoiceRecorder } from "~/lib/voice-recorder";
+import { parseSSEStream, type SSEEvent } from "~/lib/sse";
+import { processAttachment } from "~/lib/attachments";
+
+interface WidgetMessage {
+  id: string;
   role: "user" | "assistant";
   content: string;
+  reasoning?: string;
+  attachments?: File[];
+  artifact?: {
+    toolCallId: string;
+    toolName: "createArtifact";
+    state: "output-available";
+    result: {
+      title: string;
+      code: string;
+      description: string;
+      success?: boolean;
+    };
+  };
+  createdAt: Date;
 }
 
 export default component$(() => {
-  const messages = useSignal<Message[]>([]);
+  const messages = useSignal<WidgetMessage[]>([]);
   const inputValue = useSignal("");
   const isLoading = useSignal(false);
   const isRecording = useSignal(false);
-  const messagesEndRef = useSignal<Element | undefined>(undefined);
-  const inputRef = useSignal<HTMLInputElement | undefined>(undefined);
+  const attachments = useSignal<File[]>([]);
+  const suggestion = useSignal("");
+  const activeArtifact = useSignal<WidgetMessage["artifact"] | null>(null);
+  const showScrollButton = useSignal(false);
+  const scrollContainerRef = useSignal<Element | undefined>(undefined);
+  const greeting = useSignal("");
+  const greetingKey = useSignal(0);
+  const isGreetingVisible = useSignal(false);
+
+  const chatIdRef = useSignal<string>("");
 
   // Load messages from localStorage on mount
   useVisibleTask$(() => {
     const stored = localStorage.getItem("loom-messages");
     if (stored) {
       try {
-        messages.value = JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        // Convert date strings back to Date objects
+        messages.value = parsed.map((m: WidgetMessage & { createdAt?: string }) => ({
+          ...m,
+          createdAt: m.createdAt ? new Date(m.createdAt) : new Date(),
+        }));
       } catch {
-        // Ignore parse errors
+        // Ignore
       }
+    }
+
+    const storedChatId = localStorage.getItem("loom-chat-id");
+    chatIdRef.value = storedChatId || crypto.randomUUID();
+    localStorage.setItem("loom-chat-id", chatIdRef.value);
+
+    // Set greeting
+    greeting.value = getGreeting();
+    greetingKey.value = 0;
+  });
+
+  // Animate greeting when it changes
+  useVisibleTask$(({ track }) => {
+    track(() => greetingKey.value);
+    if (!greeting.value || messages.value.length > 0) return;
+
+    isGreetingVisible.value = true;
+    const el = document.querySelector(".greeting-text") as HTMLElement | null;
+    if (el) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      animate(el as any, { opacity: [0, 1], y: [8, 0] }, { duration: 0.4, ease: "easeOut" });
     }
   });
 
@@ -38,60 +103,216 @@ export default component$(() => {
     }
   });
 
-  // Auto-scroll to bottom when messages change
+  // Scroll tracking for scroll-to-bottom button
+  useVisibleTask$(({ track }) => {
+    track(() => showScrollButton.value);
+    const container = scrollContainerRef.value;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      showScrollButton.value = !isNearBottom;
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  });
+
+  // Auto-scroll to bottom on new messages
   useVisibleTask$(({ track }) => {
     track(() => messages.value.length);
-    if (messagesEndRef.value) {
-      messagesEndRef.value.scrollIntoView({ behavior: "smooth" });
+    const container = scrollContainerRef.value;
+    if (container && !showScrollButton.value) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
     }
+  });
+
+  const scrollToBottom = $(() => {
+    const container = scrollContainerRef.value;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }
+  });
+
+  const handleVoiceToggle = $(async () => {
+    if (isRecording.value) {
+      // Stop recording
+      isRecording.value = false;
+    } else {
+      // Start recording
+      try {
+        const stream = await VoiceRecorder.requestMicrophone();
+        const recorder = new VoiceRecorder(stream);
+        recorder.start();
+        isRecording.value = true;
+
+        // Store recorder for stopping
+        (window as unknown as { __voiceRecorder?: VoiceRecorder }).__voiceRecorder = recorder;
+      } catch (err) {
+        console.error("Microphone error:", err);
+        isRecording.value = false;
+      }
+    }
+  });
+
+  const handleStopRecordingAndTranscribe = $(async () => {
+    const recorder = (window as unknown as { __voiceRecorder?: VoiceRecorder }).__voiceRecorder;
+    if (!recorder) return;
+
+    try {
+      const audioBlob = await recorder.stop();
+      recorder.release();
+      isRecording.value = false;
+
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "recording.webm");
+
+      const response = await fetch("/api/transcribe", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Transcription failed");
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      let transcript = "";
+      await parseSSEStream(reader, (event: SSEEvent) => {
+        if (event.type === "transcript-chunk" && typeof event.content === "string") {
+          transcript += event.content;
+          inputValue.value = transcript;
+        } else if (event.type === "transcript-complete" && typeof event.content === "string") {
+          inputValue.value = event.content;
+        }
+      });
+    } catch (err) {
+      console.error("Transcription error:", err);
+    }
+  });
+
+  const handleAttach = $((files: File[]) => {
+    attachments.value = [...attachments.value, ...files];
+  });
+
+  const handleRemoveAttachment = $((index: number) => {
+    attachments.value = attachments.value.filter((_, i) => i !== index);
+  });
+
+  const handleSuggestionSelect = $((prompt: string) => {
+    handleSubmit(prompt);
   });
 
   const handleSubmit = $(async (promptText?: string) => {
     const text = promptText || inputValue.value.trim();
     if (!text || isLoading.value) return;
 
-    const userMessage: Message = { role: "user", content: text };
+    const userMessage: WidgetMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: text,
+      attachments: attachments.value.length > 0 ? [...attachments.value] : undefined,
+      createdAt: new Date(),
+    };
+
     messages.value = [...messages.value, userMessage];
     inputValue.value = "";
+    attachments.value = [];
     isLoading.value = true;
+    suggestion.value = "";
 
     // Add placeholder for assistant response
-    messages.value = [...messages.value, { role: "assistant", content: "" }];
+    const assistantMessageId = crypto.randomUUID();
+    messages.value = [
+      ...messages.value,
+      {
+        id: assistantMessageId,
+        role: "assistant",
+        content: "",
+        createdAt: new Date(),
+      },
+    ];
 
     try {
+      // Process attachments if any
+      let processedAttachments: Array<{
+        type: "file";
+        mediaType: string;
+        url: string;
+        filename: string;
+      }> = [];
+
+      if (userMessage.attachments && userMessage.attachments.length > 0) {
+        processedAttachments = await Promise.all(
+          userMessage.attachments.map(processAttachment)
+        );
+      }
+
+      const body = {
+        id: chatIdRef.value,
+        message: {
+          role: "user",
+          parts: [
+            ...processedAttachments.map((att) => ({
+              type: "file" as const,
+              data: att.url,
+              mediaType: att.mediaType,
+              filename: att.filename,
+            })),
+            { type: "text" as const, text: text },
+          ],
+        },
+        supportsArtifacts: true,
+      };
+
       const response = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: messages.value.slice(0, -1) }),
+        body: JSON.stringify({
+          messages: messages.value.slice(0, -1).map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
       });
 
       if (!response.body) throw new Error("No response body");
 
       const reader = response.body.getReader();
-      const decoder = new TextDecoder();
       let assistantContent = "";
+      let currentReasoning = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      await parseSSEStream(reader, (event: SSEEvent) => {
+        if (event.type === "text" && typeof event.content === "string") {
+          assistantContent += event.content;
+        } else if (event.type === "reasoning") {
+          currentReasoning = (event.content as string) || currentReasoning;
+        } else if (event.type === "data-suggestion" && event.data && typeof (event.data as { suggestion?: string }).suggestion === "string") {
+          suggestion.value = (event.data as { suggestion: string }).suggestion;
+        }
 
-        const chunk = decoder.decode(value, { stream: true });
-        assistantContent += chunk;
-
-        // Update the last message (assistant response)
+        // Update the last message
         messages.value = [
           ...messages.value.slice(0, -1),
-          { role: "assistant", content: assistantContent },
+          {
+            id: assistantMessageId,
+            role: "assistant" as const,
+            content: assistantContent,
+            reasoning: currentReasoning || undefined,
+            createdAt: new Date(),
+          },
         ];
-      }
+      });
     } catch (err) {
       console.error("Chat error:", err);
-      // Update the placeholder with error message
       messages.value = [
         ...messages.value.slice(0, -1),
         {
+          id: assistantMessageId,
           role: "assistant",
           content: "Sorry, I encountered an error. Please try again.",
+          createdAt: new Date(),
         },
       ];
     } finally {
@@ -99,199 +320,130 @@ export default component$(() => {
     }
   });
 
-  const handleKeyDown = $((e: KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  });
+  const greetingEl = (
+    <div class="flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 mt-32 sm:mt-40">
+      <div class="w-full max-w-2xl space-y-6 sm:space-y-8">
+        <div class="space-y-3 text-center sm:space-y-4">
+          <div class="flex justify-center">
+            <img
+              src="/otherdev-chat-logo-32.webp"
+              alt="Other Dev Loom"
+              width={32}
+              height={32}
+              class="h-7 w-7 sm:h-8 sm:w-8 object-contain"
+            />
+          </div>
+          <h2 class="greeting-text font-[var(--twk-lausanne)] text-2xl font-normal text-foreground opacity-0 sm:text-3xl md:text-4xl">
+            {greeting.value}
+          </h2>
+          <p class="font-[var(--twk-lausanne)] text-sm text-muted-foreground sm:text-base">
+            Ask me anything about Other Dev
+          </p>
+        </div>
 
-  const handleSuggestionClick = $((prompt: string) => {
-    handleSubmit(prompt);
-  });
+        <div class="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+          {SUGGESTED_PROMPTS.map((s, i) => (
+            <SuggestionButton
+              key={i}
+              label={s.label}
+              prompt={s.prompt}
+              icon={s.icon}
+              onSelect$={handleSuggestionSelect}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <main class="min-h-screen bg-white">
+    <main class="min-h-screen bg-background">
       <Navigation />
 
-      {/* Header */}
-      <section class="px-4 py-12 max-w-2xl mx-auto text-center">
-        <div class="w-16 h-16 bg-stone-900 rounded-2xl flex items-center justify-center mx-auto mb-6">
-          <svg
-            width="32"
-            height="32"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-        </div>
-        <h1 class="font-[var(--queens-compressed)] text-3xl text-stone-900 mb-4">
-          Loom
-        </h1>
-        <p class="font-[var(--twk-lausanne)] text-stone-500">
-          Ask me anything about Other Dev
-        </p>
-      </section>
-
-      {/* Chat Interface */}
-      <section class="px-4 pb-32 max-w-2xl mx-auto">
-        {/* Suggested Prompts - show when no messages */}
-        {messages.value.length === 0 && (
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-            {SUGGESTED_PROMPTS.map((suggestion, i) => (
-              <button
-                key={i}
-                onClick$={() => handleSuggestionClick(suggestion.prompt)}
-                class="p-4 bg-stone-100 hover:bg-stone-200 rounded-lg text-left transition-colors cursor-pointer"
-              >
-                <span class="font-[var(--twk-lausanne)] text-sm text-stone-700">
-                  {suggestion.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
+      {/* Scroll container */}
+      <div
+        ref={scrollContainerRef}
+        class="h-screen overflow-auto pb-32 sm:pb-40"
+      >
+        {messages.value.length === 0 && isGreetingVisible.value && greetingEl}
 
         {/* Messages */}
-        <div class="space-y-4 mb-6">
-          {messages.value.map((msg, i) => (
-            <div
-              key={i}
-              class={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
-            >
-              {msg.role === "assistant" ? (
-                <div class="w-8 h-8 bg-stone-900 rounded-full flex-shrink-0 flex items-center justify-center">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    stroke-width="2"
-                  >
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                </div>
+        <div class="container px-3 mt-12 md:mt-16 py-6 max-w-4xl mx-auto sm:px-4 sm:py-8 md:px-12 space-y-4">
+          {messages.value.map((msg) => (
+            <div key={msg.id}>
+              {msg.role === "user" ? (
+                <UserMessage
+                  content={msg.content}
+                  attachments={msg.attachments}
+                />
               ) : (
-                <div class="w-8 h-8 bg-stone-400 rounded-full flex-shrink-0" />
+                <AssistantMessage
+                  content={msg.content}
+                  reasoning={msg.reasoning}
+                  artifact={msg.artifact}
+                  setArtifact$={(artifact) => {
+                    activeArtifact.value = artifact;
+                  }}
+                />
               )}
-              <div
-                class={`rounded-2xl px-4 py-3 max-w-[80%] ${
-                  msg.role === "user"
-                    ? "bg-stone-900 text-white rounded-tr-none"
-                    : "bg-stone-100 text-stone-700 rounded-tl-none"
-                }`}
-              >
-                {msg.role === "assistant" ? (
-                  <MarkdownRenderer content={msg.content} />
-                ) : (
-                  <p class="font-[var(--twk-lausanne)] text-sm whitespace-pre-wrap">
-                    {msg.content}
-                  </p>
-                )}
-                {i === messages.value.length - 1 &&
-                  isLoading.value &&
-                  msg.role === "assistant" && (
-                    <span class="inline-block ml-1 animate-pulse">...</span>
-                  )}
-              </div>
             </div>
           ))}
-          <div ref={messagesEndRef} />
-        </div>
 
-        {/* Chat Input */}
-        <div class="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent p-4">
-          <div class="max-w-2xl mx-auto bg-white border border-stone-200 rounded-2xl p-3 shadow-lg">
-            <div class="flex items-center gap-2">
-              {/* Voice button placeholder */}
-              <button
-                class={`p-2 rounded-full transition-colors ${
-                  isRecording.value
-                    ? "bg-red-500 text-white"
-                    : "hover:bg-stone-100 text-stone-400"
-                }`}
-                onClick$={() => {
-                  // Voice recording would be implemented here
-                  isRecording.value = !isRecording.value;
-                }}
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="23" />
-                  <line x1="8" y1="23" x2="16" y2="23" />
-                </svg>
-              </button>
-
-              {/* Attachment button placeholder */}
-              <button class="p-2 hover:bg-stone-100 rounded-full transition-colors">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="text-stone-400"
-                >
-                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                </svg>
-              </button>
-
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="Type your message..."
-                class="flex-1 bg-transparent border-none outline-none font-[var(--twk-lausanne)] text-sm text-stone-900 placeholder:text-stone-400"
-                value={inputValue.value}
-                onInput$={(_, el) => {
-                  inputValue.value = el.value;
-                }}
-                onKeyDown$={handleKeyDown}
+          {/* Loading indicator */}
+          {isLoading.value && messages.value.length > 0 && (
+            <div class="flex items-center gap-2 sm:gap-3">
+              <img
+                src="/otherdev-chat-logo-32.webp"
+                alt="Other Dev Loom"
+                width={32}
+                height={32}
+                class="h-6 w-6 flex-shrink-0 animate-spin sm:h-6 sm:w-6"
               />
-
-              <button
-                class="p-2 bg-stone-900 hover:bg-stone-800 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!inputValue.value.trim() || isLoading.value}
-                onClick$={() => handleSubmit()}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="white"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-              </button>
+              <div class="flex items-center gap-2 font-[var(--twk-lausanne)] text-xs text-muted-foreground sm:text-sm">
+                <span class="text-sm">Thinking </span>
+                <div class="flex gap-1">
+                  <div
+                    class="h-1 w-1 animate-bounce rounded-full bg-muted-foreground"
+                    style={{ animationDelay: "0ms" }}
+                  />
+                  <div
+                    class="h-1 w-1 animate-bounce rounded-full bg-muted-foreground"
+                    style={{ animationDelay: "150ms" }}
+                  />
+                  <div
+                    class="h-1 w-1 animate-bounce rounded-full bg-muted-foreground"
+                    style={{ animationDelay: "300ms" }}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
-      </section>
+      </div>
 
-      <ChatWidget />
+      {/* Scroll to bottom button */}
+      <ScrollToBottomButton
+        visible={showScrollButton.value}
+        onScroll$={scrollToBottom}
+      />
+
+      {/* Fixed input */}
+      <div class="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background to-transparent p-3 sm:p-4 z-10">
+        <div class="max-w-2xl mx-auto">
+          <PromptInput
+            value={inputValue}
+            onSubmit$={handleSubmit}
+            isRecording={isRecording}
+            isLoading={isLoading}
+            attachments={attachments}
+            onAttach$={handleAttach}
+            onRemoveAttachment$={handleRemoveAttachment}
+            onVoiceToggle$={
+              isRecording.value ? handleStopRecordingAndTranscribe : handleVoiceToggle
+            }
+          />
+        </div>
+      </div>
     </main>
   );
 });
