@@ -225,10 +225,11 @@ export default component$(() => {
       let currentReasoning = "";
 
       await parseSSEStream(reader, (event: SSEEvent) => {
-        if (event.type === "text" && typeof event.content === "string") {
-          assistantContent += event.content;
-        } else if (event.type === "reasoning") {
-          currentReasoning = (event.content as string) || currentReasoning;
+        // AI SDK UIMessageStream format
+        if (event.type === "text-delta" && typeof event.delta === "string") {
+          assistantContent += event.delta;
+        } else if (event.type === "reasoning-delta" && typeof event.delta === "string") {
+          currentReasoning += event.delta;
         } else if (event.type === "data-suggestion" && event.data && typeof (event.data as { suggestion?: string }).suggestion === "string") {
           suggestion.value = (event.data as { suggestion: string }).suggestion;
         }
