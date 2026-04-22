@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_figma_figma__get_design_context",
+      "mcp__plugin_figma_figma__get_metadata",
+      "mcp__plugin_figma_figma__whoami",
+      "mcp__plugin_figma_figma__get_screenshot",
+      "mcp__plugin_figma_figma__get_libraries",
+      "mcp__plugin_figma_figma__search_design_system",
+      "mcp__plugin_figma_figma__use_figma",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_screenshot",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__list_console_messages",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__list_network_requests",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__close_page",
+      "Bash(pkill -f \"vite\")",
+      "Bash(pkill -f \"node\")",
+      "Bash(lsof -ti:5173,5174,5175)",
+      "Bash(lsof -ti:5173,5174,5175,5176,5177)",
+      "Bash(pkill -9 -f \"vite\")",
+      "Bash(pkill -9 -f \"node\")",
+      "Bash(pkill -9 -f \"bun\")",
+      "Bash(lsof -ti:5173,5174,5175,5176,5177,5178)"
+    ]
+  }
+}

@@ -1,6 +1,4 @@
-@import "tailwindcss
-  @layer base, qwik-ui, popover-polyfill, theme, components, utilities;
-@import 'tailwindcss';
+@import "tailwindcss";
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
@@ -166,5 +164,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-  ";
