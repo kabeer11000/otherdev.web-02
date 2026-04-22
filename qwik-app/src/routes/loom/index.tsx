@@ -256,8 +256,8 @@ export default component$(() => {
                 placeholder="Type your message..."
                 class="flex-1 bg-transparent border-none outline-none font-[var(--twk-lausanne)] text-sm text-stone-900 placeholder:text-stone-400"
                 value={inputValue.value}
-                onInput$={(e) => {
-                  inputValue.value = (e.target as HTMLInputElement).value;
+                onInput$={(_, el) => {
+                  inputValue.value = el.value;
                 }}
                 onKeyDown$={handleKeyDown}
               />
