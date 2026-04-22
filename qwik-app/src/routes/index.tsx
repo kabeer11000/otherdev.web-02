@@ -24,12 +24,12 @@ interface ExtendedProject {
 
 // Create projects with extra media[1] images as additional cards (using workProjects which has media arrays)
 const projectsWithExtraImages: ExtendedProject[] = workProjects.flatMap((project) => {
-  const cards: ExtendedProject[] = [{ ...project, slug: `work/${project.slug}` }];
+  const cards: ExtendedProject[] = [{ ...project, slug: project.slug }];
   if (project.media && project.media.length >= 2) {
     cards.push({
       ...project,
       id: `${project.id}-media-2`,
-      slug: `work/${project.slug}`,
+      slug: project.slug,
       image: project.media[1],
     });
   }
