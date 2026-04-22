@@ -5,17 +5,9 @@ import { Hero } from "~/components/hero";
 import { ProjectCard } from "~/components/project-card";
 import { Footer } from "~/components/footer";
 import { ChatWidget } from "~/components/chat-widget";
+import { projects } from "~/data/projects";
 
-const projects = [
-  { title: "Adina Household", href: "/work/adina-household" },
-  { title: "Kiswa Noire", href: "/work/kiswa-noire" },
-  { title: "MNO Studio", href: "/work/mno-studio" },
-  { title: "PQR Architects", href: "/work/pqr-architects" },
-  { title: "STU Collective", href: "/work/stu-collective" },
-  { title: "VWX Gallery", href: "/work/vwx-gallery" },
-  { title: "YZA Brand", href: "/work/yza-brand" },
-  { title: "BCD Fashion", href: "/work/bcd-fashion" },
-];
+const projectHrefs = projects.map((p) => ({ title: p.title, href: `/work/${p.slug}` }));
 
 export default component$(() => {
   return (
@@ -26,7 +18,7 @@ export default component$(() => {
       {/* Project Grid */}
       <section class="px-4 py-8">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {projects.map((project) => (
+          {projectHrefs.map((project) => (
             <ProjectCard
               key={project.href}
               title={project.title}
