@@ -21,7 +21,12 @@ export default component$(() => {
       {/* Project Grid - 3 columns */}
       <section class="px-3 pb-6">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[13px]">
-          {workProjects.map((project) => (
+          {[...workProjects].sort((a, b) => {
+            if (b.year !== a.year) {
+              return (b.year ?? 0) - (a.year ?? 0);
+            }
+            return parseInt(b.id ?? '0', 10) - parseInt(a.id ?? '0', 10);
+          }).map((project) => (
             <Link key={project.slug} href={`/work/${project.slug}`} class="block">
               <div class="bg-stone-200 rounded-[5px] overflow-hidden w-full aspect-square">
                 {project.image ? (

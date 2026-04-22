@@ -11,7 +11,7 @@ export default component$(() => {
   const slug = location.url.pathname.replace("/work/", "").replace(/\/$/, "");
 
   const project = workProjects.find((p) => p.slug === slug);
-  const relatedProjects = workProjects.filter((p) => p.slug !== slug).slice(0, 14);
+  const relatedProjects = workProjects.filter((p) => p.slug !== slug).slice(0, 13);
 
   if (!project) {
     return (
@@ -79,9 +79,9 @@ export default component$(() => {
         <h2 class="font-[var(--twk-lausanne)] text-[14px] text-stone-500 tracking-[-0.24px] mb-[18px]">
           Related Projects
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-[12px]">
+        <div class="flex gap-[12px] overflow-x-auto">
           {relatedProjects.map((related) => (
-            <Link key={related.slug} href={`/work/${related.slug}`} class="block">
+            <Link key={related.slug} href={`/work/${related.slug}`} class="block flex-shrink-0 w-[320px] md:w-[600px]">
               <div class="bg-stone-200 rounded-[5px] overflow-hidden w-full aspect-square">
                 {related.image && (
                   <img

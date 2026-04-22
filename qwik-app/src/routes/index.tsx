@@ -44,18 +44,18 @@ const mixedData: (ExtendedProject | typeof playlistsAndImages[number])[] = shuff
 
 export default component$(() => {
   return (
-    <main class="min-h-screen bg-white">
+    <main class="min-h-screen bg-white container -mx-auto px-3 pr-3 md:pr-[8%] lg:pr-[15%] pt-[60px] pb-12">
       <Navigation />
 
       {/* Hero Paragraph */}
-      <section class="px-3 py-6">
+      <section class="py-6">
         <p class="font-[var(--twk-lausanne)] text-[11px] text-stone-400 leading-[14px] max-w-2xl">
           otherdev produces digital platforms for pioneering creatives. Based in Karachi City, we are a full-service web development and design studio specializing in the fashion and design fields.
         </p>
       </section>
 
       {/* Project Grid */}
-      <section class="px-3 pb-6">
+      <section class="pb-6">
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-[12px] gap-y-[15px]">
           {mixedData.map((item, index) => (
             <ProjectCard

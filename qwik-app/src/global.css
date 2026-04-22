@@ -37,6 +37,29 @@
     --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
     --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.01);
     --transform-press: scale(0.95);
+
+    /* Font variables */
+    --twk-lausanne: "TWKLausanne", sans-serif;
+    --queens-compressed: "QueensCompressed", serif;
+
+    /* Typography scale */
+    --text-base: 16px;
+    --text-lg: 18px;
+    --text-xl: 20px;
+    --text-2xl: 24px;
+    --text-3xl: 30px;
+    --text-4xl: 36px;
+    --text-5xl: 48px;
+
+    /* Spacing scale */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
   }
   .dark {
     --background: var(--color-slate-950);
@@ -163,4 +186,12 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@utility twk-lausanne {
+  font-family: var(--twk-lausanne);
+}
+
+@utility queens-compressed {
+  font-family: var(--queens-compressed);
 }
