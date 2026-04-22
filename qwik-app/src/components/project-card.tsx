@@ -38,7 +38,10 @@ export const ProjectCard = component$<ProjectCardProps>(({
   });
 
   const cardContent = (
-    <div class="relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center bg-stone-200 group-hover:shadow-lg">
+    <div class={[
+      "relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center bg-stone-200",
+      variant !== "work" ? "group-hover:shadow-lg" : "",
+    ]}>
       <div
         class={[
           "relative w-full h-full bg-stone-200",
