@@ -8,6 +8,10 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT = 20;
 const RATE_WINDOW_MS = 60 * 1000;
 
+// Context window for llama-3.3-70b (128k tokens)
+const MAX_CONTEXT_TOKENS = 128000;
+const SYSTEM_PROMPT_TOKENS = 500; // Rough estimate for system prompt
+
 interface RateLimitResult {
   allowed: boolean;
   remaining: number;
@@ -65,6 +69,41 @@ function buildRAGContext(query: string): string {
     .join('\n\n');
 }
 
+function estimateTokens(text: string): number {
+  // Rough estimation: ~4 characters per token for English text
+  return Math.ceil(text.length / 4);
+}
+
+function truncateMessages(
+  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
+  maxTokens: number
+): Array<{ role: 'user' | 'assistant' | 'system'; content: string }> {
+  const availableTokens = maxTokens - SYSTEM_PROMPT_TOKENS;
+
+  if (availableTokens <= 0) {
+    return [];
+  }
+
+  let totalTokens = 0;
+  const truncated: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [];
+
+  // Process messages from newest to oldest
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    const msgTokens = estimateTokens(msg.content);
+
+    if (totalTokens + msgTokens <= availableTokens) {
+      truncated.unshift(msg);
+      totalTokens += msgTokens;
+    } else {
+      // Stop if adding more messages would exceed limit
+      break;
+    }
+  }
+
+  return truncated;
+}
+
 export const onPost: RequestHandler = async (requestEvent) => {
   const clientIp = getClientIp(requestEvent.request.headers);
   const rateLimitResult = checkRateLimit(clientIp);
@@ -110,11 +149,14 @@ IMPORTANT: After your response, add "SUGGESTION:" followed by a short relevant f
 
 IMPORTANT: After your response, add "SUGGESTION:" followed by a short relevant follow-up question (max 60 characters) from the user's perspective.`;
 
+  // Truncate messages to fit within context window
+  const truncatedMessages = truncateMessages(messages, MAX_CONTEXT_TOKENS);
+
   const result = await streamText({
     model: groq('llama-3.3-70b-versatile'),
     messages: [
       { role: 'system' as const, content: systemPrompt },
-      ...messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
+      ...truncatedMessages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
     ],
     system: systemPrompt,
   });
