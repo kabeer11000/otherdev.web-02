@@ -62,7 +62,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net fonts.googleapis.com",
               "img-src 'self' data: blob: images.unsplash.com cdn.jsdelivr.net github.com localhost:3845",
               "font-src 'self' fonts.gstatic.com",
-              "connect-src 'self' api.groq.com api.mistral.ai *.googleapis.com *.firebaseio.com",
+              "connect-src 'self' api.groq.com api.mistral.ai *.googleapis.com *.firebaseio.com https://mcp.figma.com",
               "frame-src 'self'",
               "object-src 'none'",
               "base-uri 'self'",
