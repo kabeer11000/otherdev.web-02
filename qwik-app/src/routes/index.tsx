@@ -61,7 +61,7 @@ export default component$(() => {
             <ProjectCard
               key={'id' in item ? item.id : 'isPlaylistOrImage' in item ? item.id : item.slug}
               title={item.title}
-              href={'slug' in item ? item.slug : item.url}
+              slug={'slug' in item ? item.slug : undefined}
               image={item.image}
               variant={'isPlaylistOrImage' in item ? 'broll' : 'home'}
               priority={index < 8}
