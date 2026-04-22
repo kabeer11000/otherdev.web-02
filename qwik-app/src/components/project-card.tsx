@@ -30,11 +30,16 @@ export const ProjectCard = component$<ProjectCardProps>(({
   // Animate tooltip with spring effect on hover
   useVisibleTask$(({ track }) => {
     const hovered = track(() => isHovered.value);
+    const x = track(() => mousePosition.value.x);
+    const y = track(() => mousePosition.value.y);
 
-    if (hovered && tooltipRef.value) {
+    if (!hovered) return;
+
+    const tooltip = document.querySelector(".hover-tooltip") as HTMLElement;
+    if (tooltip) {
       animate(
-        tooltipRef.value,
-        { opacity: [0, 1], scale: [0.8, 1] },
+        tooltip,
+        { opacity: [0, 1], scale: [0.8, 1], x: x + 15, y: y + 15 },
         { type: "spring", stiffness: 400, damping: 25 }
       );
     }
@@ -101,10 +106,10 @@ export const ProjectCard = component$<ProjectCardProps>(({
           {isHovered.value && (
             <div
               ref={tooltipRef}
-              class="fixed pointer-events-none z-50 rounded-md backdrop-blur-sm bg-stone-200/70 px-3 py-1.5"
+              class="hover-tooltip fixed pointer-events-none z-50 rounded-md backdrop-blur-sm bg-stone-200/70 px-3 py-1.5"
               style={{
-                left: `${mousePosition.value.x + 15}px`,
-                top: `${mousePosition.value.y + 15}px`,
+                left: `${mousePosition.value.x}px`,
+                top: `${mousePosition.value.y}px`,
               }}
             >
               <p class="text-[#686868] text-[11px] font-normal leading-[14px] whitespace-nowrap">
