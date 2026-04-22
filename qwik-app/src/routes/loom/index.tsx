@@ -1,10 +1,8 @@
 import {
   component$,
   useSignal,
-  useStore,
   $,
   useVisibleTask$,
-  type Signal,
 } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { animate } from "motion";
@@ -90,8 +88,7 @@ export default component$(() => {
     isGreetingVisible.value = true;
     const el = document.querySelector(".greeting-text") as HTMLElement | null;
     if (el) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      animate(el as any, { opacity: [0, 1], y: [8, 0] }, { duration: 0.4, ease: "easeOut" });
+      animate(el as HTMLElement, { opacity: [0, 1], y: [8, 0] }, { duration: 0.4, ease: "easeOut" });
     }
   });
 

@@ -31,7 +31,7 @@ export default component$(() => {
     }
   });
 
-  useVisibleTask$(() => {
+  useVisibleTask$(({ cleanup }) => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {

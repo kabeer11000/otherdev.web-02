@@ -26,6 +26,7 @@ export const PromptInput = component$<PromptInputProps>((props) => {
   const isSendDisabled = props.isRecording.value || props.isLoading.value ||
     (props.value.value.trim().length === 0 && props.attachments.value.length === 0);
 
+  // eslint-disable-next-line qwik/valid-lexical-scope
   const handleKeyDown = $((e: KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -33,6 +34,7 @@ export const PromptInput = component$<PromptInputProps>((props) => {
     }
   });
 
+  // eslint-disable-next-line qwik/valid-lexical-scope
   const handleFileChange = $((e: Event) => {
     const input = e.target as HTMLInputElement;
     if (input.files) {
@@ -51,6 +53,7 @@ export const PromptInput = component$<PromptInputProps>((props) => {
             <AttachmentChip
               key={`${file.name}-${index}`}
               file={file}
+              // eslint-disable-next-line qwik/valid-lexical-scope
               onRemove$={() => props.onRemoveAttachment$(index)}
             />
           ))}
@@ -141,6 +144,7 @@ export const PromptInput = component$<PromptInputProps>((props) => {
             "flex-1 bg-transparent border-none outline-none font-[var(--twk-lausanne)] text-sm text-stone-900 placeholder:text-stone-400 resize-none min-h-[24px] max-h-[120px] py-1"
           )}
           value={props.value.value}
+          // eslint-disable-next-line qwik/valid-lexical-scope
           onInput$={(_, el) => {
             props.value.value = el.value;
             // Auto-grow
@@ -155,6 +159,7 @@ export const PromptInput = component$<PromptInputProps>((props) => {
         {/* Send button */}
         <button
           type="button"
+          // eslint-disable-next-line qwik/valid-lexical-scope
           onClick$={() => props.onSubmit$(props.value.value, props.attachments.value)}
           disabled={isSendDisabled}
           class={cn(

@@ -12,7 +12,7 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function getFileIcon(_mimeType: string) {
+function FileIcon() {
   return (
     <svg
       width="24"
@@ -33,18 +33,25 @@ function getFileIcon(_mimeType: string) {
 
 export const AttachmentChip = component$<AttachmentChipProps>((props) => {
   const previewUrl = useSignal<string | null>(null);
-  const isImage = props.file.type.startsWith("image/");
+  // Extract serializable data from file props
+  const fileName = props.file.name;
+  const fileSize = props.file.size;
+  const fileType = props.file.type;
+  const isImage = fileType.startsWith("image/");
 
-  useVisibleTask$(({ track }) => {
-    track(() => props.file);
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(({ track, cleanup }) => {
+    track(() => fileType);
     if (!isImage) return;
 
-    const url = URL.createObjectURL(props.file);
+    // Create blob from file for URL creation
+    const blob = props.file;
+    const url = URL.createObjectURL(blob);
     previewUrl.value = url;
 
-    return () => {
+    cleanup(() => {
       if (url) URL.revokeObjectURL(url);
-    };
+    });
   });
 
   return (
@@ -53,17 +60,17 @@ export const AttachmentChip = component$<AttachmentChipProps>((props) => {
         <div class="relative h-12 w-12 rounded-lg overflow-hidden bg-background shrink-0">
           <img
             src={previewUrl.value}
-            alt={props.file.name}
+            alt={fileName}
             class="h-full w-full object-contain"
           />
         </div>
       ) : (
-        <span class="h-6 w-6 shrink-0">{getFileIcon(props.file.type)}</span>
+        <span class="h-6 w-6 shrink-0"><FileIcon /></span>
       )}
       <div class="flex flex-col min-w-0 flex-1">
-        <span class="truncate max-w-[180px]">{props.file.name}</span>
+        <span class="truncate max-w-[180px]">{fileName}</span>
         <span class="text-muted-foreground text-[10px]">
-          {formatFileSize(props.file.size)}
+          {formatFileSize(fileSize)}
         </span>
       </div>
       {props.onRemove$ && (
