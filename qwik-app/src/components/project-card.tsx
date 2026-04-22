@@ -23,15 +23,12 @@ export const ProjectCard = component$<ProjectCardProps>(({
 }) => {
   const isHovered = useSignal(false);
   const mousePosition = useSignal({ x: 0, y: 0 });
-  const tooltipRef = useSignal<HTMLDivElement>();
 
   const useHover = variant === "home" || variant === "broll";
 
   // Animate tooltip with spring effect on hover
   useVisibleTask$(({ track }) => {
     const hovered = track(() => isHovered.value);
-    const x = track(() => mousePosition.value.x);
-    const y = track(() => mousePosition.value.y);
 
     if (!hovered) return;
 
@@ -39,7 +36,7 @@ export const ProjectCard = component$<ProjectCardProps>(({
     if (tooltip) {
       animate(
         tooltip,
-        { opacity: [0, 1], scale: [0.8, 1], x: x + 15, y: y + 15 },
+        { opacity: [0, 1], scale: [0.8, 1] },
         { type: "spring", stiffness: 400, damping: 25 }
       );
     }
@@ -105,8 +102,8 @@ export const ProjectCard = component$<ProjectCardProps>(({
 
           {isHovered.value && (
             <div
-              ref={tooltipRef}
               class="hover-tooltip fixed pointer-events-none z-50 rounded-md backdrop-blur-sm bg-stone-200/70 px-3 py-1.5"
+              aria-hidden="true"
               style={{
                 left: `${mousePosition.value.x}px`,
                 top: `${mousePosition.value.y}px`,
