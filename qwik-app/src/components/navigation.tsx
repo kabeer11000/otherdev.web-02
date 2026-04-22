@@ -134,7 +134,7 @@ export const Navigation = component$<NavigationProps>((props) => {
               stroke-width="1.5"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="transition-transform duration-200"
+              class="transition-transform duration-200 icon-x"
             >
               <path d="M18 6L6 18" />
               <path d="M6 6l12 12" />
@@ -150,7 +150,7 @@ export const Navigation = component$<NavigationProps>((props) => {
               stroke-width="1.5"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="transition-transform duration-200"
+              class="transition-transform duration-200 icon-menu"
             >
               <line x1="4" y1="6" x2="20" y2="6" />
               <line x1="4" y1="12" x2="20" y2="12" />
@@ -160,13 +160,15 @@ export const Navigation = component$<NavigationProps>((props) => {
         </button>
 
         {isOpen.value && (
-          <div class="flex items-center gap-1.5 flex-1">
-            {navLinks.map((link) => (
+          <div class="flex items-center gap-1.5 flex-1 nav-slide-in">
+            {navLinks.map((link, index) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick$={() => (isOpen.value = false)}
                 class={[
+                  "nav-item-animated",
+                  `nav-item-${index + 1}`,
                   "px-2 py-1 rounded-lg font-[var(--twk-lausanne)] text-xs tracking-tight transition-colors",
                   location.url.pathname.startsWith(link.href)
                     ? "bg-stone-200 text-stone-900"
@@ -181,7 +183,11 @@ export const Navigation = component$<NavigationProps>((props) => {
               target="_blank"
               rel="noopener noreferrer"
               onClick$={() => (isOpen.value = false)}
-              class="px-2 py-1 rounded-lg font-[var(--twk-lausanne)] text-xs tracking-tight transition-colors bg-stone-200/70 text-stone-400 hover:bg-stone-200"
+              class={[
+                "nav-item-animated",
+                "nav-item-5",
+                "px-2 py-1 rounded-lg font-[var(--twk-lausanne)] text-xs tracking-tight transition-colors bg-stone-200/70 text-stone-400 hover:bg-stone-200",
+              ]}
             >
               whatsapp
             </Link>

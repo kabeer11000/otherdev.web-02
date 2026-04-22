@@ -196,3 +196,60 @@
 @utility queens-compressed {
   font-family: var(--queens-compressed);
 }
+
+/* Navigation animations */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes rotateIn {
+  from {
+    transform: rotate(-90deg);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes rotateOut {
+  from {
+    transform: rotate(90deg);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.nav-slide-in {
+  animation: slideInRight 0.3s ease-out forwards;
+}
+
+.nav-item-animated {
+  opacity: 0;
+  animation: slideInRight 0.2s ease-out forwards;
+}
+
+.nav-item-1 { animation-delay: 0.1s; }
+.nav-item-2 { animation-delay: 0.2s; }
+.nav-item-3 { animation-delay: 0.25s; }
+.nav-item-4 { animation-delay: 0.26s; }
+.nav-item-5 { animation-delay: 0.32s; }
+
+.icon-x {
+  animation: rotateIn 0.2s ease-out forwards;
+}
+
+.icon-menu {
+  animation: rotateOut 0.2s ease-out forwards;
+}
