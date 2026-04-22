@@ -48,27 +48,25 @@ export default component$(() => {
       <Navigation />
 
       {/* Hero Paragraph */}
-      <section class="py-6">
-        <p class="font-[var(--twk-lausanne)] text-[11px] text-stone-400 leading-[14px] max-w-2xl">
+      <div class="grid grid-cols-12 mb-8">
+        <p class="text-[#686868] text-[11px] leading-[14px] font-normal col-span-12 sm:col-span-8 md:col-span-7 lg:col-span-6">
           otherdev produces digital platforms for pioneering creatives. Based in Karachi City, we are a full-service web development and design studio specializing in the fashion and design fields.
         </p>
-      </section>
+      </div>
 
       {/* Project Grid */}
-      <section class="pb-6">
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-[12px] gap-y-[15px]">
-          {mixedData.map((item, index) => (
-            <ProjectCard
-              key={'id' in item ? item.id : 'isPlaylistOrImage' in item ? item.id : item.slug}
-              title={item.title}
-              slug={'slug' in item ? item.slug : undefined}
-              image={item.image}
-              variant={'isPlaylistOrImage' in item ? 'broll' : 'home'}
-              priority={index < 8}
-            />
-          ))}
-        </div>
-      </section>
+      <div class="mt-[30px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[12px] gap-y-[15px]">
+        {mixedData.map((item, index) => (
+          <ProjectCard
+            key={'id' in item ? item.id : 'isPlaylistOrImage' in item ? item.id : item.slug}
+            title={item.title}
+            slug={'slug' in item ? item.slug : undefined}
+            image={item.image}
+            variant={'isPlaylistOrImage' in item ? 'broll' : 'home'}
+            priority={index < 8}
+          />
+        ))}
+      </div>
 
       <Footer />
       <ChatWidget />
