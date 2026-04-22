@@ -11,45 +11,35 @@ export default component$(() => {
     <main class="min-h-screen bg-white">
       <Navigation />
 
-      {/* Intro Section */}
-      <section class="px-4 py-12 max-w-6xl mx-auto">
-        <h1 class="font-[var(--queens-compressed)] text-4xl text-stone-900 mb-6">
-          Our Work
-        </h1>
-        <p class="font-[var(--twk-lausanne)] text-lg text-stone-500 max-w-2xl">
-          We work closely with our collaborators to engineer premium web and design solutions.
-          Each project is a testament to our commitment to excellence and innovation.
+      {/* Intro Paragraph */}
+      <section class="px-3 py-6">
+        <p class="font-[var(--twk-lausanne)] text-[11px] text-stone-500 leading-[14px] max-w-2xl tracking-[-0.24px]">
+          We work closely with our collaborators to engineer premium web and design solutions. Below is a selection showcasing some of our most recent work.
         </p>
       </section>
 
-      {/* Project Grid */}
-      <section class="px-4 pb-12">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      {/* Project Grid - 3 columns */}
+      <section class="px-3 pb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[13px]">
           {workProjects.map((project) => (
-            <Link
-              key={project.slug}
-              href={`/work/${project.slug}`}
-              class="group block"
-            >
-              <div class="relative aspect-[4/5] bg-stone-200 rounded-lg overflow-hidden mb-3">
+            <Link key={project.slug} href={`/work/${project.slug}`} class="block">
+              <div class="bg-stone-200 rounded-[5px] overflow-hidden w-full aspect-square">
                 {project.image ? (
-                  <img
-                    src={project.image}
-                    alt={project.title}
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                  <img src={project.image} alt={project.title} class="w-full h-full object-cover" loading="lazy" />
                 ) : (
-                  <div class="w-full h-full bg-stone-300" />
+                  <div class="w-full h-full bg-stone-200" />
                 )}
               </div>
-              <h3 class="font-[var(--twk-lausanne)] text-sm text-stone-900 mb-1">
-                {project.title}
-              </h3>
-              {project.description && (
-                <p class="font-[var(--twk-lausanne)] text-xs text-stone-400 line-clamp-2">
-                  {project.description}
-                </p>
-              )}
+              <div class="mt-[11px]">
+                <h3 class="font-[var(--twk-lausanne)] text-[11.4px] text-black tracking-[-0.24px] leading-[14px]">
+                  {project.title}
+                </h3>
+                {project.description && (
+                  <p class="font-[var(--twk-lausanne)] text-[11.1px] text-stone-500 tracking-[-0.24px] leading-[14px] mt-[11px]">
+                    {project.description}
+                  </p>
+                )}
+              </div>
             </Link>
           ))}
         </div>
@@ -62,12 +52,11 @@ export default component$(() => {
 });
 
 export const head: DocumentHead = {
-  title: "Work | otherdev | Digital Platforms for Pioneering Creatives",
+  title: "Work | otherdev",
   meta: [
     {
       name: "description",
-      content:
-        "Explore our portfolio of digital platforms built for pioneering creatives. Web development and design projects for fashion, architecture, and design studios.",
+      content: "We work closely with our collaborators to engineer premium web and design solutions.",
     },
   ],
 };
