@@ -1,4 +1,4 @@
-import { component$, $ } from "@builder.io/qwik";
+import { component$ } from "@builder.io/qwik";
 import { marked } from "marked";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
@@ -14,7 +14,7 @@ export const MarkdownRenderer = component$<{ content: string }>(({ content }) =>
 
   return (
     <div
-      class="font-[var(--twk-lausanne)] text-sm whitespace-pre-wrap"
+      class="prose prose-sm prose-stone max-w-none"
       dangerouslySetInnerHTML={htmlContent}
     />
   );
