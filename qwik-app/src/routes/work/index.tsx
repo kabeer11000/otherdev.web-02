@@ -1,9 +1,9 @@
 import { component$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
-import { Link } from "@builder.io/qwik-city";
 import { Navigation } from "~/components/navigation";
 import { Footer } from "~/components/footer";
 import { ChatWidget } from "~/components/chat-widget";
+import { ProjectCard } from "~/components/project-card";
 import { workProjects } from "~/data/projects";
 
 export default component$(() => {
@@ -30,25 +30,15 @@ export default component$(() => {
             }
             return parseInt(b.id ?? '0', 10) - parseInt(a.id ?? '0', 10);
           }).map((project) => (
-            <Link key={project.slug} href={`/work/${project.slug}`} class="block">
-              <div class="bg-stone-200 rounded-[5px] overflow-hidden w-full aspect-square">
-                {project.image ? (
-                  <img src={project.image} alt={project.title} class="w-full h-full object-cover" loading="lazy" />
-                ) : (
-                  <div class="w-full h-full bg-stone-200" />
-                )}
-              </div>
-              <div class="mt-[11px]">
-                <h3 class="font-[var(--twk-lausanne)] text-[11.4px] text-black tracking-[-0.24px] leading-[14px]">
-                  {project.title}
-                </h3>
-                {project.description && (
-                  <p class="font-[var(--twk-lausanne)] text-[11.1px] text-stone-500 tracking-[-0.24px] leading-[14px] mt-[11px]">
-                    {project.description}
-                  </p>
-                )}
-              </div>
-            </Link>
+            <ProjectCard
+              key={project.slug}
+              title={project.title}
+              slug={project.slug}
+              image={project.image}
+              description={project.description}
+              variant="work"
+              showText={true}
+            />
           ))}
         </div>
       </section>
