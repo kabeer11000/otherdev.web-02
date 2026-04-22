@@ -89,7 +89,7 @@ export default component$(() => {
         </header>
 
         <div
-          class="font-[var(--twk-lausanne)] text-base text-stone-700 leading-relaxed"
+          class="prose prose-lg prose-stone max-w-none font-[var(--twk-lausanne)]"
           dangerouslySetInnerHTML={sanitizeHtml(post.value.content)}
         />
 
