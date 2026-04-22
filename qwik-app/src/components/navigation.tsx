@@ -1,6 +1,5 @@
-import { component$, useSignal, useVisibleTask$, $, useRef, type PropFunction } from "@builder.io/qwik";
+import { component$, useSignal, useVisibleTask$, $, type PropFunction } from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
-import { animate, stagger } from "motion";
 
 interface NavigationProps {
   variant?: "default" | "ai";
@@ -14,7 +13,7 @@ export const Navigation = component$<NavigationProps>((props) => {
   const location = useLocation();
   const isOpen = useSignal(false);
   const isAIVariant = variant === "ai";
-  const mobileMenuRef = useRef<HTMLDivElement>();
+  const mobileMenuRef = useSignal<HTMLDivElement>();
 
   // Restore mobile menu state from sessionStorage on mount
   useVisibleTask$(() => {
@@ -35,17 +34,22 @@ export const Navigation = component$<NavigationProps>((props) => {
     const open = track(() => isOpen.value);
 
     if (open && mobileMenuRef.value) {
-      const items = mobileMenuRef.value.querySelectorAll(".nav-item-animated");
+      const items = mobileMenuRef.value.querySelectorAll(".nav-item-animated") as NodeListOf<HTMLElement>;
       if (items.length > 0) {
-        animate(
-          items,
-          { opacity: [0, 1], x: [-10, 0] },
-          {
-            duration: 0.3,
-            delay: stagger(0.1),
-            easing: "easeOut",
-          }
-        );
+        items.forEach((item, i) => {
+          item.animate(
+            [
+              { opacity: 0, transform: "translateX(-10px)" },
+              { opacity: 1, transform: "translateX(0)" },
+            ],
+            {
+              duration: 300,
+              delay: i * 100,
+              fill: "forwards",
+              easing: "ease-out",
+            }
+          );
+        });
       }
     }
   });
