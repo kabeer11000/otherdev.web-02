@@ -82,8 +82,9 @@ export const Navigation = component$<NavigationProps>((props) => {
           isAIVariant ? "" : "sm:hidden",
         ]}
       >
+        {/* Logo pill */}
         {!isOpen.value && (
-          <div class="transition-opacity duration-200">
+          <div>
             {isLoomPage ? (
               <Link
                 href="/"
@@ -101,10 +102,10 @@ export const Navigation = component$<NavigationProps>((props) => {
               <Link
                 href="/"
                 class={[
-                  "px-2 py-1 rounded-lg font-[var(--twk-lausanne)] text-xs tracking-tight transition-colors",
+                  "h-7 w-[75px] text-[12px] tracking-[-0.24px] rounded-lg font-[var(--twk-lausanne)] font-normal leading-tight transition-colors flex items-center justify-center",
                   location.url.pathname === "/"
-                    ? "bg-stone-200 text-stone-900"
-                    : "bg-stone-200/70 text-stone-400 hover:bg-stone-200",
+                    ? "text-foreground bg-stone-200"
+                    : "text-muted-foreground bg-stone-200/70 hover:text-foreground backdrop-blur-sm",
                 ]}
               >
                 other dev
@@ -119,7 +120,8 @@ export const Navigation = component$<NavigationProps>((props) => {
             <button
               onClick$={handleClearClick}
               class={[
-                "mr-2 bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70 flex items-center px-2 py-1 rounded-lg font-[var(--twk-lausanne)] text-xs tracking-tight transition-colors",
+                "h-7 text-[12px] tracking-[-0.24px] rounded-lg font-[var(--twk-lausanne)] font-normal leading-tight flex items-center gap-1.5 mr-2 transition-colors",
+                "bg-red-50/70 text-red-600 hover:text-red-700 hover:bg-red-100/70",
                 isOpen.value && "hidden",
               ]}
             >
@@ -146,7 +148,7 @@ export const Navigation = component$<NavigationProps>((props) => {
         {/* Hamburger/X Button */}
         <button
           onClick$={handleToggle}
-          class="px-2 py-1 rounded-lg font-[var(--twk-lausanne)] text-xs tracking-tight transition-colors mr-2 bg-stone-200/70 text-stone-900 hover:bg-stone-200"
+          class="h-7 w-7 rounded-lg mr-2 flex items-center justify-center text-foreground bg-stone-200/70 hover:bg-stone-200 transition-colors"
           aria-label="Toggle menu"
         >
           {isOpen.value ? (
@@ -195,10 +197,10 @@ export const Navigation = component$<NavigationProps>((props) => {
                 class={[
                   "nav-item-animated",
                   `nav-item-${index + 1}`,
-                  "px-2 py-1 rounded-lg font-[var(--twk-lausanne)] text-xs tracking-tight transition-colors",
+                  "h-7 w-[52px] text-[12px] tracking-[-0.24px] rounded-lg font-[var(--twk-lausanne)] font-normal leading-tight flex items-center justify-center transition-colors",
                   location.url.pathname.startsWith(link.href)
-                    ? "bg-stone-200 text-stone-900"
-                    : "bg-stone-200/70 text-stone-400 hover:bg-stone-200",
+                    ? "text-foreground bg-stone-200"
+                    : "text-muted-foreground bg-stone-200/70 hover:text-foreground backdrop-blur-sm",
                 ]}
               >
                 {link.label}
@@ -212,7 +214,8 @@ export const Navigation = component$<NavigationProps>((props) => {
               class={[
                 "nav-item-animated",
                 "nav-item-5",
-                "px-2 py-1 rounded-lg font-[var(--twk-lausanne)] text-xs tracking-tight transition-colors bg-stone-200/70 text-stone-400 hover:bg-stone-200",
+                "h-7 w-[62px] text-[12px] tracking-[-0.24px] rounded-lg font-[var(--twk-lausanne)] font-normal leading-tight flex items-center justify-center transition-colors",
+                "text-muted-foreground bg-stone-200/70 hover:text-foreground backdrop-blur-sm",
               ]}
             >
               whatsapp
@@ -221,16 +224,18 @@ export const Navigation = component$<NavigationProps>((props) => {
         )}
       </div>
 
-      {/* Tablet/Desktop Navigation */}
       {!isAIVariant && (
         <div class="hidden sm:flex items-center gap-1.5 pointer-events-auto">
           {isLoomPage ? (
-            <Link href="/" class="group flex items-center bg-transparent">
-              <span class="overflow-hidden transition-all duration-200 ease-out group-hover:w-auto group-hover:opacity-100 w-0 opacity-0 mr-0 group-hover:mr-1.5">
-                <button class="px-2 py-1 rounded-lg font-[var(--twk-lausanne)] text-xs tracking-tight cursor-pointer whitespace-nowrap bg-stone-200/70 text-stone-400 hover:bg-stone-200">
+            <div class="group flex items-center bg-transparent">
+              <div class="overflow-hidden transition-all duration-200 ease-out group-hover:w-auto group-hover:opacity-100 w-0 opacity-0 mr-0 group-hover:mr-1.5">
+                <button
+                  onClick$={() => {}}
+                  class="h-7 w-[75px] text-[12px] tracking-[-0.24px] rounded-lg font-[var(--twk-lausanne)] font-normal leading-tight cursor-pointer whitespace-nowrap flex items-center justify-center bg-stone-200/70 text-muted-foreground hover:text-foreground backdrop-blur-sm transition-colors"
+                >
                   other dev
                 </button>
-              </span>
+              </div>
               <img
                 src="/otherdev-chat-logo-32.webp"
                 alt="Other Dev"
@@ -238,15 +243,15 @@ export const Navigation = component$<NavigationProps>((props) => {
                 height={16}
                 class="object-contain"
               />
-            </Link>
+            </div>
           ) : (
             <Link
               href="/"
               class={[
-                "px-2 py-1 rounded-lg font-[var(--twk-lausanne)] text-xs tracking-tight transition-colors",
+                "h-7 w-[75px] text-[12px] tracking-[-0.24px] rounded-lg font-[var(--twk-lausanne)] font-normal leading-tight flex items-center justify-center transition-colors",
                 location.url.pathname === "/"
-                  ? "bg-stone-200 text-stone-900"
-                  : "bg-stone-200/70 text-stone-400 hover:bg-stone-200",
+                  ? "text-foreground bg-stone-200"
+                  : "text-muted-foreground bg-stone-200/70 hover:text-foreground backdrop-blur-sm",
               ]}
             >
               other dev
@@ -258,10 +263,10 @@ export const Navigation = component$<NavigationProps>((props) => {
               key={link.href}
               href={link.href}
               class={[
-                "px-2 py-1 rounded-lg font-[var(--twk-lausanne)] text-xs tracking-tight transition-colors",
+                "h-7 w-[75px] text-[12px] tracking-[-0.24px] rounded-lg font-[var(--twk-lausanne)] font-normal leading-tight flex items-center justify-center transition-colors",
                 location.url.pathname.startsWith(link.href)
-                  ? "bg-stone-200 text-stone-900"
-                  : "bg-stone-200/70 text-stone-400 hover:bg-stone-200",
+                  ? "text-foreground bg-stone-200"
+                  : "text-muted-foreground bg-stone-200/70 hover:text-foreground backdrop-blur-sm",
               ]}
             >
               {link.label}
@@ -272,7 +277,7 @@ export const Navigation = component$<NavigationProps>((props) => {
             href={whatsappLink}
             target="_blank"
             rel="noopener noreferrer"
-            class="px-2 py-1 rounded-lg font-[var(--twk-lausanne)] text-xs tracking-tight transition-colors bg-stone-200/70 text-stone-400 hover:bg-stone-200"
+            class="h-7 w-[75px] text-[12px] tracking-[-0.24px] rounded-lg font-[var(--var(--twk-lausanne)] font-normal leading-tight flex items-center justify-center text-muted-foreground bg-stone-200/70 hover:text-foreground backdrop-blur-sm transition-colors"
           >
             whatsapp
           </Link>
