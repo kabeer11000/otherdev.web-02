@@ -2,9 +2,9 @@ import { component$ } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 
 const socialLinks = [
-  { href: "https://instagram.com", label: "Instagram" },
-  { href: "https://linkedin.com", label: "LinkedIn" },
-  { href: "https://wa.me", label: "WhatsApp" },
+  { href: "https://instagram.com/other.dev", label: "Instagram" },
+  { href: "https://linkedin.com/company/theotherdev/", label: "LinkedIn" },
+  { href: "https://wa.me/923156893331?text=Hi!%20I%20found%20you%20through%20otherdev.com%20and%20would%20love%20to%20discuss%20a%20project.", label: "WhatsApp" },
 ];
 
 export const Footer = component$(() => {

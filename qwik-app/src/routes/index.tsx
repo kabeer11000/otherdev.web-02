@@ -4,7 +4,43 @@ import { Navigation } from "~/components/navigation";
 import { ProjectCard } from "~/components/project-card";
 import { Footer } from "~/components/footer";
 import { ChatWidget } from "~/components/chat-widget";
-import { homeProjects } from "~/data/projects";
+import { workProjects } from "~/data/projects";
+import { playlistsAndImages } from "~/data/playlists-and-images";
+import { shuffle } from "~/lib/utils";
+
+// Extended project type that includes media array
+interface ExtendedProject {
+  id?: string;
+  title: string;
+  slug: string;
+  description?: string;
+  image: string;
+  url?: string;
+  media?: string[];
+  year?: number;
+  downloadUrl?: string;
+  isPlaylistOrImage?: boolean;
+}
+
+// Create projects with extra media[1] images as additional cards (using workProjects which has media arrays)
+const projectsWithExtraImages: ExtendedProject[] = workProjects.flatMap((project) => {
+  const cards: ExtendedProject[] = [{ ...project, slug: `work/${project.slug}` }];
+  if (project.media && project.media.length >= 2) {
+    cards.push({
+      ...project,
+      id: `${project.id}-media-2`,
+      slug: `work/${project.slug}`,
+      image: project.media[1],
+    });
+  }
+  return cards;
+});
+
+// Mix playlists/images with projects and shuffle
+const mixedData: (ExtendedProject | typeof playlistsAndImages[number])[] = shuffle([
+  ...playlistsAndImages,
+  ...projectsWithExtraImages,
+]);
 
 export default component$(() => {
   return (
@@ -20,13 +56,15 @@ export default component$(() => {
 
       {/* Project Grid */}
       <section class="px-3 pb-6">
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-[11px]">
-          {homeProjects.map((project) => (
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-[12px] gap-y-[15px]">
+          {mixedData.map((item, index) => (
             <ProjectCard
-              key={project.slug}
-              title={project.title}
-              href={`/work/${project.slug}`}
-              image={project.image}
+              key={'id' in item ? item.id : 'isPlaylistOrImage' in item ? item.id : item.slug}
+              title={item.title}
+              href={'slug' in item ? item.slug : item.url}
+              image={item.image}
+              variant={'isPlaylistOrImage' in item ? 'broll' : 'home'}
+              priority={index < 8}
             />
           ))}
         </div>
@@ -43,8 +81,27 @@ export const head: DocumentHead = {
   meta: [
     {
       name: "description",
-      content:
-        "otherdev produces digital platforms for pioneering creatives. Based in Karachi City, we are a full-service web development and design studio specializing in the fashion and design fields.",
+      content: "otherdev produces digital platforms for pioneering creatives. Based in Karachi City, we are a full-service web development and design studio specializing in the fashion and design fields.",
+    },
+    {
+      name: "keywords",
+      content: "web development, web design, digital platforms, fashion design, creative studio, Karachi, Other Dev",
+    },
+    {
+      property: "og:title",
+      content: "otherdev | Digital Platforms for Pioneering Creatives",
+    },
+    {
+      property: "og:description",
+      content: "otherdev produces digital platforms for pioneering creatives. Based in Karachi City, we are a full-service web development and design studio specializing in the fashion and design fields.",
+    },
+    {
+      property: "og:type",
+      content: "website",
+    },
+    {
+      name: "twitter:card",
+      content: "summary_large_image",
     },
   ],
 };
