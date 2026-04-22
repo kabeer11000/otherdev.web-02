@@ -102,8 +102,8 @@ export const ProjectCard = component$<ProjectCardProps>(({
               class="hover-tooltip fixed pointer-events-none z-50 rounded-md backdrop-blur-sm bg-stone-200/70 px-3 py-1.5"
               aria-hidden="true"
               style={{
-                left: `${mousePosition.value.x}px`,
-                top: `${mousePosition.value.y}px`,
+                left: `${mousePosition.value.x + 15}px`,
+                top: `${mousePosition.value.y + 15}px`,
               }}
             >
               <p class="text-[#686868] text-[11px] font-normal leading-[14px] whitespace-nowrap">
