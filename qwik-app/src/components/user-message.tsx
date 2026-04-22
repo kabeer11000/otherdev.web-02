@@ -25,7 +25,13 @@ export const UserMessage = component$<UserMessageProps>((props) => {
           )}
         </div>
       </div>
-      <div class="w-7 h-7 sm:h-8 sm:w-8 flex-shrink-0 rounded-full bg-stone-400" />
+      <img
+        src="/loom-avatar-64.webp"
+        alt="User"
+        width={32}
+        height={32}
+        class="h-7 w-7 flex-shrink-0 rounded-full sm:h-8 sm:w-8 object-contain"
+      />
     </div>
   );
 });
