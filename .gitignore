@@ -7,7 +7,7 @@ node_modules
 # testing
 coverage
 *.lcov
-
+.playwright-mcp
 # next.js
 .next/
 out/
