@@ -1,3 +1,43 @@
+@font-face {
+  font-family: 'TWKLausanne';
+  src: url('/fonts/TWKLausanne/TWKLausanne-200 (1).woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TWKLausanne';
+  src: url('/fonts/TWKLausanne/TWKLausanne-300-1.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TWKLausanne';
+  src: url('/fonts/TWKLausanne/TWKLausanne-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'QueensCompressed';
+  src: url('/fonts/QueensCompressed/QueensCompressed_W-Thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'QueensCompressed';
+  src: url('/fonts/QueensCompressed/QueensCompressed_W-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
 @import "tailwindcss";
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
