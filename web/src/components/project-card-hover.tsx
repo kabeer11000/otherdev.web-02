@@ -6,11 +6,11 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 const cardVariants = cva(
-  'relative aspect-square overflow-hidden rounded-[5px] transition-all flex items-center justify-center',
+  'relative aspect-square overflow-hidden rounded-[5px] transition-all duration-300 group-hover:motion-scale-in-102 group-hover:motion-shadow-in-6 flex items-center justify-center',
   {
     variants: {
       variant: {
-        home: 'bg-stone-200 -hover:shadow-lg',
+        home: 'bg-stone-200',
         broll: '',
       },
     },
@@ -28,10 +28,11 @@ const imageContainerVariants = cva('relative w-full h-full bg-stone-200', {
   defaultVariants: { variant: 'home' },
 })
 
-const imageVariants = cva('transition-transform duration-300', {
+const imageVariants = cva('transition-all duration-300 group-hover:motion-scale-in-102', {
   variants: {
     variant: {
-      home: 'object-contain group-hover:scale-[1.02] p-6',
+      home: 'object-contain group-hover:motion-translate-y-in-[-2px] p-6 group-hover:motion-shadow-in-8',
+      work: 'object-contain group-hover:scale-[0.99] p-6',
       broll: 'object-cover',
     },
   },

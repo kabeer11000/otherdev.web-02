@@ -74,7 +74,7 @@ export default async function BlogPage() {
         {posts.map((post, index) => (
           <article
             key={post.id}
-            className="md:border duration-300 hover:bg-neutral-200 rounded-md hover:rounded-xl md:p-4 hover:shadow-lg transition-shadow animate-in fade-in slide-in-from-bottom-4 duration-500"
+            className="md:border duration-300 rounded-md md:p-4 hover:shadow-lg transition-shadow hover:motion-scale-in-102 hover:motion-shadow-in-6 animate-in fade-in slide-in-from-bottom-4 duration-500 motion-duration-300"
             style={{ animationDelay: `${index * 80}ms` }}
           >
             <h2 className="text-sm font-bold mb-2">

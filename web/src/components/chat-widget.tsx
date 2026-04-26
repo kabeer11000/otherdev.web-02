@@ -38,8 +38,8 @@ export function ChatWidget() {
             'flex border items-center justify-center',
             'rounded-full shadow-sm',
             'bg-background',
-            'hover:opacity-80 hover:scale-110',
-            'transition-all focus:outline-none'
+            'hover:opacity-80 hover:motion-scale-in-110 active:motion-scale-out-95',
+            'transition-all focus:outline-none motion-duration-200'
           )}
           style={{ zIndex: Z_INDEX.chatButton }}
           aria-label="Open chat"
@@ -88,7 +88,7 @@ export function ChatWidget() {
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="bg-transparent border-none hover:opacity-80 transition-all cursor-pointer p-0"
+              className="bg-transparent border-none hover:opacity-80 hover:motion-scale-in-95 transition-all cursor-pointer p-0 motion-duration-150"
               aria-label="Close chat"
             >
               <ChevronDown className="h-5 w-5 text-primary" strokeWidth={2} />

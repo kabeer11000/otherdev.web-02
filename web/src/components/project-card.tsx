@@ -32,10 +32,10 @@ const imageContainerVariants = cva('relative w-full h-full bg-stone-200', {
   },
 })
 
-const imageVariants = cva('transition-transform duration-300', {
+const imageVariants = cva('transition-all duration-300 group-hover:motion-scale-in-102', {
   variants: {
     variant: {
-      home: 'object-contain group-hover:scale-[1.02] p-6',
+      home: 'object-contain group-hover:motion-translate-y-in-[-2px] p-6 group-hover:motion-shadow-in-8',
       work: 'object-contain group-hover:scale-[0.99] p-6',
       broll: 'object-cover',
     },
