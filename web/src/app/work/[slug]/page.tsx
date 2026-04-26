@@ -80,7 +80,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
       <main className="px-3">
         <div className="pt-[69px]">
-          <h1 className="text-[28px] sm:text-[30px] leading-[1.1] tracking-[-0.48px] font-bold text-black mb-[12px]">
+          <h1 className="text-[28px] sm:text-[30px] leading-[1.1] tracking-[-0.48px] font-bold text-black mb-[12px] animate-in fade-in slide-in-from-bottom-2 duration-500">
             {project.title}
           </h1>
 
@@ -89,7 +89,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
               href={`https://${project.url}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex bg-neutral-200 hover:bg-neutral-300 transition-colors rounded-[5px] h-[24px] px-[12px] items-center gap-2 mb-[12px] w-fit"
+              className="inline-flex bg-neutral-200 hover:bg-neutral-300 transition-colors rounded-[5px] h-[24px] px-[12px] items-center gap-2 mb-[12px] w-fit animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100"
             >
               <span className="text-[11px] leading-[14px] tracking-[-0.24px] font-normal text-[#686868]">
                 {project.url}
@@ -97,7 +97,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             </a>
           )}
 
-          <p className="text-[13px] sm:text-[14px] leading-[18px] tracking-[-0.24px] font-normal text-black mb-[32px] max-w-[315px] sm:max-w-[532px]">
+          <p className="text-[13px] sm:text-[14px] leading-[18px] tracking-[-0.24px] font-normal text-black mb-[32px] max-w-[315px] sm:max-w-[532px] animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150">
             {project.description}
           </p>
 

@@ -61,7 +61,7 @@ export default async function BlogPage() {
   return (
     <div className="relative px-4 py-4">
       <div className="flex sticky top-0">
-        <h1 className="text-sm mb-2 bg-neutral-200 rounded-md p-2 cursor-pointer hover:bg-neutral-300">
+        <h1 className="text-sm mb-2 bg-neutral-200 rounded-md p-2 cursor-pointer hover:bg-neutral-300 animate-in fade-in">
           <span className="font-bold">OD</span> / Blog
         </h1>
       </div>
@@ -71,10 +71,11 @@ export default async function BlogPage() {
       </p>
 
       <div className="grid gap-8 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
-        {posts.map(post => (
+        {posts.map((post, index) => (
           <article
             key={post.id}
-            className="md:border duration-300 hover:bg-neutral-200 rounded-md hover:rounded-xl md:p-4 hover:shadow-lg transition-shadow"
+            className="md:border duration-300 hover:bg-neutral-200 rounded-md hover:rounded-xl md:p-4 hover:shadow-lg transition-shadow animate-in fade-in slide-in-from-bottom-4 duration-500"
+            style={{ animationDelay: `${index * 80}ms` }}
           >
             <h2 className="text-sm font-bold mb-2">
               <Link href={`/blog/${post.id}`} className="text-neutral-900 hover:text-blue-600">

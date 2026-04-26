@@ -80,7 +80,7 @@ export default function AboutPage() {
         {/* Hero Image */}
         <div className="grid grid-cols-12 gap-[12px]">
           <div className="col-span-12 sm:col-span-10">
-            <div className="relative w-full aspect-[9/4] rounded-[5px] overflow-hidden">
+            <div className="relative w-full aspect-[9/4] rounded-[5px] overflow-hidden animate-in fade-in zoom-in-95 duration-500">
               <Image
                 src="/images/about-page/about-team-combined.webp"
                 alt="The members of otherdev"
@@ -104,7 +104,7 @@ export default function AboutPage() {
         {/* About Section */}
         <div className="mt-[30px] grid grid-cols-8 sm:grid-cols-12 gap-[6px] sm:gap-[12px]">
           <div className="col-span-7 sm:col-span-8 md:col-span-7 lg:col-span-6 xl:col-span-5">
-            <p className="text-[#686868] text-[11px] font-normal leading-[14px] tracking-[-0.24px]">
+            <p className="text-[#686868] text-[11px] font-normal leading-[14px] tracking-[-0.24px] animate-in fade-in slide-in-from-bottom-2 duration-500">
               About
             </p>
             <p className="mt-[9px] text-black text-[12px] font-normal leading-[14px] tracking-[-0.24px] whitespace-pre-line">
@@ -120,7 +120,7 @@ export default function AboutPage() {
         {/* Clients Section */}
         <div className="mt-[30px] grid grid-cols-12 gap-[12px]">
           <div className="col-span-12 sm:col-span-8 md:col-span-7 lg:col-span-6">
-            <p className="text-[#686868] text-[11px] font-normal leading-[14px] tracking-[-0.24px]">
+            <p className="text-[#686868] text-[11px] font-normal leading-[14px] tracking-[-0.24px] animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150">
               Clients
             </p>
             <div className="mt-[9px] grid grid-cols-2 sm:grid-cols-3 gap-[12px] gap-y-[6px]">
@@ -129,7 +129,8 @@ export default function AboutPage() {
                   <p
                     // biome-ignore lint/suspicious/noArrayIndexKey: Static client list that never reorders
                     key={`desktop-${rowIndex}-${colIndex}`}
-                    className="hidden sm:block text-black text-[11px] font-normal leading-[14px] tracking-[-0.24px]"
+                    className="hidden sm:block text-black text-[11px] font-normal leading-[14px] tracking-[-0.24px] animate-in fade-in slide-in-from-bottom-2 duration-300"
+                    style={{ animationDelay: `${(rowIndex * 3 + colIndex) * 50 + 200}ms` }}
                   >
                     {client}
                   </p>

@@ -59,7 +59,7 @@ export default function WorkPage() {
 
       <main className="container -mx-auto px-3 pr-3 md:pr-[8%] lg:pr-[15%] pt-[60px] pb-12">
         <div className="grid grid-cols-12 mb-8">
-          <p className="text-[#686868] text-[11px] leading-[14px] font-normal col-span-7 sm:col-span-8 md:col-span-7 lg:col-span-6">
+          <p className="text-[#686868] text-[11px] leading-[14px] font-normal col-span-7 sm:col-span-8 md:col-span-7 lg:col-span-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
             We work closely with our collaborators to engineer premium web and design solutions.
             Below is a selection showcasing some of our most recent work.
           </p>
@@ -73,16 +73,21 @@ export default function WorkPage() {
               }
               return parseInt(b.id, 10) - parseInt(a.id, 10)
             })
-            .map(project => (
-              <ProjectCard
+            .map((project, index) => (
+              <div
                 key={project.id}
-                title={project.title}
-                slug={project.slug}
-                image={project.image}
-                description={project.description}
-                variant="work"
-                showText={true}
-              />
+                className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <ProjectCard
+                  title={project.title}
+                  slug={project.slug}
+                  image={project.image}
+                  description={project.description}
+                  variant="work"
+                  showText={true}
+                />
+              </div>
             ))}
         </div>
         <Footer />

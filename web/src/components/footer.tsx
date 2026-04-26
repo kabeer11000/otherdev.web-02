@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export function Footer() {
   return (
-    <section className="mt-[30px]">
+    <section className="mt-[30px] animate-in fade-in slide-in-from-bottom-4 duration-500">
       <h2 className="text-[#686868] text-[11px] font-twk font-normal leading-[14px] tracking-[-0.24px] mb-[13px]">
         Social
       </h2>

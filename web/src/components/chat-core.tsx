@@ -798,7 +798,7 @@ export function ChatCore({
                     {greeting ? (
                       <h2
                         key={greeting}
-                        className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl animate-in fade-in slide-in-from-bottom-4 duration-400"
+                        className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl animate-in fade-in slide-in-from-bottom-4 duration-500"
                         suppressHydrationWarning
                       >
                         {greeting}

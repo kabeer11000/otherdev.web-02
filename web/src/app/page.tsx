@@ -71,7 +71,7 @@ export default async function Home() {
       <Navigation />
       <main className="container -mx-auto px-3 pr-3 md:pr-[8%] lg:pr-[15%] pt-[60px] pb-12">
         <div className="grid grid-cols-12 mb-8">
-          <p className="text-[#686868] text-[11px] leading-[14px] font-normal col-span-12 sm:col-span-8 md:col-span-7 lg:col-span-6">
+          <p className="text-[#686868] text-[11px] leading-[14px] font-normal col-span-12 sm:col-span-8 md:col-span-7 lg:col-span-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
             otherdev produces digital platforms for pioneering creatives. Based in Karachi City, we
             are a full-service web development and design studio specializing in the fashion and
             design fields.
@@ -79,15 +79,20 @@ export default async function Home() {
         </div>
         <div className="mt-[30px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[12px] gap-y-[15px]">
           {data.map((project, index) => (
-            <ProjectCard
+            <div
               key={project.id}
-              title={project.title}
-              slug={'slug' in project ? project.slug : (project.url ?? '')}
-              image={project.image}
-              description={project.description}
-              variant={'isPlaylistOrImage' in project ? 'broll' : 'home'}
-              priority={index < 8}
-            />
+              className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+              style={{ animationDelay: `${index * 80}ms` }}
+            >
+              <ProjectCard
+                title={project.title}
+                slug={'slug' in project ? project.slug : (project.url ?? '')}
+                image={project.image}
+                description={project.description}
+                variant={'isPlaylistOrImage' in project ? 'broll' : 'home'}
+                priority={index < 8}
+              />
+            </div>
           ))}
         </div>
         <Footer />
