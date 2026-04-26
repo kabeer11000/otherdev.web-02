@@ -1,6 +1,5 @@
 'use client'
 
-import { AnimatePresence, motion } from 'framer-motion'
 import { Menu, Trash2, X } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
@@ -34,15 +33,13 @@ export function Navigation({
   const router = useRouter()
   const isAIVariant = variant === 'ai'
 
-  // Restore mobile menu state from sessionStorage
   useEffect(() => {
     const saved = sessionStorage.getItem('mobileMenuOpen')
     if (saved === 'true') {
       setIsOpen(true)
     }
-  }, []) // Intentionally empty - only restore on mount
+  }, [])
 
-  // Persist mobile menu state to sessionStorage
   useEffect(() => {
     sessionStorage.setItem('mobileMenuOpen', isOpen.toString())
   }, [isOpen])
@@ -53,55 +50,45 @@ export function Navigation({
 
   return (
     <nav className="fixed top-[15px] left-0 right-0 z-[60] px-3 pointer-events-none">
-      {/* Mobile Navigation (or AI variant) */}
       <div
         className={cn(
           'flex items-center justify-between w-full pointer-events-auto relative z-50',
           isAIVariant ? '' : 'sm:hidden'
         )}
       >
-        <AnimatePresence mode="wait">
-          {!isOpen && (
-            <motion.div
-              key="otherdev-pill"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.2 }}
-            >
-              {isLoomPage ? (
-                <Button
-                  variant="nav"
-                  size="icon"
-                  className={cn('flex items-center bg-transparent gap-1.5 rounded-full')}
-                >
-                  <Image
-                    src="/otherdev-chat-logo-32.webp"
-                    alt="Other Dev"
-                    width={16}
-                    height={16}
-                    className="object-contain"
-                    priority
-                    style={{ width: 'auto', height: 'auto' }}
-                  />
-                </Button>
-              ) : (
-                <Button
-                  asChild
-                  variant="nav"
-                  size="nav-default"
-                  className={pathname === '/' ? 'text-foreground' : ''}
-                >
-                  <Link href="/" data-slot="nav-item">
-                    other dev
-                  </Link>
-                </Button>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {!isOpen && (
+          <div className="animate-in fade-in zoom-in-95 duration-200">
+            {isLoomPage ? (
+              <Button
+                variant="nav"
+                size="icon"
+                className={cn('flex items-center bg-transparent gap-1.5 rounded-full')}
+              >
+                <Image
+                  src="/otherdev-chat-logo-32.webp"
+                  alt="Other Dev"
+                  width={16}
+                  height={16}
+                  className="object-contain"
+                  priority
+                  style={{ width: 'auto', height: 'auto' }}
+                />
+              </Button>
+            ) : (
+              <Button
+                asChild
+                variant="nav"
+                size="nav-default"
+                className={pathname === '/' ? 'text-foreground' : ''}
+              >
+                <Link href="/" data-slot="nav-item">
+                  other dev
+                </Link>
+              </Button>
+            )}
+          </div>
+        )}
         <div className="flex items-center gap-1.5 ml-auto">
-          {/* Clear Chat Button */}
           {isLoomPage && onClear && !hasActiveArtifact && (
             <Button
               variant="nav"
@@ -117,7 +104,6 @@ export function Navigation({
             </Button>
           )}
         </div>
-        {/* Hamburger/X Button */}
         <Button
           variant="nav"
           size="nav-icon"
@@ -126,158 +112,92 @@ export function Navigation({
           className="text-foreground mr-2"
           aria-label="Toggle menu"
         >
-          <AnimatePresence mode="wait">
-            {isOpen ? (
-              <motion.div
-                key="x-icon"
-                initial={{ opacity: 0, rotate: -90 }}
-                animate={{ opacity: 1, rotate: 0 }}
-                exit={{ opacity: 0, rotate: 90 }}
-                transition={{ duration: 0.2 }}
-              >
-                <X size={16} strokeWidth={1.5} />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="menu-icon"
-                initial={{ opacity: 0, rotate: 90 }}
-                animate={{ opacity: 1, rotate: 0 }}
-                exit={{ opacity: 0, rotate: -90 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Menu size={16} strokeWidth={1.5} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {isOpen ? (
+            <span className="animate-in fade-in zoom-in-95 duration-200">
+              <X size={16} strokeWidth={1.5} />
+            </span>
+          ) : (
+            <span className="animate-in fade-in zoom-in-95 duration-200">
+              <Menu size={16} strokeWidth={1.5} />
+            </span>
+          )}
         </Button>
 
-        <AnimatePresence mode="wait">
-          {isOpen && (
-            <motion.div
-              key="menu-open"
-              className="flex items-center gap-1.5 flex-1"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
+        {isOpen && (
+          <div
+            key="menu-open"
+            className="flex items-center gap-1.5 flex-1 animate-in fade-in duration-200"
+          >
+            <div className="animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: '100ms' }}>
+              <Button
+                asChild
+                variant="nav"
+                size="nav-mobile"
+                className={pathname?.startsWith('/work') ? 'text-foreground' : ''}
               >
-                <Button
-                  asChild
-                  variant="nav"
-                  size="nav-mobile"
-                  className={pathname?.startsWith('/work') ? 'text-foreground' : ''}
-                >
-                  <Link href="/work" data-slot="nav-item">
-                    work
-                  </Link>
-                </Button>
-              </motion.div>
+                <Link href="/work" data-slot="nav-item">
+                  work
+                </Link>
+              </Button>
+            </div>
 
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2, duration: 0.3 }}
+            <div className="animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: '150ms' }}>
+              <Button
+                asChild
+                variant="nav"
+                size="nav-mobile"
+                className={pathname?.startsWith('/about') ? 'text-foreground' : ''}
               >
-                <Button
-                  asChild
-                  variant="nav"
-                  size="nav-mobile"
-                  className={pathname?.startsWith('/about') ? 'text-foreground' : ''}
-                >
-                  <Link href="/about" data-slot="nav-item">
-                    about
-                  </Link>
-                </Button>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.25, duration: 0.3 }}
+                <Link href="/about" data-slot="nav-item">
+                  about
+                </Link>
+              </Button>
+            </div>
+            <div className="animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: '200ms' }}>
+              <Button
+                asChild
+                variant="nav"
+                size="nav-mobile"
+                className={pathname?.startsWith('/loom') ? 'text-foreground' : ''}
               >
-                <Button
-                  asChild
-                  variant="nav"
-                  size="nav-mobile"
-                  className={pathname?.startsWith('/loom') ? 'text-foreground' : ''}
-                >
-                  <Link href="/loom" data-slot="nav-item">
-                    ai
-                  </Link>
-                </Button>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.26, duration: 0.3 }}
+                <Link href="/loom" data-slot="nav-item">
+                  ai
+                </Link>
+              </Button>
+            </div>
+            <div className="animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: '250ms' }}>
+              <Button
+                asChild
+                variant="nav"
+                size="nav-mobile"
+                className={pathname === '/work/ads-portfolio' ? 'text-foreground' : ''}
               >
-                <Button
-                  asChild
-                  variant="nav"
-                  size="nav-mobile"
-                  className={pathname === '/work/ads-portfolio' ? 'text-foreground' : ''}
-                >
-                  <Link href="/work/ads-portfolio" data-slot="nav-item">
-                    ads
-                  </Link>
-                </Button>
-              </motion.div>
-              {/* <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.27, duration: 0.3 }}
-              >
-                <Button
-                  variant="nav"
-                  size="nav-mobile-wide"
-                  onClick={handleContactClick}
+                <Link href="/work/ads-portfolio" data-slot="nav-item">
+                  ads
+                </Link>
+              </Button>
+            </div>
+            <div className="animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: '300ms' }}>
+              <Button asChild variant="nav" size="nav-mobile-wide">
+                <Link
+                  href="https://wa.me/923156893331?text=Hi!%20I%20found%20you%20through%20otherdev.com%20and%20would%20love%20to%20discuss%20a%20project."
+                  target="_blank"
+                  rel="noopener noreferrer"
                   data-slot="nav-item"
                 >
-                  Contact
-                </Button>
-              </motion.div> */}
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.32, duration: 0.3 }}
-              >
-                <Button asChild variant="nav" size="nav-mobile-wide">
-                  <Link
-                    href="https://wa.me/923156893331?text=Hi!%20I%20found%20you%20through%20otherdev.com%20and%20would%20love%20to%20discuss%20a%20project."
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-slot="nav-item"
-                  >
-                    whatsapp
-                  </Link>
-                </Button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  whatsapp
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Tablet/Desktop Navigation */}
       {!isAIVariant && (
         <div className="hidden sm:flex items-center gap-1.5 pointer-events-auto">
           {isLoomPage ? (
-            <motion.div
-              className="group flex items-center bg-transparent"
-              whileHover="hover"
-              initial="idle"
-            >
-              <motion.div
-                className="overflow-hidden"
-                variants={{
-                  idle: { width: 0, opacity: 0, marginRight: 0 },
-                  hover: { width: 'auto', opacity: 1, marginRight: 6 },
-                }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-              >
+            <div className="group flex items-center bg-transparent">
+              <div className="overflow-hidden group-hover:w-auto group-hover:opacity-100 group-hover:mr-1.5 w-0 opacity-0 mr-0 transition-all duration-200 ease-out">
                 <Button
                   variant="nav"
                   size="nav-default"
@@ -289,16 +209,9 @@ export function Navigation({
                 >
                   other dev
                 </Button>
-              </motion.div>
+              </div>
 
-              <motion.div
-                className="relative"
-                variants={{
-                  idle: { opacity: 1 },
-                  hover: { opacity: 0 },
-                }}
-                transition={{ duration: 0.15, ease: 'easeOut' }}
-              >
+              <div className="group-hover:opacity-0 transition-opacity duration-150 ease-out">
                 <Link href="/" data-slot="nav-item">
                   <Image
                     src="/otherdev-chat-logo-32.webp"
@@ -310,8 +223,8 @@ export function Navigation({
                     style={{ width: 'auto', height: 'auto' }}
                   />
                 </Link>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
           ) : (
             <Button
               asChild
@@ -368,15 +281,6 @@ export function Navigation({
             </Link>
           </Button>
 
-          {/* <Button
-            variant="nav"
-            size="nav-default"
-            onClick={handleContactClick}
-            data-slot="nav-item"
-          >
-            Contact
-          </Button> */}
-
           <Button asChild variant="nav" size="nav-default">
             <Link
               href="https://wa.me/923156893331?text=Hi!%20I%20found%20you%20through%20otherdev.com%20and%20would%20love%20to%20discuss%20a%20project."
@@ -404,17 +308,15 @@ export function Navigation({
         </div>
       )}
 
-      {/* Backdrop */}
       {isOpen && (
         <div
           className={cn(
-            'fixed inset-0 z-30 -backdrop-blur-lg pointer-events-none',
+            'fixed inset-0 z-30 bg-black/[.02] backdrop-blur-xs pointer-events-none',
             isAIVariant ? '' : 'sm:hidden'
           )}
         />
       )}
 
-      {/* Contact Dialog */}
       <ContactDialog open={contactDialogOpen} onOpenChange={setContactDialogOpen} />
     </nav>
   )

@@ -8,12 +8,11 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
   type UIMessage,
 } from 'ai'
-import { AnimatePresence, motion } from 'framer-motion'
+import { ChevronDown } from 'lucide-react'
 import {
   ArrowUp,
   AudioLines,
   Briefcase,
-  ChevronDown,
   ChevronRight,
   Code2,
   FileCode2,
@@ -797,16 +796,13 @@ export function ChatCore({
                       />
                     </div>
                     {greeting ? (
-                      <motion.h2
+                      <h2
                         key={greeting}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, ease: 'easeOut' }}
-                        className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl"
+                        className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl animate-in fade-in slide-in-from-bottom-4 duration-400"
                         suppressHydrationWarning
                       >
                         {greeting}
-                      </motion.h2>
+                      </h2>
                     ) : (
                       <div className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl" />
                     )}
@@ -879,21 +875,15 @@ export function ChatCore({
         </ChatContainerContent>
       </ChatContainerRoot>
 
-      <AnimatePresence>
-        {showButton && (
-          <motion.button
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            transition={{ duration: 0.2 }}
+      {showButton && (
+          <button
+            className="absolute bottom-28 sm:bottom-32 right-4 sm:right-6 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background shadow-lg hover:opacity-90 active:scale-95 transition-all animate-in fade-in zoom-in-95 duration-200"
             onClick={scrollToBottom}
-            className="absolute bottom-28 sm:bottom-32 right-4 sm:right-6 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background shadow-lg hover:opacity-90 active:scale-95 transition-all"
             aria-label="Scroll to bottom"
           >
             <ChevronDown className="h-4 w-4" />
-          </motion.button>
+          </button>
         )}
-      </AnimatePresence>
 
       <div className="absolute bottom-0 left-0 right-0 z-10 p-3 sm:p-4 w-full max-w-3xl mx-auto pointer-events-none">
         <div className="space-y-3 pointer-events-auto">

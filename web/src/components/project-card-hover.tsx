@@ -1,7 +1,6 @@
 'use client'
 
 import { cva } from 'class-variance-authority'
-import { AnimatePresence, motion } from 'motion/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -82,27 +81,21 @@ export function ProjectCardHover({
         </div>
       </Link>
 
-      <AnimatePresence>
-        {isHovered && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className="fixed pointer-events-none z-50"
-            style={{
-              left: `${mousePosition.x + 15}px`,
-              top: `${mousePosition.y + 15}px`,
-            }}
-          >
-            <div className="rounded-md backdrop-blur-sm bg-stone-200/70 px-3 py-1.5">
-              <p className="text-[#686868] text-[11px] font-normal leading-[14px] whitespace-nowrap">
-                {title}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isHovered && (
+        <div
+          className="fixed pointer-events-none z-50 animate-in fade-in zoom-in-95 duration-200"
+          style={{
+            left: `${mousePosition.x + 15}px`,
+            top: `${mousePosition.y + 15}px`,
+          }}
+        >
+          <div className="rounded-md backdrop-blur-sm bg-stone-200/70 px-3 py-1.5">
+            <p className="text-[#686868] text-[11px] font-normal leading-[14px] whitespace-nowrap">
+              {title}
+            </p>
+          </div>
+        </div>
+      )}
     </>
   )
 }
