@@ -1,13 +1,18 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // Disable TypeScript type checking during build
+  // Disable TypeScript type checking during build (CI runs tsc --noEmit separately)
   typescript: {
     ignoreBuildErrors: true,
   },
-  /* config options here */
   reactCompiler: true,
   cacheComponents: true,
+  // Mark server-only packages so they don't leak into client bundles
+  serverExternalPackages: ['firebase-admin', 'googleapis', 'nodemailer', 'pdfjs-dist'],
+  // Optimize heavy package imports for faster bundling
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'clsx', 'date-fns', 'embla-carousel-react'],
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
