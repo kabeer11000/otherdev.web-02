@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   reactCompiler: {
     compilationMode: 'annotation',
   },
-  cacheComponents: true,
+  cacheComponents: false,
   // Mark server-only packages so they don't leak into client bundles
   serverExternalPackages: ['firebase-admin', 'googleapis', 'nodemailer', 'pdfjs-dist'],
   // Optimize heavy package imports for faster bundling

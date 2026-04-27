@@ -1,16 +1,13 @@
 import { CanvasClient } from '@od-canvas/sdk'
-import { cacheLife, cacheTag } from 'next/cache'
 import Link from 'next/link'
 import sanitizeHtml from 'sanitize-html'
 import { buildSocialMetadata } from '@/lib/metadata'
 
+export const revalidate = 3600
+
 type PageProps = { params: Promise<{ slug: string }> }
 
 async function getBlogPost(id: number) {
-  'use cache'
-  cacheLife('hours')
-  cacheTag('blog-posts', `blog-post-${id}`)
-
   const canvas = new CanvasClient({
     baseUrl: process.env.CANVAS_API_URL,
     apiKey: process.env.CANVAS_API_KEY,

@@ -1,13 +1,10 @@
 import { CanvasClient } from '@od-canvas/sdk'
 import type { MetadataRoute } from 'next'
-import { cacheLife, cacheTag } from 'next/cache'
 import { projects } from '@/lib/projects'
 
-async function getSitemapBlogRoutes(): Promise<MetadataRoute.Sitemap> {
-  'use cache'
-  cacheLife('hours')
-  cacheTag('blog-posts')
+export const revalidate = 3600
 
+async function getSitemapBlogRoutes(): Promise<MetadataRoute.Sitemap> {
   const canvas = new CanvasClient({
     baseUrl: process.env.CANVAS_API_URL,
     apiKey: process.env.CANVAS_API_KEY,
