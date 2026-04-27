@@ -1,19 +1,15 @@
 // src/components/chat-provider.tsx
 'use client'
 
-import { createAI } from '@ai-sdk/rsc'
 import type { ReactNode } from 'react'
 
 interface ChatProviderProps {
   children: ReactNode
 }
 
-// createAI requires actions to be passed - the actual actions are used
-// via useActions() in child components which access the wrapped server actions
+// ChatProvider was previously used for AI SDK RSC integration (createAI).
+// In AI SDK v6, createAI from @ai-sdk/rsc was removed. Since ChatProvider
+// is not currently imported anywhere in the codebase, it is a passthrough.
 export function ChatProvider({ children }: ChatProviderProps) {
-  return createAI({
-    actions: {},
-    initialUIState: [],
-    initialAIState: [],
-  })({ children })
+  return <>{children}</>
 }

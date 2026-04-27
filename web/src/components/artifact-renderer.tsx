@@ -217,7 +217,6 @@ export function ArtifactRenderer({ toolCall, mode = 'inline', onClose }: Artifac
           <TabsContent
             value="preview"
             className="m-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
-            forceMount
           >
             <iframe
               ref={iframeRef}
@@ -230,7 +229,6 @@ export function ArtifactRenderer({ toolCall, mode = 'inline', onClose }: Artifac
           <TabsContent
             value="code"
             className="m-0 flex-1 overflow-auto data-[state=inactive]:hidden"
-            forceMount
           >
             {highlightedCode ? (
               <div

@@ -38,8 +38,7 @@ function PopoverContent({
   )
 }
 
-function PopoverAnchor({ ...props }: React.ComponentProps<typeof Popover.Anchor>) {
-  return <Popover.Anchor data-slot="popover-anchor" {...props} />
-}
+// PopoverAnchor is not available in @base-ui/react — positioning is handled via Popover.Positioner
+const PopoverAnchor = () => null
 
 export { PopoverRoot as Popover, PopoverTrigger, PopoverContent, PopoverAnchor }

@@ -9,11 +9,8 @@ function TooltipProvider({ children }: React.PropsWithChildren) {
   return <>{children}</>
 }
 
-function TooltipRoot({
-  delay = 0,
-  ...props
-}: React.ComponentProps<typeof Tooltip.Root> & { delayDuration?: number; delay?: number }) {
-  return <Tooltip.Root delay={delay} data-slot="tooltip" {...props} />
+function TooltipRoot({ ...props }: React.ComponentProps<typeof Tooltip.Root>) {
+  return <Tooltip.Root data-slot="tooltip" {...props} />
 }
 
 function TooltipTrigger({
@@ -77,7 +74,7 @@ function TooltipComponent({
 }: React.ComponentProps<typeof Tooltip.Root> & { delayDuration?: number }) {
   return (
     <TooltipProvider>
-      <TooltipRoot delay={delayDuration} {...props} />
+      <TooltipRoot {...props} />
     </TooltipProvider>
   )
 }

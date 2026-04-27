@@ -5,9 +5,7 @@ const voyage = createVoyage({
   apiKey: process.env.VOYAGE_API_KEY,
 })
 
-const embeddingModel = voyage.textEmbeddingModel('voyage-4-lite', {
-  inputType: 'document',
-})
+const embeddingModel = voyage.textEmbeddingModel('voyage-4-lite')
 
 // Simple memo cache for embeddings — works in all JS environments
 const embeddingCache = new Map<string, Promise<number[]>>()
@@ -35,7 +33,7 @@ async function doGenerateEmbedding(
   text: string,
   inputType: 'query' | 'document' = 'query'
 ): Promise<number[]> {
-  const model = voyage.textEmbeddingModel('voyage-4-lite', { inputType })
+  const model = voyage.textEmbeddingModel('voyage-4-lite')
   const { embeddings } = await embedMany({
     model,
     values: [text],
@@ -50,7 +48,7 @@ export async function generateEmbeddingBatch(
 ): Promise<number[][]> {
   if (texts.length === 0) return []
 
-  const model = voyage.textEmbeddingModel('voyage-4-lite', { inputType })
+  const model = voyage.textEmbeddingModel('voyage-4-lite')
   const { embeddings } = await embedMany({
     model,
     values: texts,

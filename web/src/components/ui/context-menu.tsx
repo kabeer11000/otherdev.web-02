@@ -10,9 +10,9 @@ function ContextMenu({ ...props }: React.ComponentProps<typeof Menu.Root>) {
   return <Menu.Root {...props} />
 }
 
-// Context menus open on right-click via ContextTrigger
-function ContextMenuTrigger({ ...props }: React.ComponentProps<typeof Menu.ContextTrigger>) {
-  return <Menu.ContextTrigger data-slot="context-menu-trigger" {...props} />
+// Context menus open on right-click via Trigger
+function ContextMenuTrigger({ ...props }: React.ComponentProps<typeof Menu.Trigger>) {
+  return <Menu.Trigger data-slot="context-menu-trigger" {...props} />
 }
 
 function ContextMenuGroup({ ...props }: React.ComponentProps<typeof Menu.Group>) {

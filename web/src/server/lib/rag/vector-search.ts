@@ -72,7 +72,7 @@ export const searchSimilarDocuments = cache(async function searchSimilarDocument
     setTimeout(() => reject(new Error('Firestore vector search timed out after 10s')), 10000)
   })
 
-  let snapshot: QuerySnapshot<DocumentData>
+  let snapshot: Awaited<ReturnType<typeof vectorQuery.get>>
   try {
     snapshot = await Promise.race([vectorQuery.get(), timeoutPromise])
   } catch (error) {

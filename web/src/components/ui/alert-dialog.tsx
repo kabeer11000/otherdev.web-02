@@ -7,7 +7,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 function AlertDialog({ ...props }: React.ComponentProps<typeof Dialog.Root>) {
-  return <Dialog.Root data-slot="alert-dialog" dismissible={false} {...props} />
+  return <Dialog.Root data-slot="alert-dialog" {...props} />
 }
 
 function AlertDialogTrigger({ ...props }: React.ComponentProps<typeof Dialog.Trigger>) {
