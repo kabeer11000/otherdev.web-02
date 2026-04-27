@@ -1,10 +1,19 @@
 'use client'
 
+import type { Metadata, Viewport } from 'next'
 import { Button } from '@/components/ui/button'
 
+export const metadata: Metadata = {
+  title: 'Error - Other Dev',
+}
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
+
 export default function GlobalError({
-  error: _error,
-  reset: _reset,
+  reset,
 }: {
   error: Error & { digest?: string }
   reset: () => void
@@ -20,7 +29,7 @@ export default function GlobalError({
               An unexpected error occurred. Please try again.
             </p>
             <div className="flex gap-4">
-              <Button onClick={() => _reset()} size="lg" className="rounded-lg text-base">
+              <Button onClick={() => reset()} size="lg" className="rounded-lg text-base">
                 Try again
               </Button>
               <Button asChild variant="outline" size="lg" className="rounded-lg text-base">
@@ -31,7 +40,6 @@ export default function GlobalError({
 
           <div className="relative flex h-[400px] max-h-screen w-full p-2 lg:h-full">
             <div className="h-full w-full rounded-2xl bg-black" />
-            {/* biome-ignore lint/performance/noImgElement: External CDN image for error illustration */}
             <img
               src="https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/error/image-1.png"
               alt="Error illustration"
