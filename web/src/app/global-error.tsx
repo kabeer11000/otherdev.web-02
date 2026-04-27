@@ -1,4 +1,7 @@
+'use no memo'
 'use client'
+
+import { Button } from '@/components/ui/button'
 
 export default function GlobalError({
   reset,
@@ -17,18 +20,12 @@ export default function GlobalError({
               An unexpected error occurred. Please try again.
             </p>
             <div className="flex gap-4">
-              <button
-                onClick={() => reset()}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6"
-              >
+              <Button size="lg" onClick={() => reset()}>
                 Try again
-              </button>
-              <a
-                href="/"
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-10 px-6"
-              >
-                Back to home
-              </a>
+              </Button>
+              <Button variant="outline" size="lg" asChild>
+                <a href="/">Back to home</a>
+              </Button>
             </div>
           </div>
           <div className="relative flex h-[400px] max-h-screen w-full p-2 lg:h-full">
