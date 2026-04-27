@@ -1,17 +1,5 @@
 'use client'
 
-import type { Metadata, Viewport } from 'next'
-import { Button } from '@/components/ui/button'
-
-export const metadata: Metadata = {
-  title: 'Error - Other Dev',
-}
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-}
-
 export default function GlobalError({
   reset,
 }: {
@@ -29,15 +17,20 @@ export default function GlobalError({
               An unexpected error occurred. Please try again.
             </p>
             <div className="flex gap-4">
-              <Button onClick={() => reset()} size="lg" className="rounded-lg text-base">
+              <button
+                onClick={() => reset()}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6"
+              >
                 Try again
-              </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-lg text-base">
-                <a href="/">Back to home</a>
-              </Button>
+              </button>
+              <a
+                href="/"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-10 px-6"
+              >
+                Back to home
+              </a>
             </div>
           </div>
-
           <div className="relative flex h-[400px] max-h-screen w-full p-2 lg:h-full">
             <div className="h-full w-full rounded-2xl bg-black" />
             <img

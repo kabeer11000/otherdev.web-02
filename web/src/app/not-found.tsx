@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 
 export default function NotFound() {
   return (
@@ -13,9 +12,12 @@ export default function NotFound() {
           The page you&apos;re looking for isn&apos;t found. It might have been moved or
           doesn&apos;t exist.
         </p>
-        <Button asChild size="lg" className="rounded-lg text-base">
-          <Link href="/">Back to home page</Link>
-        </Button>
+        <a
+          href="/"
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-base font-medium transition-all bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6"
+        >
+          Back to home page
+        </a>
       </div>
 
       <div className="relative flex h-[400px] max-h-screen w-full p-2 lg:h-full">
