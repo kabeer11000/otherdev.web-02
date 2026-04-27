@@ -1,7 +1,7 @@
 'use client'
 
-import { Menubar } from '@base-ui/react/menubar'
 import { Menu } from '@base-ui/react/menu'
+import { Menubar } from '@base-ui/react/menubar'
 import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react'
 import type * as React from 'react'
 
@@ -36,10 +36,7 @@ function MenubarRadioGroup({ ...props }: React.ComponentProps<typeof Menu.RadioG
   return <Menu.RadioGroup data-slot="menubar-radio-group" {...props} />
 }
 
-function MenubarTrigger({
-  className,
-  ...props
-}: React.ComponentProps<typeof Menu.Trigger>) {
+function MenubarTrigger({ className, ...props }: React.ComponentProps<typeof Menu.Trigger>) {
   return (
     <Menu.Trigger
       data-slot="menubar-trigger"
@@ -217,10 +214,7 @@ function MenubarSubTrigger({
   )
 }
 
-function MenubarSubContent({
-  className,
-  ...props
-}: React.ComponentProps<typeof Menu.Popup>) {
+function MenubarSubContent({ className, ...props }: React.ComponentProps<typeof Menu.Popup>) {
   return (
     <Menu.Portal>
       <Menu.Positioner>

@@ -103,7 +103,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon-192x192.png" sizes="192x192" type="image/png" />
         {/* View Transitions API Support */}
         <meta name="view-transition" content="same-origin" />
-            </head>
+      </head>
       <body className="antialiased bg-background">
         <TenantProvider initialDomain="otherdev.com">
           <TRPCProvider>

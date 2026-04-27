@@ -2,7 +2,7 @@
 'use client'
 
 import { createAI } from '@ai-sdk/rsc'
-import { type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 interface ChatProviderProps {
   children: ReactNode

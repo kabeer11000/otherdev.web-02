@@ -6,13 +6,7 @@ import type * as React from 'react'
 import { cn } from '@/lib/utils'
 
 function TabsRoot({ className, ...props }: React.ComponentProps<typeof Tabs.Root>) {
-  return (
-    <Tabs.Root
-      data-slot="tabs"
-      className={cn('flex flex-col gap-2', className)}
-      {...props}
-    />
-  )
+  return <Tabs.Root data-slot="tabs" className={cn('flex flex-col gap-2', className)} {...props} />
 }
 
 function TabsList({ className, ...props }: React.ComponentProps<typeof Tabs.List>) {

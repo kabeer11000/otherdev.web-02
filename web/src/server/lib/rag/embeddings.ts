@@ -1,5 +1,5 @@
-import { createVoyage } from 'voyage-ai-provider'
 import { embedMany } from 'ai'
+import { createVoyage } from 'voyage-ai-provider'
 
 const voyage = createVoyage({
   apiKey: process.env.VOYAGE_API_KEY,

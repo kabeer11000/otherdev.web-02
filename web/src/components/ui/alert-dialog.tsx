@@ -18,10 +18,7 @@ function AlertDialogPortal({ children }: React.PropsWithChildren) {
   return <>{children}</>
 }
 
-function AlertDialogOverlay({
-  className,
-  ...props
-}: React.ComponentProps<typeof Dialog.Backdrop>) {
+function AlertDialogOverlay({ className, ...props }: React.ComponentProps<typeof Dialog.Backdrop>) {
   return (
     <Dialog.Backdrop
       data-slot="alert-dialog-overlay"
@@ -34,10 +31,7 @@ function AlertDialogOverlay({
   )
 }
 
-function AlertDialogContent({
-  className,
-  ...props
-}: React.ComponentProps<typeof Dialog.Popup>) {
+function AlertDialogContent({ className, ...props }: React.ComponentProps<typeof Dialog.Popup>) {
   return (
     <Dialog.Portal>
       <AlertDialogOverlay />
@@ -73,10 +67,7 @@ function AlertDialogFooter({ className, ...props }: React.ComponentProps<'div'>)
   )
 }
 
-function AlertDialogTitle({
-  className,
-  ...props
-}: React.ComponentProps<typeof Dialog.Title>) {
+function AlertDialogTitle({ className, ...props }: React.ComponentProps<typeof Dialog.Title>) {
   return (
     <Dialog.Title
       data-slot="alert-dialog-title"
@@ -99,10 +90,7 @@ function AlertDialogDescription({
   )
 }
 
-function AlertDialogAction({
-  className,
-  ...props
-}: React.ComponentProps<typeof Dialog.Close>) {
+function AlertDialogAction({ className, ...props }: React.ComponentProps<typeof Dialog.Close>) {
   return (
     <Dialog.Close
       data-slot="alert-dialog-action"
@@ -113,10 +101,7 @@ function AlertDialogAction({
   )
 }
 
-function AlertDialogCancel({
-  className,
-  ...props
-}: React.ComponentProps<typeof Dialog.Close>) {
+function AlertDialogCancel({ className, ...props }: React.ComponentProps<typeof Dialog.Close>) {
   return (
     <Dialog.Close
       data-slot="alert-dialog-cancel"

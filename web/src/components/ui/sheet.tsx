@@ -22,10 +22,7 @@ function SheetPortal({ children }: React.PropsWithChildren) {
   return <>{children}</>
 }
 
-function SheetOverlay({
-  className,
-  ...props
-}: React.ComponentProps<typeof Dialog.Backdrop>) {
+function SheetOverlay({ className, ...props }: React.ComponentProps<typeof Dialog.Backdrop>) {
   return (
     <Dialog.Backdrop
       data-slot="sheet-overlay"

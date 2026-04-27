@@ -128,7 +128,10 @@ export function Navigation({
             key="menu-open"
             className="flex items-center gap-1.5 flex-1 animate-in fade-in duration-200"
           >
-            <div className="animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: '100ms' }}>
+            <div
+              className="animate-in fade-in slide-in-from-left-2 duration-300"
+              style={{ animationDelay: '100ms' }}
+            >
               <Button
                 asChild
                 variant="nav"
@@ -141,7 +144,10 @@ export function Navigation({
               </Button>
             </div>
 
-            <div className="animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: '150ms' }}>
+            <div
+              className="animate-in fade-in slide-in-from-left-2 duration-300"
+              style={{ animationDelay: '150ms' }}
+            >
               <Button
                 asChild
                 variant="nav"
@@ -153,7 +159,10 @@ export function Navigation({
                 </Link>
               </Button>
             </div>
-            <div className="animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: '200ms' }}>
+            <div
+              className="animate-in fade-in slide-in-from-left-2 duration-300"
+              style={{ animationDelay: '200ms' }}
+            >
               <Button
                 asChild
                 variant="nav"
@@ -165,7 +174,10 @@ export function Navigation({
                 </Link>
               </Button>
             </div>
-            <div className="animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: '250ms' }}>
+            <div
+              className="animate-in fade-in slide-in-from-left-2 duration-300"
+              style={{ animationDelay: '250ms' }}
+            >
               <Button
                 asChild
                 variant="nav"
@@ -177,7 +189,10 @@ export function Navigation({
                 </Link>
               </Button>
             </div>
-            <div className="animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: '300ms' }}>
+            <div
+              className="animate-in fade-in slide-in-from-left-2 duration-300"
+              style={{ animationDelay: '300ms' }}
+            >
               <Button asChild variant="nav" size="nav-mobile-wide">
                 <Link
                   href="https://wa.me/923156893331?text=Hi!%20I%20found%20you%20through%20otherdev.com%20and%20would%20love%20to%20discuss%20a%20project."

@@ -7,15 +7,11 @@ function CollapsibleRoot({ ...props }: React.ComponentProps<typeof Collapsible.R
   return <Collapsible.Root data-slot="collapsible" {...props} />
 }
 
-function CollapsibleTrigger({
-  ...props
-}: React.ComponentProps<typeof Collapsible.Trigger>) {
+function CollapsibleTrigger({ ...props }: React.ComponentProps<typeof Collapsible.Trigger>) {
   return <Collapsible.Trigger data-slot="collapsible-trigger" {...props} />
 }
 
-function CollapsibleContent({
-  ...props
-}: React.ComponentProps<typeof Collapsible.Panel>) {
+function CollapsibleContent({ ...props }: React.ComponentProps<typeof Collapsible.Panel>) {
   return <Collapsible.Panel data-slot="collapsible-content" {...props} />
 }
 

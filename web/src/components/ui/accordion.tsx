@@ -10,10 +10,7 @@ function AccordionRoot({ ...props }: React.ComponentProps<typeof Accordion.Root>
   return <Accordion.Root data-slot="accordion" {...props} />
 }
 
-function AccordionItem({
-  className,
-  ...props
-}: React.ComponentProps<typeof Accordion.Item>) {
+function AccordionItem({ className, ...props }: React.ComponentProps<typeof Accordion.Item>) {
   return (
     <Accordion.Item
       data-slot="accordion-item"

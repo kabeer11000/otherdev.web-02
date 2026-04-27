@@ -103,10 +103,7 @@ function FormControl({ children, ...props }: React.PropsWithChildren<Record<stri
   }
 
   if (React.isValidElement(children)) {
-    return React.cloneElement(
-      children as React.ReactElement<Record<string, unknown>>,
-      controlProps
-    )
+    return React.cloneElement(children as React.ReactElement<Record<string, unknown>>, controlProps)
   }
 
   return <div {...(controlProps as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>

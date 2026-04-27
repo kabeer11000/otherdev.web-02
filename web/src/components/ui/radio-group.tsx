@@ -1,29 +1,17 @@
 'use client'
 
-import { RadioGroup } from '@base-ui/react/radio-group'
 import { Radio } from '@base-ui/react/radio'
+import { RadioGroup } from '@base-ui/react/radio-group'
 import { CircleIcon } from 'lucide-react'
 import type * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function RadioGroupRoot({
-  className,
-  ...props
-}: React.ComponentProps<typeof RadioGroup>) {
-  return (
-    <RadioGroup
-      data-slot="radio-group"
-      className={cn('grid gap-3', className)}
-      {...props}
-    />
-  )
+function RadioGroupRoot({ className, ...props }: React.ComponentProps<typeof RadioGroup>) {
+  return <RadioGroup data-slot="radio-group" className={cn('grid gap-3', className)} {...props} />
 }
 
-function RadioGroupItem({
-  className,
-  ...props
-}: React.ComponentProps<typeof Radio.Root>) {
+function RadioGroupItem({ className, ...props }: React.ComponentProps<typeof Radio.Root>) {
   return (
     <Radio.Root
       data-slot="radio-group-item"

@@ -35,7 +35,9 @@ async function main() {
   const totalDocs = knowledgeBase.length
   const totalBatches = Math.ceil(totalDocs / BATCH_SIZE)
 
-  console.log(`  Ingesting ${totalDocs} documents in ${totalBatches} batches (${BATCH_SIZE} docs/batch, ${BATCH_DELAY_MS / 1000}s between batches)\n`)
+  console.log(
+    `  Ingesting ${totalDocs} documents in ${totalBatches} batches (${BATCH_SIZE} docs/batch, ${BATCH_DELAY_MS / 1000}s between batches)\n`
+  )
 
   for (let batchIdx = 0; batchIdx < totalBatches; batchIdx++) {
     const start = batchIdx * BATCH_SIZE

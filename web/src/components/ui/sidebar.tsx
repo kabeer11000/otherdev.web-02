@@ -529,11 +529,7 @@ function SidebarMenuButton({
       buttonProps as Record<string, unknown>
     )
   } else {
-    button = (
-      <button {...buttonProps}>
-        {children}
-      </button>
-    )
+    button = <button {...buttonProps}>{children}</button>
   }
 
   if (!tooltip) {

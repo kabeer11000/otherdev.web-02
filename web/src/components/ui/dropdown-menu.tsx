@@ -137,7 +137,10 @@ function DropdownMenuLabel({
   )
 }
 
-function DropdownMenuSeparator({ className, ...props }: React.ComponentProps<typeof Menu.Separator>) {
+function DropdownMenuSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof Menu.Separator>) {
   return (
     <Menu.Separator
       data-slot="dropdown-menu-separator"
@@ -185,10 +188,7 @@ function DropdownMenuSubTrigger({
   )
 }
 
-function DropdownMenuSubContent({
-  className,
-  ...props
-}: React.ComponentProps<typeof Menu.Popup>) {
+function DropdownMenuSubContent({ className, ...props }: React.ComponentProps<typeof Menu.Popup>) {
   return (
     <Menu.Portal>
       <Menu.Positioner>

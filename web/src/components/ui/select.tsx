@@ -87,11 +87,7 @@ function SelectLabel({ className, ...props }: React.ComponentProps<typeof Select
   )
 }
 
-function SelectItem({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<typeof Select.Item>) {
+function SelectItem({ className, children, ...props }: React.ComponentProps<typeof Select.Item>) {
   return (
     <Select.Item
       data-slot="select-item"

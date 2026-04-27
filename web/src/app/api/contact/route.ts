@@ -1,7 +1,7 @@
-import { checkRateLimit, getClientIdentifier } from '@/server/lib/rate-limit'
 import { google } from 'googleapis'
 import nodemailer from 'nodemailer'
 import { z } from 'zod'
+import { checkRateLimit, getClientIdentifier } from '@/server/lib/rate-limit'
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
@@ -72,7 +72,9 @@ export async function POST(request: Request) {
 
     if (!allowed) {
       return Response.json(
-        { error: `Too many submissions. Try again after ${new Date(resetTime).toLocaleTimeString()}.` },
+        {
+          error: `Too many submissions. Try again after ${new Date(resetTime).toLocaleTimeString()}.`,
+        },
         { status: 429 }
       )
     }

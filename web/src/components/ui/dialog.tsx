@@ -22,10 +22,7 @@ function DialogClose({ ...props }: React.ComponentProps<typeof Dialog.Close>) {
   return <Dialog.Close data-slot="dialog-close" {...props} />
 }
 
-function DialogOverlay({
-  className,
-  ...props
-}: React.ComponentProps<typeof Dialog.Backdrop>) {
+function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dialog.Backdrop>) {
   return (
     <Dialog.Backdrop
       data-slot="dialog-overlay"

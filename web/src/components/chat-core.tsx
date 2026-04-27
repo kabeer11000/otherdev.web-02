@@ -8,11 +8,11 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
   type UIMessage,
 } from 'ai'
-import { ChevronDown } from 'lucide-react'
 import {
   ArrowUp,
   AudioLines,
   Briefcase,
+  ChevronDown,
   ChevronRight,
   Code2,
   FileCode2,
@@ -232,7 +232,9 @@ function SuggestionButton({
       className="h-auto justify-start rounded-xl bg-card p-4 text-left text-xs transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-md active:scale-[0.98] sm:p-4 sm:text-sm whitespace-normal break-words"
     >
       <div className="flex items-start gap-3">
-        {IconComponent && <IconComponent className="h-5 w-5 mt-0.5 shrink-0 text-muted-foreground" />}
+        {IconComponent && (
+          <IconComponent className="h-5 w-5 mt-0.5 shrink-0 text-muted-foreground" />
+        )}
         <span className="flex-1">{display}</span>
       </div>
     </Button>
@@ -876,14 +878,14 @@ export function ChatCore({
       </ChatContainerRoot>
 
       {showButton && (
-          <button
-            className="absolute bottom-28 sm:bottom-32 right-4 sm:right-6 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background shadow-lg hover:opacity-90 active:scale-95 transition-all animate-in fade-in zoom-in-95 duration-200"
-            onClick={scrollToBottom}
-            aria-label="Scroll to bottom"
-          >
-            <ChevronDown className="h-4 w-4" />
-          </button>
-        )}
+        <button
+          className="absolute bottom-28 sm:bottom-32 right-4 sm:right-6 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background shadow-lg hover:opacity-90 active:scale-95 transition-all animate-in fade-in zoom-in-95 duration-200"
+          onClick={scrollToBottom}
+          aria-label="Scroll to bottom"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </button>
+      )}
 
       <div className="absolute bottom-0 left-0 right-0 z-10 p-3 sm:p-4 w-full max-w-3xl mx-auto pointer-events-none">
         <div className="space-y-3 pointer-events-auto">

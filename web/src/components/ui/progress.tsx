@@ -5,11 +5,7 @@ import type * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function ProgressRoot({
-  className,
-  value,
-  ...props
-}: React.ComponentProps<typeof Progress.Root>) {
+function ProgressRoot({ className, value, ...props }: React.ComponentProps<typeof Progress.Root>) {
   return (
     <Progress.Root
       data-slot="progress"

@@ -59,7 +59,9 @@ const tavilySearchTool = tool({
   description:
     'Search the web for current information, news, and facts. Use this when you need real-time or up-to-date information. Returns all results immediately in a single response. Do NOT call more than twice per conversation. Do NOT pass id, cursor, or pagination parameters — only the query field is accepted.',
   inputSchema: z.object({
-    query: z.string().describe('The plain text search query. No id, cursor, or pagination fields — query only.'),
+    query: z
+      .string()
+      .describe('The plain text search query. No id, cursor, or pagination fields — query only.'),
   }),
   execute: async ({ query }: { query: string }) => {
     type SearchResult = { id: number; title: string; url: string; snippet: string; score: number }
@@ -116,7 +118,10 @@ type RepairArgs = {
 }
 
 // Repairs malformed JSON-wrapped tool calls (e.g. Groq wraps args in ```json blocks)
-async function repairToolCall({ toolCall, error: _error }: RepairArgs): Promise<ToolCallArg | null> {
+async function repairToolCall({
+  toolCall,
+  error: _error,
+}: RepairArgs): Promise<ToolCallArg | null> {
   try {
     let fixedInput = toolCall.input
     fixedInput = fixedInput.replace(/^```json\s*/i, '').replace(/\s*```$/, '')
@@ -128,7 +133,6 @@ async function repairToolCall({ toolCall, error: _error }: RepairArgs): Promise<
     return null
   }
 }
-
 
 const RAG_MAX_MESSAGE_LENGTH = Number.parseInt(process.env.RAG_MAX_MESSAGE_LENGTH || '500', 10)
 const RAG_SIMILARITY_THRESHOLD = Number.parseFloat(process.env.RAG_SIMILARITY_THRESHOLD || '0.1')
@@ -558,7 +562,8 @@ export async function POST(request: Request): Promise<Response> {
       isSearchLikeQuery &&
       !hasImageContent &&
       !enableArtifacts
-    const enableResponseCache = ragEnabled && !hasImageContent && !enableArtifacts && !enableBrowserSearch
+    const enableResponseCache =
+      ragEnabled && !hasImageContent && !enableArtifacts && !enableBrowserSearch
 
     // Fetch RAG context before starting stream
     let ragContext: string | null = null
@@ -714,10 +719,16 @@ export async function POST(request: Request): Promise<Response> {
           const groqAbort = new AbortController()
           const groqTimeout = setTimeout(() => groqAbort.abort(), 9_000)
           // biome-ignore lint/suspicious/noExplicitAny: Groq browser_search tool type
-          const groqTools: ToolSet = enableBrowserSearch ? { browser_search: groqAI.tools.browserSearch({}) as any } : {}
+          const groqTools: ToolSet = enableBrowserSearch
+            ? { browser_search: groqAI.tools.browserSearch({}) as any }
+            : {}
 
           try {
-            console.log(enableBrowserSearch ? '[LLM] Using Groq with browser search...' : '[LLM] Using Groq...')
+            console.log(
+              enableBrowserSearch
+                ? '[LLM] Using Groq with browser search...'
+                : '[LLM] Using Groq...'
+            )
             const groqResult = await streamTextWithModel(
               groqAI,
               selectedModel,
@@ -736,7 +747,15 @@ export async function POST(request: Request): Promise<Response> {
             )
             console.log('[LLM] Using MiniMax-M2.7 with browsing (fallback)...')
             await runStream(
-              await streamTextWithModel(minimaxAI, MINIMAX_CHAT_MODEL, 'MiniMax-M2.7', minimaxTools, undefined, undefined, 4096)
+              await streamTextWithModel(
+                minimaxAI,
+                MINIMAX_CHAT_MODEL,
+                'MiniMax-M2.7',
+                minimaxTools,
+                undefined,
+                undefined,
+                4096
+              )
             )
           }
         }

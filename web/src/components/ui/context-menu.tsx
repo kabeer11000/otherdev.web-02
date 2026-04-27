@@ -55,10 +55,7 @@ function ContextMenuSubTrigger({
   )
 }
 
-function ContextMenuSubContent({
-  className,
-  ...props
-}: React.ComponentProps<typeof Menu.Popup>) {
+function ContextMenuSubContent({ className, ...props }: React.ComponentProps<typeof Menu.Popup>) {
   return (
     <Menu.Portal>
       <Menu.Positioner>
@@ -75,10 +72,7 @@ function ContextMenuSubContent({
   )
 }
 
-function ContextMenuContent({
-  className,
-  ...props
-}: React.ComponentProps<typeof Menu.Popup>) {
+function ContextMenuContent({ className, ...props }: React.ComponentProps<typeof Menu.Popup>) {
   return (
     <Menu.Portal>
       <Menu.Positioner>
@@ -185,7 +179,10 @@ function ContextMenuLabel({
   )
 }
 
-function ContextMenuSeparator({ className, ...props }: React.ComponentProps<typeof Menu.Separator>) {
+function ContextMenuSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof Menu.Separator>) {
   return (
     <Menu.Separator
       data-slot="context-menu-separator"

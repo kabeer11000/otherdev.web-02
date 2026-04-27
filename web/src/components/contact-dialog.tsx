@@ -63,7 +63,9 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
         if (res.status === 429) {
           form.setError('root', { message: error.error })
         } else {
-          form.setError('root', { message: error.error?.formErrors?.[0]?.message || 'Failed to submit.' })
+          form.setError('root', {
+            message: error.error?.formErrors?.[0]?.message || 'Failed to submit.',
+          })
         }
         return
       }

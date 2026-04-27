@@ -72,7 +72,9 @@ export default async function BlogPostPage({ params }: PageProps) {
   return (
     <article className="max-w-2xl mx-auto px-4 py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <header className="mb-8">
-        <h1 className="text-4xl font-bold text-neutral-900 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-500">{post.title}</h1>
+        <h1 className="text-4xl font-bold text-neutral-900 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          {post.title}
+        </h1>
         <p className="text-sm text-neutral-600 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100">
           {new Date(post.created_at).toLocaleDateString('en-US', {
             year: 'numeric',

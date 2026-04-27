@@ -20,11 +20,7 @@ function ScrollAreaRoot({
   ...props
 }: ScrollAreaProps) {
   return (
-    <ScrollArea.Root
-      data-slot="scroll-area"
-      className={cn('relative', className)}
-      {...props}
-    >
+    <ScrollArea.Root data-slot="scroll-area" className={cn('relative', className)} {...props}>
       <ScrollArea.Viewport
         ref={viewportRef}
         data-slot="scroll-area-viewport"
