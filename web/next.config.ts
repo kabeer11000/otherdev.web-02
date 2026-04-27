@@ -5,7 +5,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  reactCompiler: true,
+  reactCompiler: {
+    compilationMode: 'annotation',
+  },
   cacheComponents: true,
   // Mark server-only packages so they don't leak into client bundles
   serverExternalPackages: ['firebase-admin', 'googleapis', 'nodemailer', 'pdfjs-dist'],
