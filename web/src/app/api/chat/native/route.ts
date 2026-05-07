@@ -1,4 +1,4 @@
-import { type UIMessage, validateUIMessages } from 'ai'
+import { type TextStreamPart, type ToolSet, type UIMessage, validateUIMessages } from 'ai'
 import { z } from 'zod'
 
 import { createJsonResponse } from '@/server/lib/api-helpers'
@@ -152,26 +152,23 @@ export async function POST(request: Request): Promise<Response> {
       request,
     })
 
-    // After streaming, replace the streamed history with new messages from result.response
-    // result.response is a PromiseLike — accessing it triggers full stream consumption
-    const resultResponse = await (response as { response: Promise<{ messages: unknown[] }> }).response
-    const streamedMessages = resultResponse.messages as UIMessage[]
-    await saveChatMessages(chatId, streamedMessages)
-
-    const chunks: Uint8Array[] = []
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for await (const chunk of (response as any).fullStream) {
-      chunks.push(toSseChunk(chunk))
-    }
-    chunks.push(new TextEncoder().encode("data: [DONE]\n\n"))
-
-    const stream = new ReadableStream({
-      start(controller) {
-        for (const chunk of chunks) {
-          controller.enqueue(chunk)
+    // Use a TransformStream to capture messages while streaming to client
+    // This avoids consuming the stream twice or buffering the entire response
+    let streamedMessages: UIMessage[] = []
+    const messageCapture = new TransformStream<TextStreamPart<ToolSet>, TextStreamPart<ToolSet>>({
+      async transform(chunk, controller) {
+        if (chunk.type === 'assistant' && chunk.message) {
+          streamedMessages.push(chunk.message as UIMessage)
         }
-        controller.close()
+        controller.enqueue(chunk)
       },
+    })
+
+    const stream = (response.body as ReadableStream<Uint8Array>).pipeThrough(messageCapture)
+
+    // Save after stream completes
+    stream.pipeTo(new WritableStream({ close() { saveChatMessages(chatId, streamedMessages) } })).catch(() => {
+      // Non-critical: don't fail the request if history save fails
     })
 
     return new Response(stream, {

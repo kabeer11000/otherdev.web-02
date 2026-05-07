@@ -1,15 +1,15 @@
 // ─── Text Models ────────────────────────────────────────────────────────────────
-// groq/gpt-oss-120b:   Primary — Groq BYOK; gateway also falls back to Cerebras/Bedrock for this model
-// cerebras/qwen-3-235b: First fallback — canonical slug, gateway routes via Cerebras or Groq
-// groq/qwen3-32b:      Second fallback — canonical alibaba/qwen-3-32b served via Groq
+// groq/gpt-oss-120b:   Primary — Groq BYOK
+// cerebras/qwen-3-235b: First fallback — Cerebras BYOK
+// cohere/command-a:     Second fallback — Cohere BYOK
 
 export const TEXT_MODEL = 'groq/gpt-oss-120b'
 export const TEXT_MODEL_FALLBACK = 'cerebras/qwen-3-235b'
-export const TEXT_MODEL_FALLBACK_2 = 'groq/qwen3-32b'
+export const TEXT_MODEL_FALLBACK_2 = 'cohere/command-a'
 
 // ─── Vision Models ────────────────────────────────────────────────────────────
-// mistral/pixtral-large: Primary — Mistral's multimodal model (images + text)
-// groq/llama-4-scout: Fallback (multimodal via Groq)
+// mistral/pixtral-large: Primary — Mistral BYOK
+// groq/llama-4-scout:    Fallback — Groq BYOK
 
 export const VISION_MODEL = 'mistral/pixtral-large'
 export const VISION_MODEL_FALLBACK = 'groq/llama-4-scout-17b-16e-instruct'

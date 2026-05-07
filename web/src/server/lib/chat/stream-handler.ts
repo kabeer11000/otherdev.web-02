@@ -225,11 +225,11 @@ export async function handleStreamChat({
     : [TEXT_MODEL_FALLBACK, TEXT_MODEL_FALLBACK_2]
 
   // Provider priority: primary provider first, then failover
-  // Text: Groq primary → Cerebras fallback → Groq smaller fallback
+  // Text: Groq primary → Cerebras → Cohere
   // Vision: Mistral primary → Groq fallback
   const providerPriority = hasImageContent
     ? ['mistral', 'groq']
-    : ['groq', 'cerebras']
+    : ['groq', 'cerebras', 'cohere']
 
   // Generate suggestions before streaming — always text model with same fallback chain
   const suggestionsPromise = generateText({
@@ -242,8 +242,14 @@ export async function handleStreamChat({
     prompt: `User asked: "${normalizedQuery}".`,
     providerOptions: {
       gateway: {
-        order: ['groq', 'cerebras'],
+        order: ['groq', 'cerebras', 'cohere'],
         models: [TEXT_MODEL_FALLBACK, TEXT_MODEL_FALLBACK_2],
+        byok: {
+          groq: [{ apiKey: process.env.GROQ_API_KEY! }],
+          cerebras: [{ apiKey: process.env.CEREBRAS_API_KEY! }],
+          cohere: [{ apiKey: process.env.COHERE_API_KEY! }],
+          mistral: [{ apiKey: process.env.MISTRAL_API_KEY! }],
+        },
       },
     },
   })
@@ -268,6 +274,12 @@ export async function handleStreamChat({
       gateway: {
         order: providerPriority,
         models: fallbacks,
+        byok: {
+          groq: [{ apiKey: process.env.GROQ_API_KEY! }],
+          cerebras: [{ apiKey: process.env.CEREBRAS_API_KEY! }],
+          cohere: [{ apiKey: process.env.COHERE_API_KEY! }],
+          mistral: [{ apiKey: process.env.MISTRAL_API_KEY! }],
+        },
       },
     },
   })

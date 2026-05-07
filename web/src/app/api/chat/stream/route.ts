@@ -1,4 +1,4 @@
-import { type UIMessage, validateUIMessages } from 'ai'
+import { type TextStreamPart, type ToolSet, type UIMessage, validateUIMessages } from 'ai'
 import { z } from 'zod'
 
 import { createJsonResponse } from '@/server/lib/api-helpers'
@@ -117,9 +117,7 @@ export async function POST(request: Request): Promise<Response> {
       throw error
     }
 
-    // For submit: save BEFORE streaming (existing messages as history)
-    // For edit: save AFTER streaming (new AI response messages as history)
-
+    // Save AFTER streaming using TransformStream — captures messages without buffering response
 
     const { response } = await handleStreamChat({
       messages: uiMessages,
@@ -127,13 +125,32 @@ export async function POST(request: Request): Promise<Response> {
       request,
     })
 
-    // After streaming, replace the streamed history with new messages from result.response
-    // result.response is a PromiseLike — accessing it triggers full stream consumption
-    const resultResponse = await (response as { response: Promise<{ messages: unknown[] }> }).response
-    const streamedMessages = resultResponse.messages as UIMessage[]
-    await saveChatMessages(chatId, streamedMessages)
+    // Use a TransformStream to capture messages while streaming to client
+    // This avoids consuming the stream twice or buffering the entire response
+    let streamedMessages: UIMessage[] = []
+    const messageCapture = new TransformStream<TextStreamPart<ToolSet>, TextStreamPart<ToolSet>>({
+      async transform(chunk, controller) {
+        if (chunk.type === 'assistant' && chunk.message) {
+          streamedMessages.push(chunk.message as UIMessage)
+        }
+        controller.enqueue(chunk)
+      },
+    })
 
-    return new Response(response.body, {
+    const stream = (response.body as ReadableStream<Uint8Array>).pipeThrough(messageCapture)
+
+    // Save after stream completes — non-critical if it fails
+    stream.pipeTo(
+      new WritableStream({
+        close() {
+          saveChatMessages(chatId, streamedMessages).catch(() => {
+            // Don't fail the request if history save fails
+          })
+        },
+      }),
+    )
+
+    return new Response(stream, {
       status: 200,
       headers: {
         ...Object.fromEntries((response as { headers: Headers }).headers.entries()),
