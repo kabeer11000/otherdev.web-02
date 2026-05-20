@@ -78,9 +78,8 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: '/icon.png',
-    shortcut: '/icon.png',
-    apple: '/icon.png',
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
 }
 
@@ -104,10 +103,11 @@ export default function RootLayout({
         {/* R2 preconnect — saves DNS+TCP+TLS per image */}
         <link rel="preconnect" href="https://pub-bb3787984f924b288b4158546c9171fb.r2.dev" crossOrigin="anonymous" />
         {/* Favicon - Multiple sizes for optimal display */}
-        <link rel="icon" href="/favicon-48x48.png" sizes="48x48" type="image/png" />
-        <link rel="icon" href="/favicon-96x96.png" sizes="96x96" type="image/png" />
-        <link rel="icon" href="/favicon-144x144.png" sizes="144x144" type="image/png" />
-        <link rel="icon" href="/favicon-192x192.png" sizes="192x192" type="image/png" />
+        <link rel="icon" href="/favicon.ico" sizes="any" type="image/x-icon" />
+        <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png" />
+        <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" type="image/png" />
+        <link rel="manifest" href="/site.webmanifest" />
         {/* View Transitions API Support */}
         <meta name="view-transition" content="same-origin" />
       </head>

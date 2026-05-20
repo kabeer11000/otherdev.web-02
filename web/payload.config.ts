@@ -37,8 +37,13 @@ export default buildConfig({
       icons: [
         {
           rel: 'icon',
-          type: 'image/svg+xml',
-          url: '/TheOtherDevLogo.png',
+          type: 'image/x-icon',
+          url: '/favicon.ico',
+        },
+        {
+          rel: 'apple-touch-icon',
+          type: 'image/png',
+          url: '/apple-touch-icon.png',
         },
       ],
     },
