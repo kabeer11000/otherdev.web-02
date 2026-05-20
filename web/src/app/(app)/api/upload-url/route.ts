@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
   // Generate a unique key with original extension
   const ext = filename.split('.').pop() ?? 'jpg'
-  const key = `uploads/${crypto.randomUUID()}.${ext}`
+  const key = `loom-uploads/${crypto.randomUUID()}.${ext}`
 
   try {
     const uploadUrl = await generatePresignedPutUrl(key, contentType)
