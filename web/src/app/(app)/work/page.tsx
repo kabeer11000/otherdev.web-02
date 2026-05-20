@@ -35,7 +35,7 @@ const organizationSchema = {
   '@type': 'Organization',
   name: 'Other Dev - We engineer digital solutions for pioneering brands.',
   url: 'https://otherdev.com',
-  logo: 'https://otherdev.com/TheOtherDevLogo.svg',
+  logo: 'https://otherdev.com/TheOtherDevLogo.png',
   description: 'Digital platforms for pioneering creatives',
   sameAs: ['https://otherdev.com'],
 }

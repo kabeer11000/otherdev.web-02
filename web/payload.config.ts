@@ -38,7 +38,7 @@ export default buildConfig({
         {
           rel: 'icon',
           type: 'image/svg+xml',
-          url: '/TheOtherDevLogo.svg',
+          url: '/TheOtherDevLogo.png',
         },
       ],
     },

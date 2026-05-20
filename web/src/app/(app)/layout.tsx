@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     title: 'Other Dev',
     description: DEFAULT_SITE_DESCRIPTION,
     path: '/',
-    imagePath: '/og-image.jpg',
+    imagePath: '/og_image.png',
     imageAlt: 'Other Dev - Digital Platforms for Pioneering Creatives',
     includeCanonical: false,
   }),
