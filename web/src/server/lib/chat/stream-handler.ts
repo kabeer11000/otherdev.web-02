@@ -257,14 +257,29 @@ export async function handleStreamChat({
     : ['groq', 'cerebras', 'cohere']
 
   // Generate suggestions before streaming — always text model with same fallback chain
+  // Based on Anthropic best practices: examples are "the single most effective tool" for steering output
+  // Negative examples explicitly prevent AI-voice suggestions like "should I show you..."
   const suggestionsPromise = generateText({
     model: gateway(TEXT_MODEL),
     output: Output.object({
       schema: SUGGESTIONS_SCHEMA,
     }),
-    system:
-      'Generate 2-3 short follow-up questions (max 10 words each) a user might ask next about web development, design, or Other Dev services. Be specific to what was asked. Return only the questions.',
-    prompt: `User asked: "${normalizedQuery}".`,
+    system: `You are helping a potential client explore Other Dev's web development and design services.
+Generate follow-up questions ONLY in the user's voice — first person, as a client seeking help from Other Dev.
+NEVER generate questions that sound like an AI assistant offering to show or share something.
+Good examples (user voice, first person, seeking help):
+- "What industries do you typically work with?"
+- "How long does a typical project take?"
+- "Do you offer ongoing support after launch?"
+- "What's your process for starting a new project?"
+Bad examples (AI voice — do NOT generate these):
+- "Should I show you some of our recent projects?"
+- "Would you like to learn more about our process?"
+- "Can I share our approach with you?"
+- "Want to see some case studies?"
+Return only the questions, one per line. Max 10 words each. Be specific to the user's actual question.`,
+    prompt: `User asked: "${normalizedQuery}"
+Generate 2-3 follow-up questions in the user's voice (first person, as a client seeking help from Other Dev).`,
     providerOptions: {
       gateway: {
         order: ['groq', 'cerebras', 'cohere'],
