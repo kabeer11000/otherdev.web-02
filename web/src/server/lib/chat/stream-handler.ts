@@ -407,9 +407,11 @@ export async function handleStreamChat({
     model: gateway(selectedModelId),
     system: [
       {
-        type: 'text',
-        text: buildSystemPrompt({ supportsArtifacts }),
-        cache_control: { type: 'ephemeral' as const },
+        role: 'system',
+        content: buildSystemPrompt({ supportsArtifacts }),
+        providerOptions: {
+          anthropic: { cacheControl: { type: 'ephemeral' as const } },
+        },
       },
     ],
     messages: modelMessages,
