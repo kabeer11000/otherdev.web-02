@@ -6,6 +6,19 @@ import type { MatchedDocument } from '@/server/lib/rag/types'
 const tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY })
 
 /**
+ * Escapes special XML characters to prevent XML injection.
+ * Follows Anthropic Ch4 principle: wrapping variable content in XML tags
+ * prevents confusion between user content and prompt instructions.
+ */
+const escapeXml = (s: string): string =>
+  s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+
+/**
  * RAG retrieval tool — searches Other Dev's knowledge base via Qdrant + Cohere.
  * Called by the model when the user asks about projects, services, technologies,
  * or anything related to Other Dev's work.
@@ -38,12 +51,16 @@ Returns the most relevant knowledge base entries with relevance scores.`,
         return 'No relevant knowledge base entries found for this query.'
       }
 
-      return results
-        .map(
-          (doc: MatchedDocument, idx: number) =>
-            `Document ${idx + 1} (Relevance: ${(doc.similarity * 100).toFixed(1)}%):\nTitle: ${doc.metadata.title}\n${doc.content}\n`
-        )
-        .join('---\n\n')
+      return (
+        '<documents>\n' +
+        results
+          .map(
+            (doc: MatchedDocument, idx: number) =>
+              `<document index="${idx + 1}" relevance="${(doc.similarity * 100).toFixed(1)}%" title="${escapeXml(doc.metadata.title)}">\n${escapeXml(doc.content)}\n</document>`
+          )
+          .join('\n') +
+        '\n</documents>'
+      )
     } catch (error) {
       console.error('[retrieveKnowledge] execute error:', error instanceof Error ? error.message : String(error))
       return 'No relevant knowledge base entries found for this query.'
@@ -90,19 +107,22 @@ export const tavilySearchTool = tool({
       }))
 
       console.log(`[WebSearch] Found ${results.length} results for: ${query}`)
-      return {
-        query,
-        results,
-        answer: response.answer ?? null,
-      } as WebSearchResult
+      const answer = response.answer ?? null
+      return (
+        '<search_results>\n' +
+        `<query>${escapeXml(query)}</query>\n` +
+        response.results
+          .map(
+            (r) =>
+              `<result title="${escapeXml(r.title)}" url="${escapeXml(r.url)}">${escapeXml(r.content.slice(0, 300))}</result>`
+          )
+          .join('\n') +
+        (answer ? `\n<answer>${escapeXml(answer)}</answer>` : '') +
+        '\n</search_results>'
+      )
     } catch (error) {
       console.error('[WebSearch] Tavily error:', error instanceof Error ? error.message : error)
-      return {
-        query,
-        results: [] as SearchResult[],
-        answer: null,
-        error: 'Web search failed',
-      } as WebSearchResult
+      return `<search_results>\n<query>${escapeXml(query)}</query>\n<error>Web search failed</error>\n</search_results>`
     }
   },
 })

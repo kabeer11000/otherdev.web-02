@@ -194,8 +194,10 @@ function buildInstructionsSection({ supportsArtifacts }: SystemPromptOptions): s
 function buildChainOfThoughtSection(): string {
   return `<chain_of_thought>
 For multi-step questions, show your reasoning in <scratchpad> tags before answering. Then write the final answer in <answer> tags. Keep reasoning concise — 2-4 sentences max.
-Example: <scratchpad>The user is asking about X. I need to consider Y based on Z from the knowledge base...</scratchpad>
-<answer>Based on this, the answer is...</answer>
+- In your <scratchpad>, note which document (by title or index) each piece of information came from.
+- In your <answer>, cite the source: "According to [Document Title]..." — do not present information without attributing it.
+Example: <scratchpad>The user asks about Other Dev's projects. I found Document 1 about Narkins Builders with relevance 87.5%. I'll cite this.</scratchpad>
+<answer>According to Document 1, Other Dev built [Narkins Builders](https://narkinsbuilders.com) (2024)...</answer>
 </chain_of_thought>`
 }
 
@@ -244,11 +246,13 @@ function buildNoInfoSection(): string {
 When retrieveKnowledge returns no relevant documents AND tavilySearch finds nothing, respond with:
 "I don't have information about that. Contact [hello@otherdev.com](mailto:hello@otherdev.com)"
 Do NOT make up information or guess about Other Dev's services or pricing.
+For questions you cannot answer from retrieved documents or web search, say "I don't have that information" — do not guess.
 </no_info_response>`
 }
 
 function buildOutputRulesSection(): string {
   return `<output_rules>
+- Prefill continuation: Begin every response by continuing from the prefill line — do not echo it verbatim; start your answer directly.
 - Links: ALWAYS format every link as [visible text](url). Example: [React Docs](https://react.dev/reference/react/useEffect). NEVER write a bare URL or plain text link. Every URL must be wrapped in square brackets with descriptive text.
 - Website links: [otherdev.com](https://otherdev.com), not https://otherdev.com
 - Phone: [tel:+923156893331](tel:+923156893331)
@@ -361,6 +365,17 @@ export async function handleStreamChat({
   // Sanitize and resolve data URIs
   const sanitizedMessages = sanitizeModelMessages(rawModelMessages)
   const modelMessages = resolveDataURIs(sanitizedMessages)
+
+  // Anthropic Ch5 prefill: inject an assistant role message that tells the model exactly how to
+  // start its response. The model continues from the prefill rather than generating its own preamble.
+  const prefillIndex = modelMessages.findIndex(m => m.role === 'user')
+  const prefillMessage = {
+    role: 'assistant' as const,
+    content: 'Here is my response based on the available information:',
+  }
+  if (prefillIndex !== -1) {
+    modelMessages.splice(prefillIndex, 0, prefillMessage)
+  }
 
   const fallbacks = hasImageContent
     ? [VISION_MODEL_FALLBACK]
