@@ -1,16 +1,22 @@
 import type { CollectionConfig } from 'payload'
 import type { CollectionBeforeChangeHook, CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'payload'
 
+import { convertLexicalToHTML } from '@payloadcms/richtext-lexical/html'
+import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical'
 import { revalidatePath } from 'next/cache'
 import { slugField } from 'payload'
 
-const autoFillDescription: CollectionBeforeChangeHook = async ({ data }) => {
-  if (data.description) return data
-  // Future: derive from other project fields when available
+const syncContentHtml: CollectionBeforeChangeHook = async ({ data }) => {
+  if (data.content) {
+    data.contentHtml = await convertLexicalToHTML({
+      data: data.content as SerializedEditorState,
+    })
+  }
   return data
 }
 
-const revalidateProject: CollectionAfterChangeHook = ({ doc }) => {
+const revalidateProject: CollectionAfterChangeHook = ({ doc, context }) => {
+  if (context.skipHooks) return doc
   revalidatePath('/work')
   revalidatePath(`/work/${doc.slug}`)
   revalidatePath('/')
@@ -18,7 +24,8 @@ const revalidateProject: CollectionAfterChangeHook = ({ doc }) => {
   return doc
 }
 
-const revalidateProjectDelete: CollectionAfterDeleteHook = ({ doc }) => {
+const revalidateProjectDelete: CollectionAfterDeleteHook = ({ doc, context }) => {
+  if (context.skipHooks) return doc
   revalidatePath('/work')
   revalidatePath(`/work/${doc.slug}`)
   revalidatePath('/')
@@ -42,7 +49,7 @@ export const Projects: CollectionConfig = {
     delete: ({ req }) => req.user?.role === 'admin',
   },
   hooks: {
-    beforeChange: [autoFillDescription],
+    beforeChange: [syncContentHtml],
     afterChange: [revalidateProject],
     afterDelete: [revalidateProjectDelete],
   },
@@ -57,11 +64,17 @@ export const Projects: CollectionConfig = {
       useAsSlug: 'title',
     }),
     {
-      name: 'description',
+      name: 'content',
+      type: 'richText',
+      admin: {
+        description: 'Full project description with rich formatting.',
+      },
+    },
+    {
+      name: 'contentHtml',
       type: 'textarea',
       admin: {
-        placeholder: 'One or two sentences about the project.',
-        position: 'sidebar',
+        hidden: true,
       },
     },
     {

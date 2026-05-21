@@ -239,7 +239,25 @@ export interface Project {
    */
   generateSlug?: boolean | null;
   slug: string;
-  description?: string | null;
+  /**
+   * Full project description with rich formatting.
+   */
+  content?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  contentHtml?: string | null;
   /**
    * Live URL of the project (e.g. https://example.com)
    */
@@ -602,7 +620,8 @@ export interface ProjectsSelect<T extends boolean = true> {
   title?: T;
   generateSlug?: T;
   slug?: T;
-  description?: T;
+  content?: T;
+  contentHtml?: T;
   url?: T;
   downloadUrl?: T;
   year?: T;

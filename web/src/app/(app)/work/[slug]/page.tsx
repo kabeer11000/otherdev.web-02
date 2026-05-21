@@ -94,9 +94,12 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             </a>
           )}
 
-          <p className="text-[13px] sm:text-[14px] leading-[18px] tracking-[-0.24px] font-normal text-black mb-[32px] max-w-[315px] sm:max-w-[532px] animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150">
-            {project.description}
-          </p>
+          {/* Content */}
+          {project.contentHtml && (
+            <div className="mb-[32px] max-w-[315px] sm:max-w-[532px] animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150">
+              <div className="prose-article" dangerouslySetInnerHTML={{ __html: project.contentHtml }} />
+            </div>
+          )}
 
           {project.downloadUrl && (
             <Link
