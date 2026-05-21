@@ -7,4 +7,7 @@ export const config: VercelConfig = {
       schedule: '0 12 */2 * *',
     },
   ],
+  functions: {
+    'app/(payload)/admin/**': { maxDuration: 60 },
+  },
 }
