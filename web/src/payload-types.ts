@@ -253,14 +253,6 @@ export interface Project {
         id?: string | null;
       }[]
     | null;
-  meta?: {
-    title?: string | null;
-    description?: string | null;
-    /**
-     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
-     */
-    image?: (string | null) | Media;
-  };
   updatedAt: string;
   createdAt: string;
 }
@@ -323,14 +315,6 @@ export interface Blog {
    * Leave blank to publish immediately on save.
    */
   publishedAt?: string | null;
-  meta?: {
-    title?: string | null;
-    description?: string | null;
-    /**
-     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
-     */
-    image?: (string | null) | Media;
-  };
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -629,13 +613,6 @@ export interface ProjectsSelect<T extends boolean = true> {
         image?: T;
         id?: T;
       };
-  meta?:
-    | T
-    | {
-        title?: T;
-        description?: T;
-        image?: T;
-      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -667,13 +644,6 @@ export interface BlogSelect<T extends boolean = true> {
   featuredImage?: T;
   categories?: T;
   publishedAt?: T;
-  meta?:
-    | T
-    | {
-        title?: T;
-        description?: T;
-        image?: T;
-      };
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -807,14 +777,6 @@ export interface About {
         id?: string | null;
       }[]
     | null;
-  meta?: {
-    title?: string | null;
-    description?: string | null;
-    /**
-     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
-     */
-    image?: (string | null) | Media;
-  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -838,13 +800,6 @@ export interface AboutSelect<T extends boolean = true> {
     | {
         name?: T;
         id?: T;
-      };
-  meta?:
-    | T
-    | {
-        title?: T;
-        description?: T;
-        image?: T;
       };
   updatedAt?: T;
   createdAt?: T;

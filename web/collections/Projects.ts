@@ -31,7 +31,7 @@ export const Projects: CollectionConfig = {
   admin: {
     group: 'Content',
     useAsTitle: 'title',
-    defaultColumns: ['title', 'year', 'url'],
+    defaultColumns: ['image', 'title', 'year', 'url'],
     listSearchableFields: ['title', 'slug'],
     preview: (doc) => doc.slug ? `/projects/${doc.slug}` : null,
   },
