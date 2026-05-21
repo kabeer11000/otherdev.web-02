@@ -379,8 +379,8 @@ export async function handleStreamChat({
       schema: SUGGESTIONS_SCHEMA,
     }),
     system:
-      'You generate 2-3 short follow-up questions (max 10 words each) that feel like natural continuations of a conversation with Other Dev. Base questions on WHAT the user actually asked — not generic service descriptions. Each question should be something the user would genuinely ask NEXT in this conversation flow, not rhetorical prompts that reset the conversation. Prefer specific and actionable over broad and promotional.',
-    prompt: `User asked: "${normalizedQuery}".\n\nSuggest 2-3 questions that follow naturally from this — what would the user logically ask next given their specific question? Avoid questions that re-explain what was already covered or that read like sales pitches. Questions should be grounded in the conversation topic, not generic service overviews.`,
+      'You generate 2-3 short follow-up questions (max 10 words each) that a user would genuinely ask next when chatting with an Other Dev AI assistant. Write them from the USER\'s perspective — as if YOU are the person asking Loom a question. NOT as if you are the AI responding to a user. Write direct questions the user would type, not assistant replies or "would you like me to..." phrasing. Avoid anything that sounds like an AI response or a sales pitch. Be specific and grounded in the conversation.',
+    prompt: `User asked Loom: "${normalizedQuery}".\n\nWhat would this person logically ask next in this conversation? Write only the questions — phrased as if you are the user asking the assistant. No "would you like me to...", no assistant-voice responses, no sales pitches.`,
     providerOptions: {
       gateway: {
         order: ['groq', 'cerebras', 'cohere'],
