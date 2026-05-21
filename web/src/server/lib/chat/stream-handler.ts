@@ -379,8 +379,8 @@ export async function handleStreamChat({
       schema: SUGGESTIONS_SCHEMA,
     }),
     system:
-      'Generate 2-3 short follow-up questions (max 10 words each) a user might ask next about web development, design, or Other Dev services. Be specific to what was asked. Return only the questions.',
-    prompt: `User asked: "${normalizedQuery}".`,
+      'You generate 2-3 short follow-up questions (max 10 words each) that feel like natural continuations of a conversation with Other Dev. Base questions on WHAT the user actually asked — not generic service descriptions. Each question should be something the user would genuinely ask NEXT in this conversation flow, not rhetorical prompts that reset the conversation. Prefer specific and actionable over broad and promotional.',
+    prompt: `User asked: "${normalizedQuery}".\n\nSuggest 2-3 questions that follow naturally from this — what would the user logically ask next given their specific question? Avoid questions that re-explain what was already covered or that read like sales pitches. Questions should be grounded in the conversation topic, not generic service overviews.`,
     providerOptions: {
       gateway: {
         order: ['groq', 'cerebras', 'cohere'],
