@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "app/(payload)/admin/**": {
+      "maxDuration": 60
+    }
+  }
+}

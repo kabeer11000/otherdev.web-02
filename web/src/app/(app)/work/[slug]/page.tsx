@@ -8,7 +8,7 @@ import { Footer } from '@/components/footer'
 import { Navigation } from '@/components/navigation'
 import { ProjectCard } from '@/components/project-card'
 import { buildSocialMetadata } from '@/lib/metadata'
-import { getProjectBySlug, getProjects } from '@/lib/payload-api'
+import { getProjectBySlug, getRelatedProjects } from '@/lib/payload-api'
 
 export const revalidate = 86400
 
@@ -52,10 +52,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     notFound()
   }
 
-  const allProjects = await getProjects()
-  const relatedProjects = allProjects
-    .filter(p => p.id !== project.id)
-    .slice(0, 13)
+  const relatedProjects = await getRelatedProjects(project.id)
 
   const mediaUrls = project.media?.map(m => m.image?.url).filter(Boolean) as string[] ?? []
 
