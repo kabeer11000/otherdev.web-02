@@ -73,6 +73,7 @@ export interface Config {
     categories: Category;
     blog: Blog;
     clients: Client;
+    contacts: Contact;
     search: Search;
     redirects: Redirect;
     'payload-kv': PayloadKv;
@@ -88,6 +89,7 @@ export interface Config {
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     blog: BlogSelect<false> | BlogSelect<true>;
     clients: ClientsSelect<false> | ClientsSelect<true>;
+    contacts: ContactsSelect<false> | ContactsSelect<true>;
     search: SearchSelect<false> | SearchSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -350,6 +352,30 @@ export interface Client {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contacts".
+ */
+export interface Contact {
+  id: string;
+  /**
+   * Full name of the person submitting the contact form.
+   */
+  name: string;
+  companyName: string;
+  email: string;
+  subject: string;
+  /**
+   * The message content from the contact form.
+   */
+  message: string;
+  /**
+   * Track whether this contact submission has been handled.
+   */
+  status?: ('new' | 'read' | 'replied' | 'archived') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -445,6 +471,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'clients';
         value: string | Client;
+      } | null)
+    | ({
+        relationTo: 'contacts';
+        value: string | Contact;
       } | null)
     | ({
         relationTo: 'search';
@@ -657,6 +687,20 @@ export interface ClientsSelect<T extends boolean = true> {
   generateSlug?: T;
   slug?: T;
   url?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contacts_select".
+ */
+export interface ContactsSelect<T extends boolean = true> {
+  name?: T;
+  companyName?: T;
+  email?: T;
+  subject?: T;
+  message?: T;
+  status?: T;
   updatedAt?: T;
   createdAt?: T;
 }
