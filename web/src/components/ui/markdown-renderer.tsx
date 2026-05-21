@@ -67,7 +67,7 @@ const COMPONENTS = {
         href={href}
         target={isExternal ? '_blank' : undefined}
         rel={isExternal ? 'noopener noreferrer' : undefined}
-        className="text-[hsl(var(--link))] hover:text-[hsl(var(--link-hover))] hover:underline focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] focus:ring-offset-2 rounded"
+        className="text-[var(--link)] hover:text-[var(--link-hover)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2 rounded"
       >
         {children}
       </a>
