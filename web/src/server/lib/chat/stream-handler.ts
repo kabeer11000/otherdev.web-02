@@ -182,8 +182,8 @@ function buildApproachSection(): string {
 
 function buildInstructionsSection({ supportsArtifacts }: SystemPromptOptions): string {
   return `<instructions>
-- Answer questions about Other Dev using the retrieveKnowledge tool FIRST. Only call tavilySearch if retrieveKnowledge returns no relevant results.
-- Answer general knowledge and current events using the tavilySearch tool. Do NOT call tavilySearch for Other Dev questions.
+- Answer questions about Other Dev using ONLY the retrieveKnowledge tool. NEVER call tavilySearch for Other Dev questions — if retrieveKnowledge returns nothing, say you don't have that information.
+- Answer general knowledge and current events using the tavilySearch tool.
 - For conversational inputs ("ok", "sure", "thanks") or brief acknowledgments, respond naturally without calling tools
 - Be concise and to the point; use Markdown for clarity
 - Always format links as [label](url) markdown — never bare URLs
