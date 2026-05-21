@@ -2,9 +2,14 @@ import Link from 'next/link'
 import { Footer } from '@/components/footer'
 import { Navigation } from '@/components/navigation'
 import { buildSocialMetadata } from '@/lib/metadata'
-import { getBlogPostBySlug } from '@/lib/payload-api'
+import { getBlogPostBySlug, getPublishedBlogSlugs } from '@/lib/payload-api'
 
-export const revalidate = 86400
+export const revalidate = 0
+
+export async function generateStaticParams() {
+  const slugs = await getPublishedBlogSlugs()
+  return slugs.map(slug => ({ slug }))
+}
 
 type PageProps = { params: Promise<{ slug: string }> }
 

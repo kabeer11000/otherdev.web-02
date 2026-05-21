@@ -55,6 +55,17 @@ export async function getBlogPosts() {
   return docs
 }
 
+export async function getPublishedBlogSlugs(): Promise<string[]> {
+  const payload = await getPayload({ config: configPromise })
+  const { docs } = await payload.find({
+    collection: 'blog',
+    where: { status: { equals: 'published' } },
+    select: { slug: true },
+    limit: 100,
+  })
+  return docs.map(d => d.slug).filter(Boolean)
+}
+
 export async function getBlogPostBySlug(slug: string) {
   const payload = await getPayload({ config: configPromise })
   const { docs } = await payload.find({

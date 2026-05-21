@@ -10,7 +10,30 @@ import { ProjectCard } from '@/components/project-card'
 import { buildSocialMetadata } from '@/lib/metadata'
 import { getProjectBySlug, getRelatedProjects } from '@/lib/payload-api'
 
-export const revalidate = 86400
+export const revalidate = 0
+
+export async function generateStaticParams() {
+  return [
+    { slug: 'seo-implementation-technical-optimization-for-narkins-builders' },
+    { slug: 'real-estate-platform-development-for-bin-yousuf-group' },
+    { slug: 'ai-legal-assistant-platform-development-for-lexa' },
+    { slug: 'e-commerce-platform-for-olly-shinder' },
+    { slug: 'branding-website-development-for-wish' },
+    { slug: 'website-infrastructure-creation-for-narkins-builders' },
+    { slug: 'branding-saas-platform-development-for-finlit' },
+    { slug: 'website-development-for-groovy-pakistan' },
+    { slug: 'branding-website-development-for-parcheh81' },
+    { slug: 'payment-infrastructure-migration-for-tiny-footprint-coffee' },
+    { slug: 'website-development-for-cultured-legacy' },
+    { slug: 'enterprise-infrastructure-development-for-ek-qadam-aur' },
+    { slug: 'enterprise-infrastructure-development-for-ntl-exchange' },
+    { slug: 'branding-website-development-for-boulevard-pakistan' },
+    { slug: 'branding-website-development-for-kiswa-noire' },
+    { slug: 'ads-portfolio-creative-design' },
+    { slug: 'adina-household' },
+    { slug: 'car-wala-2026' },
+  ]
+}
 
 interface ProjectPageProps {
   params: Promise<{

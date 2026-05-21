@@ -6,7 +6,7 @@ import { ProjectCard } from '@/components/project-card'
 import { buildSocialMetadata } from '@/lib/metadata'
 import { getProjects } from '@/lib/payload-api'
 
-export const revalidate = 86400
+export const revalidate = 0
 
 export const metadata: Metadata = {
   title: 'Work | Other Dev',

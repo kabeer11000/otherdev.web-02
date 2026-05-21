@@ -7,7 +7,7 @@ import { playlistsAndImages } from '@/lib/playlists-and-images'
 import { getProjects } from '@/lib/payload-api'
 import { shuffle } from '@/lib/utils'
 
-export const revalidate = 86400
+export const revalidate = 0
 
 export const metadata: Metadata = {
   title: 'Other Dev',
