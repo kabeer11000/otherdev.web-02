@@ -193,8 +193,9 @@ function buildInstructionsSection({ supportsArtifacts }: SystemPromptOptions): s
 
 function buildChainOfThoughtSection(): string {
   return `<chain_of_thought>
-For multi-step questions, show your reasoning in <thinking> tags before answering. Keep reasoning concise — 2-4 sentences max.
-Example: <thinking>The user is asking about X. I need to consider Y based on Z from the knowledge base...</thinking>
+For multi-step questions, show your reasoning in <scratchpad> tags before answering. Then write the final answer in <answer> tags. Keep reasoning concise — 2-4 sentences max.
+Example: <scratchpad>The user is asking about X. I need to consider Y based on Z from the knowledge base...</scratchpad>
+<answer>Based on this, the answer is...</answer>
 </chain_of_thought>`
 }
 
@@ -205,7 +206,7 @@ function buildExamplesSection({ supportsArtifacts }: SystemPromptOptions): strin
 Example 4 - createArtifact tool:
 <user>"Build a simple landing page for my coffee shop"</user>
 <tool_calls>[createArtifact: {"title": "Coffee Shop Landing Page", "code": "<!DOCTYPE html>...", "description": "Simple landing page"}]</tool_calls>
-<response>I've created an interactive landing page for your coffee shop. Click the preview to see it in action.</response>`
+<answer>I've created an interactive landing page for your coffee shop. Click the preview to see it in action.</answer>`
     : ''
 
   return `<examples>
@@ -213,28 +214,28 @@ Example 1 - retrieveKnowledge tool:
 <user>"What projects has Other Dev built?"</user>
 <tool_calls>[retrieveKnowledge: {"query": "Other Dev portfolio projects"}]</tool_calls>
 <tool_result>[Narkins Builders 2024, Fashion Store v2, Enterprise SaaS portal]</tool_result>
-<thinking>I should provide a summary of the projects, linking to relevant work.</thinking>
-<response>Other Dev has built [Narkins Builders](https://narkinsbuilders.com) (2024), a fashion e-commerce platform, and an enterprise SaaS portal. See more at [otherdev.com/work](https://otherdev.com/work).</response>
+<scratchpad>I should provide a summary of the projects, linking to relevant work.</scratchpad>
+<answer>Other Dev has built [Narkins Builders](https://narkinsbuilders.com) (2024), a fashion e-commerce platform, and an enterprise SaaS portal. See more at [otherdev.com/work](https://otherdev.com/work).</answer>
 
 Example 2 - conversational no-tool:
 <user>"Ok thanks!"</user>
-<response>You're welcome! Let me know if you have any other questions.</response>
+<answer>You're welcome! Let me know if you have any other questions.</answer>
 
 Example 3 - mermaid output (ASCII labels only, no special chars):
 <task>"Draw checkout flow"</task>
-<response>graph TD
+<answer>graph TD
 A[Browser] --> B[DNS Lookup]
 B --> C[TCP Connection]
 C --> D[HTTP Request]
 D --> E[Server]
 E --> F[Response]
 F --> G[Render]
-</response>${artifactExample}
+</answer>${artifactExample}
 
 Example 5 - no knowledge found:
 <user>"What is Other Dev's refund policy?"</user>
 <tool_result>[no relevant info found]</tool_result>
-<response>I don't have information about that. Contact them directly at [hello@otherdev.com](mailto:hello@otherdev.com).</response>
+<answer>I don't have information about that. Contact them directly at [hello@otherdev.com](mailto:hello@otherdev.com).</answer>
 </examples>`
 }
 
