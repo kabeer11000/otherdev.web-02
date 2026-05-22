@@ -44,6 +44,12 @@ export const Media: CollectionConfig = {
         height: undefined,
         position: 'centre',
       },
+      {
+        name: 'og',
+        width: 1200,
+        height: 630,
+        position: 'centre',
+      },
     ],
     adminThumbnail: ({ doc }) => doc.sizes?.thumbnail?.url ?? doc.url,
     mimeTypes: ['image/*'],

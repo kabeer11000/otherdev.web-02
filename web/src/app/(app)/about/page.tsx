@@ -51,7 +51,6 @@ export async function generateMetadata(): Promise<Metadata> {
       title: about.seo?.meta?.title || 'About | Other Dev',
       description,
       path: '/about',
-      imagePath: about.seo?.meta?.image?.url || '',
       imageAlt: 'About Other Dev',
     }),
   }
