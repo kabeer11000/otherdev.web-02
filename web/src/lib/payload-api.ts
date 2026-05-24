@@ -8,8 +8,9 @@
 
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
+import { cache } from 'react'
 
-export async function getProjects() {
+export const getProjects = cache(async () => {
   const payload = await getPayload({ config: configPromise })
   const { docs } = await payload.find({
     collection: 'projects',
@@ -18,9 +19,9 @@ export async function getProjects() {
     limit: 100,
   })
   return docs
-}
+})
 
-export async function getProjectBySlug(slug: string) {
+export const getProjectBySlug = cache(async (slug: string) => {
   const payload = await getPayload({ config: configPromise })
   const { docs } = await payload.find({
     collection: 'projects',
@@ -29,9 +30,9 @@ export async function getProjectBySlug(slug: string) {
     limit: 1,
   })
   return docs[0] || null
-}
+})
 
-export async function getRelatedProjects(currentId: string) {
+export const getRelatedProjects = cache(async (currentId: string) => {
   const payload = await getPayload({ config: configPromise })
   const { docs } = await payload.find({
     collection: 'projects',
@@ -41,9 +42,9 @@ export async function getRelatedProjects(currentId: string) {
     limit: 13,
   })
   return docs
-}
+})
 
-export async function getBlogPosts() {
+export const getBlogPosts = cache(async () => {
   const payload = await getPayload({ config: configPromise })
   const { docs } = await payload.find({
     collection: 'blog',
@@ -53,9 +54,9 @@ export async function getBlogPosts() {
     limit: 100,
   })
   return docs
-}
+})
 
-export async function getPublishedBlogSlugs(): Promise<string[]> {
+export const getPublishedBlogSlugs = cache(async (): Promise<string[]> => {
   const payload = await getPayload({ config: configPromise })
   const { docs } = await payload.find({
     collection: 'blog',
@@ -64,9 +65,9 @@ export async function getPublishedBlogSlugs(): Promise<string[]> {
     limit: 100,
   })
   return docs.map(d => d.slug).filter(Boolean)
-}
+})
 
-export async function getBlogPostBySlug(slug: string) {
+export const getBlogPostBySlug = cache(async (slug: string) => {
   const payload = await getPayload({ config: configPromise })
   const { docs } = await payload.find({
     collection: 'blog',
@@ -75,18 +76,18 @@ export async function getBlogPostBySlug(slug: string) {
     limit: 1,
   })
   return docs[0] || null
-}
+})
 
-export async function getAboutContent() {
+export const getAboutContent = cache(async () => {
   const payload = await getPayload({ config: configPromise })
   const about = await payload.findGlobal({
     slug: 'about',
     depth: 2,
   })
   return about ?? null
-}
+})
 
-export async function searchContent(query: string) {
+export const searchContent = cache(async (query: string) => {
   if (!query?.trim()) return []
   const payload = await getPayload({ config: configPromise })
   const { docs } = await payload.find({
@@ -99,4 +100,4 @@ export async function searchContent(query: string) {
     limit: 20,
   })
   return docs
-}
+})

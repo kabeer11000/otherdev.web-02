@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { getProjectBySlug } from '@/lib/payload-api'
+import { getProjectBySlug, getProjects } from '@/lib/payload-api'
 
 export const size = {
   width: 1200,
@@ -7,6 +7,11 @@ export const size = {
 }
 export const alt = 'Project | Other Dev Portfolio'
 export const contentType = 'image/png'
+
+export async function generateStaticParams() {
+  const projects = await getProjects()
+  return projects.map(p => ({ slug: p.slug }))
+}
 
 interface ImageProps {
   params: Promise<{ slug: string }>
