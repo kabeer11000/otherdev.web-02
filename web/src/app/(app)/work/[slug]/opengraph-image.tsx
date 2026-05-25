@@ -15,25 +15,6 @@ export async function generateStaticParams() {
   return projects.map(p => ({ slug: p.slug }))
 }
 
-export async function generateImageMetadata({
-  params,
-}: {
-  params: { slug: string }
-}) {
-  const { slug } = params
-  const project = await getProjectBySlug(slug)
-
-  return [
-    {
-      id: slug,
-      width: size.width,
-      height: size.height,
-      alt: project?.title ? `${project.title} | Other Dev Portfolio` : alt,
-      contentType,
-    },
-  ]
-}
-
 interface ImageProps {
   params: Promise<{ slug: string }>
   id: Promise<string>
