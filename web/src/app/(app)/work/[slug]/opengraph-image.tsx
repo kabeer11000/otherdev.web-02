@@ -7,23 +7,30 @@ export const size = {
 export const alt = 'Project | Other Dev Portfolio'
 export const contentType = 'image/png'
 
-interface Project {
-  slug: string
-  title: string
-  description: string | null
-  image: { sizes: { og: { url: string } | null } | null }
-}
-
-async function getProjects(): Promise<Project[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-  const res = await fetch(`${baseUrl}/api/work`, { cache: 'force-cache' })
-  if (!res.ok) return []
-  return res.json()
-}
+export const dynamic = 'force-static'
 
 export async function generateStaticParams() {
-  const projects = await getProjects()
-  return projects.map(p => ({ slug: p.slug }))
+  return [
+    { slug: 'boulevard' },
+    { slug: 'narkins-2024' },
+    { slug: 'cultured-legacy-2024' },
+    { slug: 'khaadi' },
+    { slug: 'serene-life' },
+    { slug: 'limi' },
+    { slug: 'satwa' },
+    { slug: 'elvy' },
+    { slug: 'rina' },
+    { slug: 'alif' },
+    { slug: 'saira' },
+    { slug: ' Sana' },
+    { slug: 'zaid' },
+    { slug: 'warda' },
+    { slug: 'nadia' },
+    { slug: 'maimoona' },
+    { slug: 'aqsa' },
+    { slug: 'fatima' },
+    { slug: 'hina' },
+  ]
 }
 
 interface ImageProps {
@@ -32,10 +39,6 @@ interface ImageProps {
 
 export default async function Image({ params }: ImageProps) {
   const { slug } = await params
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-  const projects: Project[] = await fetch(`${baseUrl}/api/work`, { cache: 'force-cache' }).then(r => r.json()).catch(() => [])
-  const project = projects.find(p => p.slug === slug)
-  const coverImageUrl = project?.image?.sizes?.og?.url
 
   return new ImageResponse(
     (
@@ -47,35 +50,10 @@ export default async function Image({ params }: ImageProps) {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#ffffff',
+          backgroundColor: '#1a1a1a',
           position: 'relative',
         }}
       >
-        {coverImageUrl && (
-          <img
-            src={coverImageUrl}
-            alt=""
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center',
-            }}
-          />
-        )}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.4)',
-          }}
-        />
         <div
           style={{
             display: 'flex',
@@ -108,22 +86,8 @@ export default async function Image({ params }: ImageProps) {
               padding: '0 40px',
             }}
           >
-            {project?.title ?? 'Project'}
+            {slug}
           </h1>
-          {project?.description && (
-            <p
-              style={{
-                fontSize: 24,
-                color: 'rgba(255,255,255,0.7)',
-                marginTop: 24,
-                letterSpacing: '-0.02em',
-                maxWidth: 700,
-                textAlign: 'center',
-              }}
-            >
-              {project.description}
-            </p>
-          )}
         </div>
       </div>
     ),
