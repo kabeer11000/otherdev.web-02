@@ -8,7 +8,7 @@ export const size = {
 export const alt = 'Project | Other Dev Portfolio'
 export const contentType = 'image/png'
 
-export const dynamic = 'force-static'
+export const revalidate = 60
 
 export async function generateStaticParams() {
   const projects = await getProjects()
@@ -42,6 +42,7 @@ interface ImageProps {
 export default async function Image({ params, id }: ImageProps) {
   const { slug } = await params
   const imageId = await id
+  const project = await getProjectBySlug(slug)
 
   return new ImageResponse(
     (
@@ -57,6 +58,31 @@ export default async function Image({ params, id }: ImageProps) {
           position: 'relative',
         }}
       >
+        {project?.image?.sizes?.og?.url && (
+          <img
+            src={project.image.sizes.og.url}
+            alt=""
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+            }}
+          />
+        )}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.4)',
+          }}
+        />
         <div
           style={{
             display: 'flex',
@@ -89,8 +115,22 @@ export default async function Image({ params, id }: ImageProps) {
               padding: '0 40px',
             }}
           >
-            {slug}
+            {project?.title ?? slug}
           </h1>
+          {project?.description && (
+            <p
+              style={{
+                fontSize: 24,
+                color: 'rgba(255,255,255,0.7)',
+                marginTop: 24,
+                letterSpacing: '-0.02em',
+                maxWidth: 700,
+                textAlign: 'center',
+              }}
+            >
+              {project.description}
+            </p>
+          )}
         </div>
       </div>
     ),
