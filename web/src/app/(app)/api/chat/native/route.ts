@@ -1,12 +1,14 @@
-import { type TextStreamPart, type ToolSet, type UIMessage, validateUIMessages } from 'ai'
-
+import { type TextStreamPart, type ToolSet, type UIMessage, validateUIMessages, TypeValidationError } from 'ai'
+import { suggestionDataSchema } from '@/lib/schemas'
 import { createJsonResponse } from '@/server/lib/api-helpers'
 import { handleStreamChat } from '@/server/lib/chat'
-import { createArtifactTool, retrieveKnowledgeTool, tavilySearchTool } from '@/server/lib/chat/tools'
-import { checkRateLimit, getClientIdentifier, REQUESTS_PER_WINDOW } from '@/server/lib/rate-limit'
 import { replaceMessageAtId } from '@/server/lib/chat/message-utils'
-
-import { suggestionDataSchema } from '@/lib/schemas'
+import {
+  createArtifactTool,
+  retrieveKnowledgeTool,
+  tavilySearchTool,
+} from '@/server/lib/chat/tools'
+import { checkRateLimit, getClientIdentifier, REQUESTS_PER_WINDOW } from '@/server/lib/rate-limit'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -18,42 +20,6 @@ type RequestBody = {
   supportsArtifacts?: boolean
   trigger?: 'submit-user-message' | 'edit-message'
   messageId?: string
-}
-
-function toSseChunk(chunk: { type: string; [k: string]: unknown }): Uint8Array {
-  const encoder = new TextEncoder()
-  switch (chunk.type) {
-    case 'text-delta':
-      return encoder.encode(`data: ${JSON.stringify({ type: 'text', content: chunk.text })}\n\n`)
-    case 'tool-call':
-      return encoder.encode(
-        `data: ${JSON.stringify({ type: 'tool', name: chunk.toolName, args: chunk.args })}\n\n`,
-      )
-    case 'tool-result':
-      return encoder.encode(
-        `data: ${JSON.stringify({ type: 'tool-result', name: chunk.toolName, result: chunk.result })}\n\n`,
-      )
-    case 'reasoning':
-      return encoder.encode(
-        `data: ${JSON.stringify({ type: 'reasoning', content: chunk.textDelta })}\n\n`,
-      )
-    case 'error':
-      return encoder.encode(
-        `data: ${JSON.stringify({ type: 'error', message: chunk.error })}\n\n`,
-      )
-    case 'finish': {
-      const finishData = {
-        type: 'finish',
-        reason: chunk.finishReason,
-        usage: chunk.usage,
-      }
-      return encoder.encode(`data: ${JSON.stringify(finishData)}\n\n`)
-    }
-    default:
-      return encoder.encode(
-        `data: ${JSON.stringify({ type: 'unknown', chunkType: chunk.type })}\n\n`,
-      )
-  }
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -82,7 +48,10 @@ export async function POST(request: Request): Promise<Response> {
 
     if (isEditMessage) {
       if (!body.messageId || !Array.isArray(body.messages)) {
-        return createJsonResponse({ error: 'messageId and messages required for edit-message' }, 400)
+        return createJsonResponse(
+          { error: 'messageId and messages required for edit-message' },
+          400
+        )
       }
       candidateMessages = replaceMessageAtId(body.messages, body.messageId, body.message)
     } else {
@@ -131,7 +100,7 @@ export async function POST(request: Request): Promise<Response> {
         },
       })) as UIMessage[]
     } catch (error) {
-      if (error instanceof (await import('ai')).TypeValidationError) {
+      if (error instanceof TypeValidationError) {
         console.error('[VALIDATION] Invalid chat messages:', error.message)
         return createJsonResponse({ error: 'Invalid message payload' }, 400)
       }
@@ -156,6 +125,7 @@ export async function POST(request: Request): Promise<Response> {
       return result.toUIMessageStreamResponse({
         originalMessages: uiMessages,
         generateMessageId: () => crypto.randomUUID(),
+        sendReasoning: true,
         messageMetadata({ part }: { part: TextStreamPart<ToolSet> }) {
           if (part.type === 'finish') {
             return { suggestions } as Record<string, unknown>

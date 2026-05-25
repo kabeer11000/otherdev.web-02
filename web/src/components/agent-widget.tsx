@@ -1,21 +1,18 @@
 'use client'
 
-import dynamic from 'next/dynamic'
+import { ConversationProvider, useConversationStatus } from '@elevenlabs/react'
 import { X } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { useCallback, useState } from 'react'
-import {
-  ConversationProvider,
-  useConversationStatus,
-} from '@elevenlabs/react'
+import { ConversationBar } from '@/components/ui/conversation-bar'
 import type { AgentState } from '@/components/ui/orb-button'
 import { Z_INDEX } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import { ConversationBar } from '@/components/ui/conversation-bar'
 
-const OrbButton = dynamic(
-  () => import('@/components/ui/orb-button').then((mod) => mod.OrbButton),
-  { ssr: false, loading: () => <div className="h-10 w-10" /> }
-)
+const OrbButton = dynamic(() => import('@/components/ui/orb-button').then(mod => mod.OrbButton), {
+  ssr: false,
+  loading: () => <div className="h-10 w-10" />,
+})
 
 interface AgentWidgetProps {
   agentId?: string
@@ -27,8 +24,9 @@ export function AgentWidget({ agentId, avatarUrl, className }: AgentWidgetProps)
   const [isOpen, setIsOpen] = useState(false)
 
   const handleOpen = useCallback(() => {
+    if (!agentId) return
     setIsOpen(true)
-  }, [])
+  }, [agentId])
 
   const handleClose = useCallback(() => {
     setIsOpen(false)
@@ -54,10 +52,7 @@ export function AgentWidget({ agentId, avatarUrl, className }: AgentWidgetProps)
             aria-label="Open sales assistant"
           >
             <div className="h-10 w-10 md:h-9 md:w-9">
-              <OrbButton
-                agentState={null}
-                className="h-full w-full"
-              />
+              <OrbButton agentState={null} className="h-full w-full" />
             </div>
           </button>
         )}
@@ -99,12 +94,16 @@ function AgentWidgetInner({
 }: AgentWidgetInnerProps) {
   const { status, isSpeaking, isListening } = useConversationStatus()
 
-  const agentState: AgentState = status === 'connected'
-    ? isSpeaking ? 'talking'
-    : isListening ? 'listening'
-    : null
-    : status === 'connecting' ? 'thinking'
-    : null
+  const agentState: AgentState =
+    status === 'connected'
+      ? isSpeaking
+        ? 'talking'
+        : isListening
+          ? 'listening'
+          : null
+      : status === 'connecting'
+        ? 'thinking'
+        : null
 
   return (
     <>
@@ -125,21 +124,12 @@ function AgentWidgetInner({
           aria-label="Open sales assistant"
         >
           <div className="h-10 w-10 md:h-9 md:w-9">
-            <OrbButton
-              agentState={agentState}
-              className="h-full w-full"
-            />
+            <OrbButton agentState={agentState} className="h-full w-full" />
           </div>
         </button>
       )}
 
-      {isOpen && (
-        <AgentWidgetPanel
-          agentId={agentId}
-          avatarUrl={avatarUrl}
-          onClose={onClose}
-        />
-      )}
+      {isOpen && <AgentWidgetPanel agentId={agentId} avatarUrl={avatarUrl} onClose={onClose} />}
     </>
   )
 }
@@ -185,7 +175,9 @@ function AgentWidgetNoConfig({ onClose }: AgentWidgetNoConfigProps) {
         <div className="text-center text-muted-foreground text-sm p-8">
           <p className="mb-2">Agent ID not configured.</p>
           <p className="text-xs">
-            Set <code className="bg-muted px-1 py-0.5 rounded">NEXT_PUBLIC_ELEVENLABS_AGENT_ID</code> in your environment.
+            Set{' '}
+            <code className="bg-muted px-1 py-0.5 rounded">NEXT_PUBLIC_ELEVENLABS_AGENT_ID</code> in
+            your environment.
           </p>
         </div>
       </div>
@@ -251,7 +243,11 @@ function ConversationStatusIndicator() {
     connecting: { label: 'Connecting...', color: 'bg-yellow-500', animate: true },
     connected: {
       label: isSpeaking ? 'Speaking' : isListening ? 'Listening...' : 'Online',
-      color: isSpeaking ? 'bg-green-500' : isListening ? 'bg-yellow-500 animate-pulse' : 'bg-green-400',
+      color: isSpeaking
+        ? 'bg-green-500'
+        : isListening
+          ? 'bg-yellow-500 animate-pulse'
+          : 'bg-green-400',
       animate: isListening,
     },
     error: { label: 'Error', color: 'bg-red-500', animate: false },
