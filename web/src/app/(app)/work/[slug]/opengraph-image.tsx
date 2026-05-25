@@ -16,7 +16,7 @@ interface Project {
 
 async function getProjects(): Promise<Project[]> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-  const res = await fetch(`${baseUrl}/api/work`, { cache: 'force-static' })
+  const res = await fetch(`${baseUrl}/api/work`, { cache: 'force-cache' })
   if (!res.ok) return []
   return res.json()
 }
@@ -33,7 +33,7 @@ interface ImageProps {
 export default async function Image({ params }: ImageProps) {
   const { slug } = await params
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-  const projects: Project[] = await fetch(`${baseUrl}/api/work`, { cache: 'force-static' }).then(r => r.json()).catch(() => [])
+  const projects: Project[] = await fetch(`${baseUrl}/api/work`, { cache: 'force-cache' }).then(r => r.json()).catch(() => [])
   const project = projects.find(p => p.slug === slug)
   const coverImageUrl = project?.image?.sizes?.og?.url
 
