@@ -10,7 +10,7 @@ import { ProjectCard } from '@/components/project-card'
 import { buildSocialMetadata } from '@/lib/metadata'
 import { getProjectBySlug, getRelatedProjects } from '@/lib/payload-api'
 
-export const revalidate = 0
+export const revalidate = 604800
 
 export async function generateStaticParams() {
   return [

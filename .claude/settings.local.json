@@ -237,7 +237,8 @@
       "Bash(chrome-devtools status *)",
       "Skill(hookify:writing-rules)",
       "Skill(agents)",
-      "PowerShell([System.Environment]::SetEnvironmentVariable\\('CONTEXT7_API_KEY', $null, 'User'\\); [System.Environment]::SetEnvironmentVariable\\('CONTEXT7_API_KEY', $null, 'Process'\\))"
+      "PowerShell([System.Environment]::SetEnvironmentVariable\\('CONTEXT7_API_KEY', $null, 'User'\\); [System.Environment]::SetEnvironmentVariable\\('CONTEXT7_API_KEY', $null, 'Process'\\))",
+      "mcp__context7__resolve-library-id"
     ],
     "deny": [],
     "ask": []

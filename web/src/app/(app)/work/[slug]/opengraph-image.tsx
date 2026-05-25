@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import { getProjects, getProjectBySlug } from '@/lib/payload-api'
 
 export const size = {
   width: 1200,
@@ -10,35 +11,37 @@ export const contentType = 'image/png'
 export const dynamic = 'force-static'
 
 export async function generateStaticParams() {
+  const projects = await getProjects()
+  return projects.map(p => ({ slug: p.slug }))
+}
+
+export async function generateImageMetadata({
+  params,
+}: {
+  params: { slug: string }
+}) {
+  const { slug } = params
+  const project = await getProjectBySlug(slug)
+
   return [
-    { slug: 'boulevard' },
-    { slug: 'narkins-2024' },
-    { slug: 'cultured-legacy-2024' },
-    { slug: 'khaadi' },
-    { slug: 'serene-life' },
-    { slug: 'limi' },
-    { slug: 'satwa' },
-    { slug: 'elvy' },
-    { slug: 'rina' },
-    { slug: 'alif' },
-    { slug: 'saira' },
-    { slug: ' Sana' },
-    { slug: 'zaid' },
-    { slug: 'warda' },
-    { slug: 'nadia' },
-    { slug: 'maimoona' },
-    { slug: 'aqsa' },
-    { slug: 'fatima' },
-    { slug: 'hina' },
+    {
+      id: slug,
+      width: size.width,
+      height: size.height,
+      alt: project?.title ? `${project.title} | Other Dev Portfolio` : alt,
+      contentType,
+    },
   ]
 }
 
 interface ImageProps {
   params: Promise<{ slug: string }>
+  id: Promise<string>
 }
 
-export default async function Image({ params }: ImageProps) {
+export default async function Image({ params, id }: ImageProps) {
   const { slug } = await params
+  const imageId = await id
 
   return new ImageResponse(
     (

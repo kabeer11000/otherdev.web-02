@@ -4,7 +4,7 @@ import { Navigation } from '@/components/navigation'
 import { buildSocialMetadata } from '@/lib/metadata'
 import { getBlogPostBySlug, getPublishedBlogSlugs } from '@/lib/payload-api'
 
-export const revalidate = 0
+export const revalidate = 604800
 
 export async function generateStaticParams() {
   const slugs = await getPublishedBlogSlugs()
