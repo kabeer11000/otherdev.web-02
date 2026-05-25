@@ -6,8 +6,8 @@ import dynamic from 'next/dynamic'
 import localFont from 'next/font/local'
 import { Suspense } from 'react'
 import { QueryProvider } from '@/components/providers'
-import { buildSocialMetadata, DEFAULT_SITE_DESCRIPTION } from '@/lib/metadata'
 import { SITE_URL } from '@/lib/constants'
+import { buildSocialMetadata, DEFAULT_SITE_DESCRIPTION } from '@/lib/metadata'
 import { TenantProvider } from '@/lib/tenant-context'
 
 // Lazy load ChatWidget - client-only component
@@ -16,9 +16,12 @@ const ChatWidget = dynamic(() => import('@/components/chat-widget').then(mod => 
 })
 
 // Lazy load AgentWidget - ElevenLabs sales agent widget
-const AgentWidget = dynamic(() => import('@/components/agent-widget').then(mod => mod.AgentWidget), {
-  loading: () => null,
-})
+const AgentWidget = dynamic(
+  () => import('@/components/agent-widget').then(mod => mod.AgentWidget),
+  {
+    loading: () => null,
+  }
+)
 
 const twkLausanne = localFont({
   src: [
@@ -97,16 +100,24 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${twkLausanne.variable} ${queensCompressed.variable}`}
-      style={{ colorScheme: 'light dark' }}
     >
       <head>
         {/* R2 preconnect — saves DNS+TCP+TLS per image */}
-        <link rel="preconnect" href="https://pub-bb3787984f924b288b4158546c9171fb.r2.dev" crossOrigin="anonymous" />
+        <link
+          rel="preconnect"
+          href="https://pub-bb3787984f924b288b4158546c9171fb.r2.dev"
+          crossOrigin="anonymous"
+        />
         {/* Favicon - Multiple sizes for optimal display */}
         <link rel="icon" href="/favicon.ico" sizes="any" type="image/x-icon" />
         <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png" />
         <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" type="image/png" />
+        <link
+          rel="apple-touch-icon"
+          href="/apple-touch-icon.png"
+          sizes="180x180"
+          type="image/png"
+        />
         <link rel="manifest" href="/site.webmanifest" />
         {/* View Transitions API Support */}
         <meta name="view-transition" content="same-origin" />
