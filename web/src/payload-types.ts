@@ -225,6 +225,14 @@ export interface Media {
       filesize?: number | null;
       filename?: string | null;
     };
+    og?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
   };
 }
 /**
@@ -239,6 +247,10 @@ export interface Project {
    */
   generateSlug?: boolean | null;
   slug: string;
+  /**
+   * Short teaser text shown on project cards (~10 words).
+   */
+  excerpt?: string | null;
   /**
    * Full project description with rich formatting.
    */
@@ -610,6 +622,16 @@ export interface MediaSelect<T extends boolean = true> {
               filesize?: T;
               filename?: T;
             };
+        og?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
       };
 }
 /**
@@ -620,6 +642,7 @@ export interface ProjectsSelect<T extends boolean = true> {
   title?: T;
   generateSlug?: T;
   slug?: T;
+  excerpt?: T;
   content?: T;
   contentHtml?: T;
   url?: T;
