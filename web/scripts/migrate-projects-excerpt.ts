@@ -20,8 +20,8 @@ async function migrate() {
     }
 
     const plainText = project.contentHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-    const words = plainText.split(' ').slice(0, 15)
-    const excerpt = words.join(' ') + (plainText.split(' ').length > 15 ? '...' : '')
+    const words = plainText.split(' ').slice(0, 25)
+    const excerpt = words.join(' ') + (plainText.split(' ').length > 25 ? '...' : '')
 
     await payload.update({
       collection: 'projects',
