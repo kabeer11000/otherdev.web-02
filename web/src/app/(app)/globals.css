@@ -415,10 +415,22 @@
   letter-spacing: -0.02em;
 }
 
-.prose-article h1 { font-size: 2.5rem; margin: 2rem 0 1rem; }
-.prose-article h2 { font-size: 1.875rem; margin: 1.75rem 0 0.875rem; }
-.prose-article h3 { font-size: 1.5rem; margin: 1.5rem 0 0.75rem; }
-.prose-article h4 { font-size: 1.25rem; margin: 1.25rem 0 0.625rem; }
+.prose-article h1 {
+  font-size: 2.5rem;
+  margin: 2rem 0 1rem;
+}
+.prose-article h2 {
+  font-size: 1.875rem;
+  margin: 1.75rem 0 0.875rem;
+}
+.prose-article h3 {
+  font-size: 1.5rem;
+  margin: 1.5rem 0 0.75rem;
+}
+.prose-article h4 {
+  font-size: 1.25rem;
+  margin: 1.25rem 0 0.625rem;
+}
 
 .prose-article p {
   margin: 0 0 1.25rem;
@@ -441,6 +453,29 @@
   padding: 0.15em 0.4em;
   border-radius: 4px;
   border: 1px solid var(--border);
+}
+
+/* Subscript & Superscript */
+.prose-article sub,
+.prose-article sup {
+  font-size: 0.75em;
+  vertical-align: baseline;
+  position: relative;
+}
+.prose-article sub {
+  bottom: -0.25em;
+}
+.prose-article sup {
+  top: -0.5em;
+}
+
+/* Inline text-decoration (Payload uses span[style], not <u>/<s>) */
+.prose-article span[style*="text-decoration: underline"] {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose-article span[style*="text-decoration: line-through"] {
+  text-decoration: line-through;
 }
 
 /* Code blocks — from Payload's custom converter: <pre data-lang="..."> */
@@ -497,8 +532,12 @@
 .prose-article li {
   margin-bottom: 0.4rem;
 }
-.prose-article ul { list-style-type: disc; }
-.prose-article ol { list-style-type: decimal; }
+.prose-article ul {
+  list-style-type: disc;
+}
+.prose-article ol {
+  list-style-type: decimal;
+}
 .prose-article ul ul,
 .prose-article ol ol,
 .prose-article ul ol,
@@ -542,6 +581,37 @@
 }
 .prose-article tr:hover td {
   background: var(--muted);
+}
+
+/* Lexical table container (from experimental table feature) */
+.prose-article .lexical-table-container {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.prose-article .lexical-table-container .lexical-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+.prose-article .lexical-table-cell {
+  border: 1px solid var(--border);
+  padding: 0.625rem 0.875rem;
+  text-align: left;
+}
+.prose-article .lexical-table-cell-header-light,
+.prose-article .lexical-table-cell-header-dark {
+  background: var(--muted);
+  font-weight: 600;
+}
+.prose-article .lexical-table-row:hover .lexical-table-cell {
+  background: var(--muted);
+}
+
+/* Tab characters in code — preserve literal tabs (Payload outputs raw \t) */
+.prose-article pre code,
+.prose-article pre {
+  tab-size: 4;
 }
 
 /* Image within prose */
