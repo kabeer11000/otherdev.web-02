@@ -90,6 +90,7 @@ export default async function WorkPage() {
                   description={project.excerpt}
                   variant="work"
                   showText={true}
+                  showTitle={false}
                 />
               </div>
             ))}

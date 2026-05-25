@@ -51,6 +51,7 @@ interface ProjectCardProps extends VariantProps<typeof cardVariants> {
   image: string
   description?: string
   showText?: boolean
+  showTitle?: boolean
   priority?: boolean
   sizes?: string
 }
@@ -62,6 +63,7 @@ export function ProjectCard({
   description,
   variant,
   showText = false,
+  showTitle = true,
   priority = false,
   sizes = '(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw',
 }: ProjectCardProps) {
@@ -100,11 +102,13 @@ export function ProjectCard({
           href={`/work/${slug}`}
           className="box-border flex flex-col items-start pb-[3px] pt-0 px-0 relative shrink-0"
         >
-          <div className="box-border flex flex-col items-start mb-[-3px] relative shrink-0 w-full">
-            <div className="flex flex-col font-normal justify-center leading-[0] not-italic relative shrink-0 text-[11.4px] text-black tracking-[-0.24px] w-full">
-              <p className="leading-[14px] whitespace-pre-wrap">{title}</p>
+          {showTitle && (
+            <div className="box-border flex flex-col items-start mb-[-3px] relative shrink-0 w-full">
+              <div className="flex flex-col font-normal justify-center leading-[0] not-italic relative shrink-0 text-[11.4px] text-black tracking-[-0.24px] w-full">
+                <p className="leading-[14px] whitespace-pre-wrap">{title}</p>
+              </div>
             </div>
-          </div>
+          )}
           <div className="box-border flex flex-col items-start mb-[-3px] pb-0 pt-[9px] px-0 relative shrink-0 w-full">
             <div className="flex flex-col font-normal justify-center leading-[14px] not-italic relative shrink-0 text-[#686868] text-[11.1px] tracking-[-0.24px] w-full whitespace-pre-wrap">
               <p className="mb-0">{description}</p>
