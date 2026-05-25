@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
     }
   }
 
-  const seoDescription = project.meta?.description ?? project.description
+  const seoDescription = project.meta?.description ?? project.excerpt
 
   return {
     title: `${project.title} | Other Dev Portfolio`,
@@ -84,7 +84,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     '@context': 'https://schema.org',
     '@type': 'CreativeWork',
     name: project.title,
-    description: project.description,
+    description: project.excerpt,
     image: project.image?.url,
     url: `https://otherdev.com/work/${slug}`,
     creator: {
@@ -182,7 +182,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
                   title={relatedProject.title}
                   slug={relatedProject.slug}
                   image={relatedProject.image?.url ?? ''}
-                  description={relatedProject.description}
+                  description={relatedProject.excerpt}
                   variant="work"
                   showText={true}
                   sizes="(max-width: 640px) 320px, 600px"

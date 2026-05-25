@@ -87,7 +87,7 @@ export default async function WorkPage() {
                   title={project.title}
                   slug={project.slug}
                   image={project.image?.url ?? ''}
-                  description={project.description}
+                  description={project.excerpt}
                   variant="work"
                   showText={true}
                 />

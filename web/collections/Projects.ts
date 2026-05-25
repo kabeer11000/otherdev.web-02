@@ -1,12 +1,15 @@
-import type { CollectionConfig } from 'payload'
-import type { CollectionBeforeChangeHook, CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'payload'
-
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { convertLexicalToHTML } from '@payloadcms/richtext-lexical/html'
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical'
 import { revalidatePath } from 'next/cache'
+import type {
+  CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
+  CollectionBeforeChangeHook,
+  CollectionConfig,
+} from 'payload'
 import { slugField } from 'payload'
 import sharp from 'sharp'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 const OG_WIDTH = 1200
 const OG_HEIGHT = 630
@@ -44,12 +47,14 @@ async function generateOGForMedia(mediaUrl: string): Promise<string | null> {
     const ogFilename = `${baseName}-og.jpg`
     const ogKey = prefix ? `${prefix}/${ogFilename}` : ogFilename
 
-    await s3Client.send(new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET,
-      Key: ogKey,
-      Body: ogBuffer,
-      ContentType: 'image/jpeg',
-    }))
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET,
+        Key: ogKey,
+        Body: ogBuffer,
+        ContentType: 'image/jpeg',
+      })
+    )
 
     return `${process.env.R2_PUBLIC_URL}/${ogKey}`
   } catch (error) {
@@ -63,6 +68,15 @@ const syncContentHtml: CollectionBeforeChangeHook = async ({ data }) => {
     data.contentHtml = await convertLexicalToHTML({
       data: data.content as SerializedEditorState,
     })
+  }
+  return data
+}
+
+const autoPopulateExcerpt: CollectionBeforeChangeHook = async ({ data }) => {
+  if (!data.excerpt && data.contentHtml) {
+    const plainText = data.contentHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    const words = plainText.split(' ').slice(0, 10)
+    data.excerpt = words.join(' ') + (plainText.split(' ').length > 10 ? '...' : '')
   }
   return data
 }
@@ -131,7 +145,7 @@ export const Projects: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['image', 'title', 'year', 'url'],
     listSearchableFields: ['title', 'slug'],
-    preview: (doc) => doc.slug ? `/projects/${doc.slug}` : null,
+    preview: doc => (doc.slug ? `/projects/${doc.slug}` : null),
   },
   access: {
     read: () => true,
@@ -140,7 +154,7 @@ export const Projects: CollectionConfig = {
     delete: ({ req }) => req.user?.role === 'admin',
   },
   hooks: {
-    beforeChange: [syncContentHtml, generateProjectOG],
+    beforeChange: [syncContentHtml, autoPopulateExcerpt, generateProjectOG],
     afterChange: [revalidateProject],
     afterDelete: [revalidateProjectDelete],
   },
@@ -154,6 +168,13 @@ export const Projects: CollectionConfig = {
       name: 'slug',
       useAsSlug: 'title',
     }),
+    {
+      name: 'excerpt',
+      type: 'textarea',
+      admin: {
+        description: 'Short teaser text shown on project cards (~10 words).',
+      },
+    },
     {
       name: 'content',
       type: 'richText',
