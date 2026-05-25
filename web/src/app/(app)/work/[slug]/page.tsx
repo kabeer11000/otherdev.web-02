@@ -61,6 +61,7 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
       title: `${project.title} | Other Dev Portfolio`,
       description: seoDescription,
       path: `/work/${slug}`,
+      imagePath: '/og_image.png',
       imageAlt: `${project.title} | Other Dev Portfolio`,
     }),
   }
@@ -76,7 +77,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   const relatedProjects = await getRelatedProjects(project.id)
 
-  const mediaUrls = project.media?.map(m => m.image?.url).filter(Boolean) as string[] ?? []
+  const mediaUrls = (project.media?.map(m => m.image?.url).filter(Boolean) as string[]) ?? []
 
   // JSON-Ld Structured Data
   const jsonLd = {
@@ -119,7 +120,10 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           {/* Content */}
           {project.contentHtml && (
             <div className="mb-[32px] max-w-[315px] sm:max-w-[532px] animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150">
-              <div className="prose-article" dangerouslySetInnerHTML={{ __html: project.contentHtml }} />
+              <div
+                className="prose-article"
+                dangerouslySetInnerHTML={{ __html: project.contentHtml }}
+              />
             </div>
           )}
 

@@ -25,6 +25,7 @@ export const metadata: Metadata = {
     description:
       'Explore our premium web design and development projects. We engineer digital solutions for pioneering brands across real estate, e-commerce, SaaS, and more.',
     path: '/work',
+    imagePath: '/og_image.png',
     imageAlt: 'Our Work | Other Dev Portfolio',
   }),
 }
