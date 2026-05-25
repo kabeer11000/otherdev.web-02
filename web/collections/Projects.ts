@@ -75,8 +75,8 @@ const syncContentHtml: CollectionBeforeChangeHook = async ({ data }) => {
 const autoPopulateExcerpt: CollectionBeforeChangeHook = async ({ data }) => {
   if (!data.excerpt && data.contentHtml) {
     const plainText = data.contentHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-    const words = plainText.split(' ').slice(0, 10)
-    data.excerpt = words.join(' ') + (plainText.split(' ').length > 10 ? '...' : '')
+    const words = plainText.split(' ').slice(0, 15)
+    data.excerpt = words.join(' ') + (plainText.split(' ').length > 15 ? '...' : '')
   }
   return data
 }
