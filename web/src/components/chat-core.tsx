@@ -489,6 +489,18 @@ function AssistantMessage({
   const cleanedText = cleanSuggestionMarkers(textPart)
   const getHtmlContent = () => contentRef.current?.innerHTML
 
+  // Extract tool result parts for display
+  const toolResultParts = message.parts?.filter(
+    part => part.type === 'tool-result' && isToolUIPart(part)
+  ) as Array<{
+    type: `tool-${string}`
+    toolCallId: string
+    toolName: string
+    state: string
+    input?: unknown
+    output?: unknown
+  }> || []
+
   if (hasArtifact && artifactToolCall) {
     const artifactData = (
       artifactToolCall.state === 'output-available'
@@ -579,6 +591,23 @@ function AssistantMessage({
       <div className="w-full max-w-[85%] sm:gap-3 lg:max-w-5xl mx-auto flex flex-col">
         <div className="flex-1 space-y-2 min-w-0">
           {reasoning && <ReasoningCollapsible reasoning={reasoning} />}
+          {toolResultParts.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {toolResultParts.map((part, i) => {
+                const toolName = part.toolName
+                const isKnowledge = toolName === 'retrieveKnowledge'
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
+                  >
+                    <span>{isKnowledge ? '🔍' : '🔧'}</span>
+                    <span>{isKnowledge ? 'Knowledge retrieved' : `Tool: ${toolName}`}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
           {cleanedText && (
             <div ref={contentRef}>
               <div className="max-w-none rounded-lg bg-transparent p-0">
