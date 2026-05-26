@@ -16,9 +16,7 @@
   --font-sans: var(--plus-jakarta), sans-serif;
   --font-serif: var(--fraunces), serif;
   --font-mono: var(--font-geist-mono);
-  --font-twk: var(--plus-jakarta), sans-serif;
-  --font-queens: var(--fraunces), serif;
-  --font-ai:
+    --font-ai:
     ui-sans-serif, -apple-system, "system-ui", "Segoe UI", Helvetica, "Apple Color Emoji", Arial,
     "sans-serif", "Segoe UI Emoji", "Segoe UI Symbol";
   --color-sidebar-ring: var(--sidebar-ring);

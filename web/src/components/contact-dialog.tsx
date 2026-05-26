@@ -98,7 +98,7 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
             <DialogHeader className="sr-only">
               <DialogTitle>Contact Us</DialogTitle>
             </DialogHeader>
-            <p className="whitespace-pre-line text-[12px] sm:text-[13px] text-foreground font-twk font-normal leading-[1.4] sm:leading-[1.5]">
+            <p className="whitespace-pre-line text-[12px] sm:text-[13px] text-foreground font-sans font-normal leading-[1.4] sm:leading-[1.5]">
               {`Thank you for expressing interest in collaborating with us.
 
 We specialize in working with brands and agencies to deliver unique web experiences. Please provide your information below to begin discussions of potential projects.
@@ -110,7 +110,7 @@ We will reach out to you with the next steps as soon as possible.`}
             <button
               type="button"
               onClick={() => setStep('form')}
-              className="w-full mt-[12px] sm:mt-[15px] h-8 sm:h-9 flex items-center justify-center rounded-md backdrop-blur-sm bg-card text-[11px] font-twk font-normal text-muted-foreground transition-colors hover:text-foreground"
+              className="w-full mt-[12px] sm:mt-[15px] h-8 sm:h-9 flex items-center justify-center rounded-md backdrop-blur-sm bg-card text-[11px] font-sans font-normal text-muted-foreground transition-colors hover:text-foreground"
             >
               <p>Next</p>
             </button>
@@ -193,7 +193,7 @@ We will reach out to you with the next steps as soon as possible.`}
 
                 <button
                   type="submit"
-                  className="w-full mt-[12px] sm:mt-[15px] h-8 sm:h-9 flex items-center justify-center rounded-md backdrop-blur-sm bg-card text-[11px] font-twk font-normal text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full mt-[12px] sm:mt-[15px] h-8 sm:h-9 flex items-center justify-center rounded-md backdrop-blur-sm bg-card text-[11px] font-sans font-normal text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isPending}
                 >
                   <p>{isPending ? 'Submitting...' : 'Submit'}</p>

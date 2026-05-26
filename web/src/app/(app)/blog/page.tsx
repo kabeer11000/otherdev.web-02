@@ -32,7 +32,7 @@ export default async function BlogPage() {
         {/* Page label — matches work/page pattern: "OD / Work" */}
         <div className="grid grid-cols-12 mb-8">
           <div className="col-span-12 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <span className="text-[11px] font-twk font-normal leading-[14px] tracking-[-0.24px] text-[#686868]">
+            <span className="text-[11px] font-sans font-normal leading-[14px] tracking-[-0.24px] text-[#686868]">
               other dev / blog
             </span>
           </div>
@@ -50,11 +50,11 @@ export default async function BlogPage() {
         <div className="flex items-center gap-3 mb-[20px]">
           <Link
             href="/blog/search"
-            className="text-[11px] font-twk font-normal leading-[14px] tracking-[-0.24px] text-[#686868] bg-stone-200 hover:bg-stone-300 rounded-md px-3 py-2 transition-colors motion-duration-150"
+            className="text-[11px] font-sans font-normal leading-[14px] tracking-[-0.24px] text-[#686868] bg-stone-200 hover:bg-stone-300 rounded-md px-3 py-2 transition-colors motion-duration-150"
           >
             Search
           </Link>
-          <span className="text-[11px] text-[#686868] font-twk tracking-[-0.24px]">
+          <span className="text-[11px] text-[#686868] font-sans tracking-[-0.24px]">
             {posts.length} {posts.length === 1 ? 'post' : 'posts'}
           </span>
         </div>
@@ -91,19 +91,19 @@ export default async function BlogPage() {
                     className="flex flex-col sm:flex-row sm:items-baseline gap-[6px] sm:gap-[24px] py-[16px] pr-[40px] relative"
                   >
                     {/* Title */}
-                    <span className="text-[11.4px] text-black tracking-[-0.24px] group-hover:text-[#686868] transition-colors motion-duration-150 font-twk font-normal leading-[14px] not-italic shrink-0 sm:w-[200px] md:w-[260px] lg:w-[320px]">
+                    <span className="text-[11.4px] text-black tracking-[-0.24px] group-hover:text-[#686868] transition-colors motion-duration-150 font-sans font-normal leading-[14px] not-italic shrink-0 sm:w-[200px] md:w-[260px] lg:w-[320px]">
                       {post.title}
                     </span>
 
                     {/* Excerpt — only visible on larger screens */}
                     {post.excerpt && (
-                      <span className="hidden sm:block text-[#686868] text-[11px] tracking-[-0.24px] group-hover:text-[#686868]/70 transition-colors motion-duration-150 font-twk font-normal leading-[14px] not-italic line-clamp-1 flex-1">
+                      <span className="hidden sm:block text-[#686868] text-[11px] tracking-[-0.24px] group-hover:text-[#686868]/70 transition-colors motion-duration-150 font-sans font-normal leading-[14px] not-italic line-clamp-1 flex-1">
                         {post.excerpt}
                       </span>
                     )}
 
                     {/* Date — right aligned on larger screens */}
-                    <span className="text-[#686868] text-[11px] tracking-[-0.24px] font-twk font-normal leading-[14px] not-italic shrink-0">
+                    <span className="text-[#686868] text-[11px] tracking-[-0.24px] font-sans font-normal leading-[14px] not-italic shrink-0">
                       {displayDate}
                     </span>
 
