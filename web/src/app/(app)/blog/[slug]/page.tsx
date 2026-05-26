@@ -90,7 +90,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             <div className="col-span-12 lg:col-span-8">
               <h1
                 className="font-queens font-light text-[36px] sm:text-[48px] lg:text-[56px] leading-[1.05] tracking-[-0.03em] text-foreground mb-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
-                style={{ fontFamily: 'var(--queens-compressed), serif' }}
+                style={{ fontFamily: 'var(--fraunces), serif' }}
               >
                 {post.title}
               </h1>

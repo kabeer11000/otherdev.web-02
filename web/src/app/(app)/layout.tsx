@@ -3,7 +3,7 @@ import './globals.css'
 
 import { GoogleAnalytics } from '@next/third-parties/google'
 import dynamic from 'next/dynamic'
-import localFont from 'next/font/local'
+import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google'
 import { Suspense } from 'react'
 import { QueryProvider } from '@/components/providers'
 import { SITE_URL } from '@/lib/constants'
@@ -23,37 +23,15 @@ const AgentWidget = dynamic(
   }
 )
 
-const twkLausanne = localFont({
-  src: [
-    {
-      path: '../../../public/fonts/TWKLausanne/TWKLausanne-200 (1).woff2',
-      weight: '200',
-    },
-    {
-      path: '../../../public/fonts/TWKLausanne/TWKLausanne-300-1.woff2',
-      weight: '300',
-    },
-    {
-      path: '../../../public/fonts/TWKLausanne/TWKLausanne-400.woff2',
-      weight: '400',
-    },
-  ],
-  variable: '--twk-lausanne',
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  variable: '--fraunces',
   display: 'swap',
 })
 
-const queensCompressed = localFont({
-  src: [
-    {
-      path: '../../../public/fonts/QueensCompressed/QueensCompressed_W-Thin.woff2',
-      weight: '100',
-    },
-    {
-      path: '../../../public/fonts/QueensCompressed/QueensCompressed_W-Light.woff2',
-      weight: '300',
-    },
-  ],
-  variable: '--queens-compressed',
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--plus-jakarta',
   display: 'swap',
 })
 
@@ -99,7 +77,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${twkLausanne.className} ${queensCompressed.className}`}
+      className={`${fraunces.variable} ${plusJakartaSans.variable}`}
     >
       <head>
         {/* R2 preconnect — saves DNS+TCP+TLS per image */}

@@ -104,7 +104,7 @@ export function ProjectCard({
         >
           {showTitle && (
             <div className="box-border flex flex-col items-start mb-[-3px] relative shrink-0 w-full">
-              <div className="flex flex-col font-normal justify-center leading-[0] not-italic relative shrink-0 text-[13px] text-black tracking-[-0.24px] w-full" style={{ fontFamily: 'var(--twk-lausanne)' }}>
+              <div className="flex flex-col font-normal justify-center leading-[0] not-italic relative shrink-0 text-[13px] text-black tracking-[-0.24px] w-full" style={{ fontFamily: 'var(--fraunces), serif' }}>
                 <p className="leading-[14px] whitespace-pre-wrap">{title}</p>
               </div>
             </div>
