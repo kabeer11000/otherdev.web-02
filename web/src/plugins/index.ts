@@ -16,20 +16,15 @@
 
 import type { Plugin } from 'payload'
 
-export const adminThemePlugin = (): Plugin =>
-  (incomingConfig) => ({
-    ...incomingConfig,
-    admin: {
-      ...incomingConfig.admin,
-      components: {
-        ...incomingConfig.admin?.components,
-        providers: [
-          ...(incomingConfig.admin?.components?.providers ?? []),
-          './src/plugins/ThemeProvider#ThemeProvider',
-        ],
-        logout: {
-          Button: './src/plugins/LogoutButton#LogoutButton',
-        },
+export const adminThemePlugin = (): Plugin => incomingConfig => ({
+  ...incomingConfig,
+  admin: {
+    ...incomingConfig.admin,
+    components: {
+      ...incomingConfig.admin?.components,
+      logout: {
+        Button: './src/plugins/LogoutButton#LogoutButton',
       },
     },
-  })
+  },
+})
