@@ -99,7 +99,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${twkLausanne.variable} ${queensCompressed.variable}`}
+      className={`${twkLausanne.className} ${queensCompressed.className}`}
     >
       <head>
         {/* R2 preconnect — saves DNS+TCP+TLS per image */}

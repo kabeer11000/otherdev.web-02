@@ -165,7 +165,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: "TWKLausanne", sans-serif;
+    font-family: var(--twk-lausanne), sans-serif;
     font-size: var(--text-lg);
   }
 
@@ -175,7 +175,7 @@
   h4,
   h5,
   h6 {
-    font-family: "QueensCompressed", serif;
+    font-family: var(--queens-compressed), serif;
     font-weight: 300;
   }
 }
