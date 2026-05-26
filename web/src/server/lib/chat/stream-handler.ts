@@ -1,7 +1,7 @@
 import {
   convertToModelMessages,
-  generateText,
   gateway,
+  generateText,
   type ModelMessage,
   Output,
   stepCountIs,
@@ -37,7 +37,12 @@ function isContentArray(arr: unknown): arr is Part[] {
   return Array.isArray(arr)
 }
 
-const REQUIRED_API_KEYS = ['GROQ_API_KEY', 'CEREBRAS_API_KEY', 'COHERE_API_KEY', 'MISTRAL_API_KEY'] as const
+const REQUIRED_API_KEYS = [
+  'GROQ_API_KEY',
+  'CEREBRAS_API_KEY',
+  'COHERE_API_KEY',
+  'MISTRAL_API_KEY',
+] as const
 
 function validateApiKeys(): void {
   for (const key of REQUIRED_API_KEYS) {
@@ -241,6 +246,34 @@ Example 5 - no knowledge found:
 </examples>`
 }
 
+function buildNegativeExamplesSection(): string {
+  return `<negative_examples>
+Example 1 - pricing speculation:
+<user>"How much does a website cost?"</user>
+<answer>Our team will provide a tailored quote based on your specific needs. Would you like to schedule a discovery call to discuss?</answer>
+DO NOT: Give price ranges, estimates, or "starting from" figures.
+
+Example 2 - unauthorized citations:
+<user>"Who built Narkins Builders?"</user>
+<tool_result>[no relevant info found]</tool_result>
+<answer>I don't have information about who specifically built the Narkins Builders project. Visit [otherdev.com/work](https://otherdev.com/work) to learn more about Other Dev's portfolio and past projects.</answer>
+DO NOT: Present unverified information as fact. If retrieveKnowledge didn't confirm it, don't assert it as true.
+
+Example 3 - redundant tool calls:
+<user>"What other projects besides Narkins?"</user>
+<tool_result>[Multiple projects found: Tiny Footprint Coffee 2024, Finlit, etc.]</tool_result>
+<answer>Besides Narkins Builders, Other Dev has built [Tiny Footprint Coffee](https://tinyfootprintcoffee.com) (2024)...</answer>
+DO NOT: Re-query retrieveKnowledge for the same topic. If you already found information in a previous exchange, synthesize from memory rather than calling the tool again for the same query.
+
+Example 4 - wrong tool for domain:
+<user>"Does Other Dev do SEO work?"</user>
+<tool_calls>[tavilySearch: {"query": "Other Dev SEO services Karachi"}]</tool_calls>
+<tool_result>[general SEO info, no Other Dev specific results]</tool_result>
+<answer>I don't have specific information about Other Dev doing SEO work. Visit [otherdev.com](https://otherdev.com) or contact [hello@otherdev.com](mailto:hello@otherdev.com) to learn about all their services.</answer>
+DO NOT: Use tavilySearch for Other Dev domain questions — use retrieveKnowledge first. If RAG returns nothing, say you don't know rather than searching the open web for Other Dev-specific info.
+</negative_examples>`
+}
+
 function buildNoInfoSection(): string {
   return `<no_info_response>
 When retrieveKnowledge returns no relevant documents AND tavilySearch finds nothing, respond with:
@@ -270,6 +303,7 @@ function buildSystemPrompt({ supportsArtifacts }: SystemPromptOptions): string {
     buildInstructionsSection({ supportsArtifacts }),
     buildChainOfThoughtSection(),
     buildExamplesSection({ supportsArtifacts }),
+    buildNegativeExamplesSection(),
     buildNoInfoSection(),
     buildOutputRulesSection(),
   ]
@@ -384,9 +418,7 @@ export async function handleStreamChat({
   // Provider priority: primary provider first, then failover
   // Text: Groq primary → Cerebras → Cohere
   // Vision: Mistral primary → Groq fallback
-  const providerPriority = hasImageContent
-    ? ['mistral', 'groq']
-    : ['groq', 'cerebras', 'cohere']
+  const providerPriority = hasImageContent ? ['mistral', 'groq'] : ['groq', 'cerebras', 'cohere']
 
   // Generate suggestions before streaming — always text model with same fallback chain
   const suggestionsPromise = generateText({
@@ -456,4 +488,3 @@ export async function handleStreamChat({
     rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: rateLimitResult.remaining },
   }
 }
-
