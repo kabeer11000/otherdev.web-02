@@ -48,17 +48,17 @@ graph TB
     APINative --> StreamHandler
     StreamHandler --> LLM
 
-    %% ── Styles ────────────────────────────────────────────────────────────────
-    style Web fill:#e1f5ff
-    style Flutter fill:#e1ffe4
-    style StreamHandler fill:#fff4e1
-    style LLM fill:#ffe8cc
-    style TK fill:#e1ffe4
-    style TV fill:#ffe8cc
-    style TA fill:#f5e1ff
-    style Embed fill:#e1ffe4
-    style Qdrant fill:#f5e1ff
-    style Rerank fill:#e1ffe4
+    %% ── Styles (accessible contrast on white bg) ─────────────────────────────
+    style Web fill:#0284c7,stroke:#0369a1,color:#fff
+    style Flutter fill:#16a34a,stroke:#15803d,color:#fff
+    style StreamHandler fill:#ea580c,stroke:#c2410c,color:#fff
+    style LLM fill:#c2410c,stroke:#9a3412,color:#fff
+    style TK fill:#16a34a,stroke:#15803d,color:#fff
+    style TV fill:#c2410c,stroke:#9a3412,color:#fff
+    style TA fill:#9333ea,stroke:#7e22ce,color:#fff
+    style Embed fill:#16a34a,stroke:#15803d,color:#fff
+    style Qdrant fill:#9333ea,stroke:#7e22ce,color:#fff
+    style Rerank fill:#16a34a,stroke:#15803d,color:#fff
 ```
 
 ---
