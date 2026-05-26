@@ -55,12 +55,11 @@ type ChatDataParts = {
   suggestion: z.infer<typeof suggestionDataSchema>
 }
 
-// Custom UIMessage type with our data parts
-type ChatUIMessage = UIMessage<unknown, ChatDataParts>
-
 type MessageMetadata = {
   suggestions?: string[]
 }
+
+export type ChatUIMessage = UIMessage<MessageMetadata, ChatDataParts>
 
 type MessageBranchState = {
   snapshots: ChatUIMessage[][]
@@ -132,7 +131,6 @@ function useTimeBasedGreeting() {
   const lastHourRef = useRef(new Date().getHours())
 
   useEffect(() => {
-    // Set initial greeting on mount (client-side only)
     setGreeting(pickGreeting())
 
     const interval = setInterval(() => {
@@ -440,7 +438,6 @@ function AssistantMessage({
       .map(p => p.text)
       .join('') || ''
 
-  // Find artifact tool invocation using proper type narrowing
   const artifactToolCall = message.parts?.find(part => {
     if (!isToolUIPart(part)) return false
     const toolName = getToolName(part)
@@ -476,7 +473,7 @@ function AssistantMessage({
         text: string
       }
     | undefined
-  // Extract reasoning text progressively — reasoning parts accumulate during streaming
+
   const reasoning =
     reasoningPart?.text ||
     message.parts
@@ -489,17 +486,15 @@ function AssistantMessage({
   const cleanedText = cleanSuggestionMarkers(textPart)
   const getHtmlContent = () => contentRef.current?.innerHTML
 
-  // Extract tool result parts for display
-  const toolResultParts = message.parts?.filter(
-    part => part.type === 'tool-result' && isToolUIPart(part)
-  ) as Array<{
-    type: `tool-${string}`
-    toolCallId: string
-    toolName: string
-    state: string
-    input?: unknown
-    output?: unknown
-  }> || []
+  const toolResultParts =
+    (message.parts?.filter(part => part.type === 'tool-result' && isToolUIPart(part)) as Array<{
+      type: `tool-${string}`
+      toolCallId: string
+      toolName: string
+      state: string
+      input?: unknown
+      output?: unknown
+    }>) || []
 
   if (hasArtifact && artifactToolCall) {
     const artifactData = (
@@ -508,10 +503,9 @@ function AssistantMessage({
         : artifactToolCall.input
     ) as { title: string; code: string; description: string; success?: boolean } | undefined
     const title = artifactData?.title
-    const _description = artifactData?.description
 
     return (
-      <div className="flex justify-start items-start gap-2 mt-12">
+      <div className="flex items-start gap-2 mt-12">
         <Image
           src="/otherdev-chat-logo-32.webp"
           alt="OtherDev Loom"
@@ -598,10 +592,9 @@ function AssistantMessage({
                 const isKnowledge = toolName === 'retrieveKnowledge'
                 return (
                   <div
-                    key={i}
+                    key={`tool-${part.toolName}-${i}`}
                     className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
                   >
-                    <span>{isKnowledge ? '🔍' : '🔧'}</span>
                     <span>{isKnowledge ? 'Knowledge retrieved' : `Tool: ${toolName}`}</span>
                   </div>
                 )
@@ -662,7 +655,7 @@ function AttachmentChip({ file, onRemove }: { file: File; onRemove: () => void }
       <button
         type="button"
         onClick={onRemove}
-        className="ml-0.5 flex h-8 w-8 ml-auto items-center justify-center rounded-full hover:bg-foreground/10"
+        className="ml-auto flex h-8 w-8 items-center justify-center rounded-full hover:bg-foreground/10"
       >
         <X className="h-4 w-4" />
       </button>
@@ -671,38 +664,21 @@ function AttachmentChip({ file, onRemove }: { file: File; onRemove: () => void }
 }
 
 export interface ChatCoreProps {
-  /** Callback when active artifact is set (for panel layout) */
   onArtifactOpen?: (artifact: ArtifactToolCall | null) => void
-  /** Callback when chat is cleared */
   onClear?: () => void
-  /** Initial active artifact (for panel layout) */
   activeArtifact?: ArtifactToolCall | null
-  /** Whether to show artifact panel (for desktop split view) */
-  showArtifactPanel?: boolean
-  /** Custom className for the root container */
   className?: string
-  /** Whether to show the greeting screen when empty */
   showGreeting?: boolean
 }
 
-/**
- * Core chat component - shared between Loom page and ChatWidget.
- * Handles all chat functionality including:
- * - AI SDK integration with streaming
- * - Voice recording and transcription
- * - File/image attachments
- * - Artifact generation and display
- * - Auto-scrolling and suggested prompts
- */
 export function ChatCore({
   onArtifactOpen,
-  onClear: _onClear,
-  activeArtifact: externalActiveArtifact,
-  showArtifactPanel: _showArtifactPanel = false,
+  onClear,
+  activeArtifact: _externalActiveArtifact,
   className,
   showGreeting = true,
 }: ChatCoreProps) {
-  const [internalActiveArtifact, setInternalActiveArtifact] = useState<ArtifactToolCall | null>(
+  const [_internalActiveArtifact, setInternalActiveArtifact] = useState<ArtifactToolCall | null>(
     null
   )
   const [suggestion, setSuggestion] = useState('')
@@ -712,13 +688,9 @@ export function ChatCore({
   const [attachments, setAttachments] = useState<File[]>([])
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
-  const [_editInputValue, setEditInputValue] = useState('')
   const [messageBranches, setMessageBranches] = useState<Map<string, MessageBranchState>>(new Map())
   const [isDragging, setIsDragging] = useState(false)
-  const _pendingBranchRef = useRef<string | null>(null)
 
-  // Persist chatId in localStorage for session continuity
-  // Use useEffect to ensure crypto.randomUUID runs only in browser, not during SSR
   const [chatId, setChatId] = useState<string>('')
   useEffect(() => {
     const stored = localStorage.getItem('chatId')
@@ -727,7 +699,6 @@ export function ChatCore({
     setChatId(id)
   }, [])
 
-  // sessionStorage-backed message persistence — Anthropic pattern: client sends full history every request
   const { messages: storedMessages, setMessages: setStoredMessages } =
     useLocalStorageMessages<UIMessage>({
       key: 'otherdev-chat-messages',
@@ -744,7 +715,6 @@ export function ChatCore({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  const _activeArtifact = externalActiveArtifact ?? internalActiveArtifact
   const setActiveArtifact = onArtifactOpen ?? setInternalActiveArtifact
 
   const greeting = useTimeBasedGreeting()
@@ -761,12 +731,12 @@ export function ChatCore({
       body: {
         supportsArtifacts: true,
       },
-      prepareSendMessagesRequest({ id: _id, messages, extraBody }) {
+      prepareSendMessagesRequest({ messages: msgs, extraBody }) {
         return {
           body: {
             id: chatId,
-            message: messages[messages.length - 1],
-            messages,
+            message: msgs[msgs.length - 1],
+            messages: msgs,
             supportsArtifacts: true,
             trigger: extraBody?.trigger ?? ('submit-user-message' as const),
           },
@@ -787,14 +757,12 @@ export function ChatCore({
     },
   })
 
-  // Sync useChat messages → sessionStorage on every change (Anthropic pattern: client persists history)
   useEffect(() => {
     if (messages.length > 0) {
       setStoredMessages(messages)
     }
   }, [messages, setStoredMessages])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: abortControllerRef is a stable ref, accessed via .current
   const _handleClear = useCallback(() => {
     setMessages([])
     setStoredMessages([])
@@ -803,12 +771,9 @@ export function ChatCore({
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
-    if (_onClear) {
-      _onClear()
-    }
-  }, [setMessages, setStoredMessages, setSuggestion, _onClear])
+    onClear?.()
+  }, [setMessages, setStoredMessages, onClear])
 
-  // Industry standard: read follow-up suggestions from last assistant message metadata
   useEffect(() => {
     const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant')
     const suggestions = (lastAssistant?.metadata as MessageMetadata | undefined)?.suggestions
@@ -820,7 +785,6 @@ export function ChatCore({
   const { showButton, scrollToBottom } = useScrollToBottom(contentRef)
   const [newMessageCount, setNewMessageCount] = useState(0)
 
-  // Track new messages while scrolled up during streaming
   useEffect(() => {
     if (status === 'streaming' && showButton) {
       setNewMessageCount(prev => prev + 1)
@@ -891,11 +855,6 @@ export function ChatCore({
     inputRef.current?.focus()
   }
 
-  const _handleStartEditInline = (_messageId: string) => {
-    // No-op: editing is initiated directly via isEditing prop from parent
-    // This is kept for backward compatibility but actual editing is controlled inline
-  }
-
   const handleEditCancel = (_messageId: string) => {
     setEditingMessageId(null)
   }
@@ -917,7 +876,6 @@ export function ChatCore({
       }) as ChatUIMessage['parts'],
     }
 
-    // Save current branch snapshot before replacing
     const currentSnapshots = messages
     setMessageBranches(prev => {
       const next = new Map(prev)
@@ -944,7 +902,6 @@ export function ChatCore({
     const updatedMessages = messages.slice(0, messageIndex)
     setMessages(updatedMessages as ChatUIMessage[])
     setEditingMessageId(null)
-    setEditInputValue('')
     setInputValue('')
     setSuggestion('')
 
@@ -1128,7 +1085,6 @@ export function ChatCore({
         setSuggestion('')
       }
 
-      // Arrow Up to edit last user message when input is empty
       if (e.key === 'ArrowUp' && !inputElement.value && messages.length > 0) {
         const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')
         if (lastUserMessage) {
@@ -1159,8 +1115,6 @@ export function ChatCore({
     const isBlocked = isRecording || isRecordingProcessing
     return (!hasText && !hasValidAttachments) || isBlocked
   }, [inputValue, attachments, isRecording, isRecordingProcessing])
-
-  const _isEditing = editingMessageId !== null
 
   const placeholder = 'Type your message...'
 
@@ -1322,7 +1276,7 @@ export function ChatCore({
               <button
                 type="button"
                 onClick={() => setInputError('')}
-                className="ml-0.5 flex h-8 w-8 ml-auto items-center justify-center rounded-full hover:bg-foreground/10"
+                className="ml-auto flex h-8 w-8 items-center justify-center rounded-full hover:bg-foreground/10"
                 aria-label="Remove error message"
               >
                 <X className="h-4 w-4" />
