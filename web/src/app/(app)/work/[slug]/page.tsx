@@ -100,7 +100,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
       <main className="px-3">
         <div className="pt-[69px]">
-          <h1 className="text-[18px] sm:text-[22px] leading-[1.1] tracking-[-0.48px] font-bold text-black mb-[12px] animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <h1 className="text-[18px] sm:text-[22px] leading-[1.1] tracking-[-0.48px] font-medium text-black mb-[12px] animate-in fade-in slide-in-from-bottom-2 duration-500">
             {project.title}
           </h1>
 
