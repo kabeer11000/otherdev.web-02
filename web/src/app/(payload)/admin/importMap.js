@@ -35,7 +35,6 @@ import { Icon as Icon_860cc545d0fb0aa708c97e7deab40b5c } from '../../../../src/p
 import { Logo as Logo_860cc545d0fb0aa708c97e7deab40b5c } from '../../../../src/plugins/Logo'
 import { BeforeLogin as BeforeLogin_5059c1e052eeafc39d57824e83a3aaa9 } from '../../../../src/plugins/BeforeLogin'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
-import { ThemeProvider as ThemeProvider_4065d8619d444f950438e4387c4841dd } from '../../../../src/plugins/ThemeProvider'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -77,6 +76,5 @@ export const importMap = {
   "./src/plugins/Logo#Logo": Logo_860cc545d0fb0aa708c97e7deab40b5c,
   "./src/plugins/BeforeLogin#BeforeLogin": BeforeLogin_5059c1e052eeafc39d57824e83a3aaa9,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
-  "./src/plugins/ThemeProvider#ThemeProvider": ThemeProvider_4065d8619d444f950438e4387c4841dd,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

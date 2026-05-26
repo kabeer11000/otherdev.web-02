@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test'
-import { extractCitationsFromAISDK, extractCitationsFromGroqAPI, cleanCitationMarkers } from '../groq-citations'
+import {
+  cleanCitationMarkers,
+  extractCitationsFromAISDK,
+  extractCitationsFromGroqAPI,
+} from '../groq-citations'
 
 describe('extractCitationsFromAISDK', () => {
   test('returns empty array when no tool results', () => {
@@ -200,7 +204,11 @@ describe('extractCitationsFromGroqAPI', () => {
         type: 'web_search',
         output: JSON.stringify({
           results: [
-            { title: 'Search Result', url: 'https://example.com/search', snippet: 'Search snippet' },
+            {
+              title: 'Search Result',
+              url: 'https://example.com/search',
+              snippet: 'Search snippet',
+            },
           ],
         }),
       },
@@ -235,9 +243,7 @@ describe('extractCitationsFromGroqAPI', () => {
         type: 'browser_automation',
         output: JSON.stringify({
           search_results: {
-            results: [
-              { title: 'Nested', url: 'https://example.com/nested', snippet: 'Nested' },
-            ],
+            results: [{ title: 'Nested', url: 'https://example.com/nested', snippet: 'Nested' }],
           },
         }),
       },

@@ -1,12 +1,16 @@
 /**
  * Fix double-dash slugs and null slug via Payload API (safe, respects CMS hooks)
  */
-import { getPayload } from 'payload'
+
 import configPromise from '@payload-config'
+import { getPayload } from 'payload'
 
 const fixes = [
   // Fix null slug first
-  { id: '69ff47a009e6adf1f17fb52b', slug: 'seo-implementation-technical-optimization-for-narkins-builders' },
+  {
+    id: '69ff47a009e6adf1f17fb52b',
+    slug: 'seo-implementation-technical-optimization-for-narkins-builders',
+  },
   // Fix double dashes
   { id: '69ff47a409e6adf1f17fb547', slug: 'branding-website-development-for-wish' },
   { id: '69ff47a809e6adf1f17fb55b', slug: 'branding-website-development-for-parcheh81' },
@@ -32,4 +36,7 @@ async function fixSlugs() {
   process.exit(0)
 }
 
-fixSlugs().catch(e => { console.error(e); process.exit(1) })
+fixSlugs().catch(e => {
+  console.error(e)
+  process.exit(1)
+})

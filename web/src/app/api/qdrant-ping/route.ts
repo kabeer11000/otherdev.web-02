@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
 import { QdrantClient } from '@qdrant/js-client-rest'
+import { NextResponse } from 'next/server'
 
 const qdrant = new QdrantClient({
   url: process.env.QDRANT_URL ?? '',

@@ -1,29 +1,34 @@
-import { mongooseAdapter } from "@payloadcms/db-mongodb";
-import { nodemailerAdapter } from "@payloadcms/email-nodemailer";
-import { lexicalEditor, FixedToolbarFeature, EXPERIMENTAL_TableFeature, BlocksFeature, CodeBlock } from "@payloadcms/richtext-lexical";
-import { s3Storage } from "@payloadcms/storage-s3";
-import { searchPlugin } from "@payloadcms/plugin-search";
-import { seoPlugin } from "@payloadcms/plugin-seo";
-import { redirectsPlugin } from "@payloadcms/plugin-redirects";
-import { mcpPlugin } from "@payloadcms/plugin-mcp";
-import nodemailer from "nodemailer";
-import path from "path";
-import { buildConfig } from "payload";
-import { fileURLToPath } from "url";
-import sharp from "sharp";
+import { mongooseAdapter } from '@payloadcms/db-mongodb'
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
+import { mcpPlugin } from '@payloadcms/plugin-mcp'
+import { redirectsPlugin } from '@payloadcms/plugin-redirects'
+import { searchPlugin } from '@payloadcms/plugin-search'
+import { seoPlugin } from '@payloadcms/plugin-seo'
+import {
+  BlocksFeature,
+  CodeBlock,
+  EXPERIMENTAL_TableFeature,
+  FixedToolbarFeature,
+  lexicalEditor,
+} from '@payloadcms/richtext-lexical'
+import { s3Storage } from '@payloadcms/storage-s3'
+import nodemailer from 'nodemailer'
+import path from 'path'
+import { buildConfig } from 'payload'
+import sharp from 'sharp'
+import { fileURLToPath } from 'url'
+import { Blog } from './collections/Blog'
+import { Categories } from './collections/Categories'
+import { Clients } from './collections/Clients'
+import { Contacts } from './collections/Contacts'
+import { Media } from './collections/Media'
+import { Projects } from './collections/Projects'
+import { Users } from './collections/Users'
+import { About } from './globals/About'
+import { adminThemePlugin } from './src/plugins/index'
 
-import { About } from "./globals/About";
-import { Blog } from "./collections/Blog";
-import { Categories } from "./collections/Categories";
-import { Clients } from "./collections/Clients";
-import { Contacts } from "./collections/Contacts";
-import { Media } from "./collections/Media";
-import { Projects } from "./collections/Projects";
-import { Users } from "./collections/Users";
-import { adminThemePlugin } from "./src/plugins/index";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 export default buildConfig({
   admin: {
@@ -52,8 +57,8 @@ export default buildConfig({
     },
     components: {
       graphics: {
-        Icon: "./src/plugins/Logo#Icon",
-        Logo: "./src/plugins/Logo#Logo",
+        Icon: './src/plugins/Logo#Icon',
+        Logo: './src/plugins/Logo#Logo',
       },
       beforeLogin: ['./src/plugins/BeforeLogin#BeforeLogin'],
     },
@@ -92,15 +97,15 @@ export default buildConfig({
       }),
     ],
   }),
-  secret: process.env.PAYLOAD_SECRET || "",
+  secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
-    outputFile: path.resolve(__dirname, "src/payload-types.ts"),
+    outputFile: path.resolve(__dirname, 'src/payload-types.ts'),
   },
   email: nodemailerAdapter({
-    defaultFromName: "Otherdev",
-    defaultFromAddress: process.env.GMAIL_USER || "",
+    defaultFromName: 'Otherdev',
+    defaultFromAddress: process.env.GMAIL_USER || '',
     transport: nodemailer.createTransport({
-      service: "gmail",
+      service: 'gmail',
       auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD,
@@ -108,7 +113,7 @@ export default buildConfig({
     }),
   }),
   db: mongooseAdapter({
-    url: process.env.DATABASE_URL || "",
+    url: process.env.DATABASE_URL || '',
   }),
   sharp,
   plugins: [

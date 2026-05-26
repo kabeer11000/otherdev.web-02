@@ -2,8 +2,9 @@
  * One-shot migration: transfer description textarea → content Lexical field
  * for all existing projects. After running, description field can be removed.
  */
-import { getPayload } from 'payload'
+
 import configPromise from '@payload-config'
+import { getPayload } from 'payload'
 
 interface Project {
   id: string
@@ -46,8 +47,8 @@ async function migrate() {
   const { docs: projects } = await payload.find({
     collection: 'projects',
     where: {
-      'description': { exists: true },
-      'content': { exists: false },
+      description: { exists: true },
+      content: { exists: false },
     },
     limit: 1000,
     select: {

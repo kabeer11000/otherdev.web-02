@@ -3,8 +3,8 @@ import { Footer } from '@/components/footer'
 import { Navigation } from '@/components/navigation'
 import { ProjectCard } from '@/components/project-card'
 import { buildSocialMetadata, DEFAULT_SITE_DESCRIPTION } from '@/lib/metadata'
-import { playlistsAndImages } from '@/lib/playlists-and-images'
 import { getProjects } from '@/lib/payload-api'
+import { playlistsAndImages } from '@/lib/playlists-and-images'
 import { shuffle } from '@/lib/utils'
 
 export const revalidate = 604800 // 1 week — payload afterChange hook busts cache instantly on publish

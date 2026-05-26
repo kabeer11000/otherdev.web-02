@@ -1206,7 +1206,8 @@ AVERAGE COST PER PURCHASE: Rs 211.30`,
 
   // Kabeer Jaffri - Contact
   {
-    content: `KABEER JAFFRI CONTACT\nEmail: kabeer@otherdev.com\nLinkedIn: https://www.linkedin.com/in/kabeerjaffri\nGitHub: https://github.com/kabeer11000\nRole: Founder and Technical Lead`,
+    content:
+      'KABEER JAFFRI CONTACT\nEmail: kabeer@otherdev.com\nLinkedIn: https://www.linkedin.com/in/kabeerjaffri\nGitHub: https://github.com/kabeer11000\nRole: Founder and Technical Lead',
     metadata: {
       source: 'about',
       title: 'Kabeer Jaffri - Contact',
@@ -1232,7 +1233,8 @@ AVERAGE COST PER PURCHASE: Rs 211.30`,
 
   // Ossaid Qadri - Education
   {
-    content: `EDUCATION: BS Accounting and Finance at Institute of Business Management (IoBM), expected graduation May 2027. Coursework: Corporate & Commercial Banking, Retail & Consumer Banking, Financial Derivatives, International Finance. Previous: A-Levels at Cedar College (Business, Accounts, Mathematics), O-Levels at Habib Public School (Biology, Accounts, Mathematics). EXPERIENCE: Co-Founder of Other Dev (Jun 2021–Present); Frontend Engineer at Lexa (Jul 2025–Jan 2026) building legal AI platform with YJS real-time collaborative editing, WebSocket chat via Hocuspocus, TipTap editor with custom extensions, e-signature, and a RAG pipeline over Pakistani constitutional and statutory law using Qdrant vector database, Isaacus Kanon 2 embeddings (1792 dimensions), LlamaParse document parsing, and UUID v5 idempotent ingestion — corpus includes 280+ articles covering the Constitution of Pakistan 1973, Anti-Rape Act 2021, and Anti-Terrorism Act 1997; Corporate Banking Intern at Faysal Bank (Jun–Jul 2023) with client onboarding, B2B lead generation, and market research.`,
+    content:
+      'EDUCATION: BS Accounting and Finance at Institute of Business Management (IoBM), expected graduation May 2027. Coursework: Corporate & Commercial Banking, Retail & Consumer Banking, Financial Derivatives, International Finance. Previous: A-Levels at Cedar College (Business, Accounts, Mathematics), O-Levels at Habib Public School (Biology, Accounts, Mathematics). EXPERIENCE: Co-Founder of Other Dev (Jun 2021–Present); Frontend Engineer at Lexa (Jul 2025–Jan 2026) building legal AI platform with YJS real-time collaborative editing, WebSocket chat via Hocuspocus, TipTap editor with custom extensions, e-signature, and a RAG pipeline over Pakistani constitutional and statutory law using Qdrant vector database, Isaacus Kanon 2 embeddings (1792 dimensions), LlamaParse document parsing, and UUID v5 idempotent ingestion — corpus includes 280+ articles covering the Constitution of Pakistan 1973, Anti-Rape Act 2021, and Anti-Terrorism Act 1997; Corporate Banking Intern at Faysal Bank (Jun–Jul 2023) with client onboarding, B2B lead generation, and market research.',
     metadata: {
       source: 'about',
       title: 'Ossaid Qadri - Education',
@@ -1245,7 +1247,8 @@ AVERAGE COST PER PURCHASE: Rs 211.30`,
 
   // Ossaid Qadri - Open Source
   {
-    content: `OPEN SOURCE CONTRIBUTIONS\n\nastro/astro (48k+ stars): 6 production commits including a CSS scoped style persistence fix for ClientRouter View Transitions (extracted cssCachePlugin, renamed vueScopedStyleId to devStyleId), co-authored a Cloudflare merge.\n\npayloadcms/payload: fixed invalid h0 heading in Lexical editor when heading sizes are disabled; built RelationshipBatcher utility solving an N+1 relationship query problem.\n\nQwenLM/qwen-code: built a 1167-line WebSocket remote-control server with 64-character token authentication, rate limiting (5 attempts per minute per IP), maximum 5 concurrent connections, 30-minute idle timeout, and 416 lines of unit tests; addressed PR #2330 security review.\n\nThese contributions demonstrate expertise in real-time web technologies, security-conscious API design, and large-scale open-source collaboration.`,
+    content:
+      'OPEN SOURCE CONTRIBUTIONS\n\nastro/astro (48k+ stars): 6 production commits including a CSS scoped style persistence fix for ClientRouter View Transitions (extracted cssCachePlugin, renamed vueScopedStyleId to devStyleId), co-authored a Cloudflare merge.\n\npayloadcms/payload: fixed invalid h0 heading in Lexical editor when heading sizes are disabled; built RelationshipBatcher utility solving an N+1 relationship query problem.\n\nQwenLM/qwen-code: built a 1167-line WebSocket remote-control server with 64-character token authentication, rate limiting (5 attempts per minute per IP), maximum 5 concurrent connections, 30-minute idle timeout, and 416 lines of unit tests; addressed PR #2330 security review.\n\nThese contributions demonstrate expertise in real-time web technologies, security-conscious API design, and large-scale open-source collaboration.',
     metadata: {
       source: 'about',
       title: 'Ossaid Qadri - Open Source',
@@ -1271,7 +1274,8 @@ AVERAGE COST PER PURCHASE: Rs 211.30`,
 
   // Ossaid Qadri - Contact
   {
-    content: `OSSAID QADRI CONTACT\nEmail: ossaid@otherdev.com\nLinkedIn: https://www.linkedin.com/in/ossaidqadri\nGitHub: https://github.com/ossaidqadri\nInstagram: @ossaidqadri\nRole: Co-Founder, Frontend Architect, and Growth Lead`,
+    content:
+      'OSSAID QADRI CONTACT\nEmail: ossaid@otherdev.com\nLinkedIn: https://www.linkedin.com/in/ossaidqadri\nGitHub: https://github.com/ossaidqadri\nInstagram: @ossaidqadri\nRole: Co-Founder, Frontend Architect, and Growth Lead',
     metadata: {
       source: 'about',
       title: 'Ossaid Qadri - Contact',
@@ -1284,7 +1288,8 @@ AVERAGE COST PER PURCHASE: Rs 211.30`,
 
   // Ossaid Qadri - Technical Stack
   {
-    content: `TECHNICAL STACK\n\nFRONTEND: Next.js 15/16, React 18/19, TypeScript 5.x, Tailwind CSS 4, Astro, Eleventy, Framer Motion, GSAP, Radix UI, shadcn/ui, TipTap.\n\nSHOPIFY: Liquid, Theme Development, Hydrogen (React Router 7), Shopify CLI, GraphQL Storefront API.\n\nBACKEND: Go, Node.js, FastAPI (Python), tRPC, REST APIs, WebSocket, SSE, Hocuspocus, YJS.\n\nDATABASES: MySQL, PostgreSQL, MongoDB, Qdrant (vector database).\n\nAI/ML STACK: Anthropic Claude SDK (extended thinking, tool use, prompt caching, streaming), RAG pipelines, Isaacus Kanon 2 embeddings (1792-dim), Voyage AI (1024-dim), LlamaParse, UUID v5 idempotent ingestion, SHA-256 cache versioning.\n\nSTATE MANAGEMENT: Nanostores, Zustand, TanStack Query, React hooks.\n\nCMS: TinaCMS (headless, Git-backed), WordPress (headless), Payload CMS.\n\nDEVOPS/TOOLING: Bun, Vercel, Azure App Service, Vite, Turbopack, GitHub, Biome, PostCSS.\n\nPAYMENT: PayFast gateway integration.\n\nMARKETING/ANALYTICS: Meta Ads, Google Analytics 4, Google Sheets API.`,
+    content:
+      'TECHNICAL STACK\n\nFRONTEND: Next.js 15/16, React 18/19, TypeScript 5.x, Tailwind CSS 4, Astro, Eleventy, Framer Motion, GSAP, Radix UI, shadcn/ui, TipTap.\n\nSHOPIFY: Liquid, Theme Development, Hydrogen (React Router 7), Shopify CLI, GraphQL Storefront API.\n\nBACKEND: Go, Node.js, FastAPI (Python), tRPC, REST APIs, WebSocket, SSE, Hocuspocus, YJS.\n\nDATABASES: MySQL, PostgreSQL, MongoDB, Qdrant (vector database).\n\nAI/ML STACK: Anthropic Claude SDK (extended thinking, tool use, prompt caching, streaming), RAG pipelines, Isaacus Kanon 2 embeddings (1792-dim), Voyage AI (1024-dim), LlamaParse, UUID v5 idempotent ingestion, SHA-256 cache versioning.\n\nSTATE MANAGEMENT: Nanostores, Zustand, TanStack Query, React hooks.\n\nCMS: TinaCMS (headless, Git-backed), WordPress (headless), Payload CMS.\n\nDEVOPS/TOOLING: Bun, Vercel, Azure App Service, Vite, Turbopack, GitHub, Biome, PostCSS.\n\nPAYMENT: PayFast gateway integration.\n\nMARKETING/ANALYTICS: Meta Ads, Google Analytics 4, Google Sheets API.',
     metadata: {
       source: 'about',
       title: 'Ossaid Qadri - Technical Stack',

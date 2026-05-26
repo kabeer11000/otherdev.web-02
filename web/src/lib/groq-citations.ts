@@ -23,7 +23,9 @@ export interface GroqRawResult {
 }
 
 function isSearchResults(obj: unknown): obj is { results: GroqRawResult[] } {
-  return typeof obj === 'object' && obj !== null && Array.isArray((obj as { results?: unknown }).results)
+  return (
+    typeof obj === 'object' && obj !== null && Array.isArray((obj as { results?: unknown }).results)
+  )
 }
 
 function isResultsArray(arr: unknown): arr is GroqRawResult[] {

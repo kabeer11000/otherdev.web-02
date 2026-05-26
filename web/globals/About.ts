@@ -1,13 +1,18 @@
-import type { GlobalConfig } from 'payload'
-
-import { revalidatePath } from 'next/cache'
-import { convertLexicalToPlaintext } from '@payloadcms/richtext-lexical/plaintext'
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical'
-import type { GlobalBeforeChangeHook, GlobalBeforeValidateHook, GlobalAfterChangeHook } from 'payload'
+import { convertLexicalToPlaintext } from '@payloadcms/richtext-lexical/plaintext'
+import { revalidatePath } from 'next/cache'
+import type {
+  GlobalAfterChangeHook,
+  GlobalBeforeChangeHook,
+  GlobalBeforeValidateHook,
+  GlobalConfig,
+} from 'payload'
 
 const syncAboutTextPlain: GlobalBeforeChangeHook = async ({ data }) => {
   if (data.aboutText) {
-    data.aboutTextPlain = await convertLexicalToPlaintext({ data: data.aboutText as SerializedEditorState })
+    data.aboutTextPlain = await convertLexicalToPlaintext({
+      data: data.aboutText as SerializedEditorState,
+    })
   }
   return data
 }

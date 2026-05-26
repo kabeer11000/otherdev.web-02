@@ -1,7 +1,7 @@
 'use client'
 
-import type { PayloadComponent } from 'payload'
 import { useRouter } from 'next/navigation'
+import type { PayloadComponent } from 'payload'
 
 export const LogoutButton: PayloadComponent = () => {
   const router = useRouter()

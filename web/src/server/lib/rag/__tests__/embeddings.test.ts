@@ -1,9 +1,16 @@
-import { describe, expect, test, mock, beforeEach, afterEach } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import { AbortError } from 'p-retry'
 
 // Mock the AI SDK's embed and embedMany
 const mockEmbed = mock(() => Promise.resolve({ embedding: [0.1, 0.2, 0.3, 0.4] }))
-const mockEmbedMany = mock(() => Promise.resolve({ embeddings: [[0.1, 0.2], [0.3, 0.4]] }))
+const mockEmbedMany = mock(() =>
+  Promise.resolve({
+    embeddings: [
+      [0.1, 0.2],
+      [0.3, 0.4],
+    ],
+  })
+)
 const mockRerank = mock(() =>
   Promise.resolve({
     ranking: [
@@ -113,8 +120,18 @@ describe('RAG Embeddings', () => {
       const { rerankDocuments } = await import('../embeddings')
 
       const docs = [
-        { id: '1', content: 'first doc', metadata: { source: 's', title: 't', type: 'x' }, similarity: 0.8 },
-        { id: '2', content: 'second doc', metadata: { source: 's', title: 't', type: 'x' }, similarity: 0.6 },
+        {
+          id: '1',
+          content: 'first doc',
+          metadata: { source: 's', title: 't', type: 'x' },
+          similarity: 0.8,
+        },
+        {
+          id: '2',
+          content: 'second doc',
+          metadata: { source: 's', title: 't', type: 'x' },
+          similarity: 0.6,
+        },
       ]
 
       const result = await rerankDocuments({
@@ -132,9 +149,24 @@ describe('RAG Embeddings', () => {
       const { rerankDocuments } = await import('../embeddings')
 
       const docs = [
-        { id: '1', content: 'doc 1', metadata: { source: 's', title: 't', type: 'x' }, similarity: 0.9 },
-        { id: '2', content: 'doc 2', metadata: { source: 's', title: 't', type: 'x' }, similarity: 0.7 },
-        { id: '3', content: 'doc 3', metadata: { source: 's', title: 't', type: 'x' }, similarity: 0.5 },
+        {
+          id: '1',
+          content: 'doc 1',
+          metadata: { source: 's', title: 't', type: 'x' },
+          similarity: 0.9,
+        },
+        {
+          id: '2',
+          content: 'doc 2',
+          metadata: { source: 's', title: 't', type: 'x' },
+          similarity: 0.7,
+        },
+        {
+          id: '3',
+          content: 'doc 3',
+          metadata: { source: 's', title: 't', type: 'x' },
+          similarity: 0.5,
+        },
       ]
 
       const result = await rerankDocuments({
@@ -169,7 +201,12 @@ describe('RAG Embeddings', () => {
       const { setCachedQueryResults, getCachedQueryResults } = await import('../embeddings')
 
       const docs = [
-        { id: '1', content: 'test', metadata: { source: 's', title: 't', type: 'x' }, similarity: 0.9 },
+        {
+          id: '1',
+          content: 'test',
+          metadata: { source: 's', title: 't', type: 'x' },
+          similarity: 0.9,
+        },
       ]
 
       setCachedQueryResults('test query', 'filter1', docs)

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { cn, stripMarkdown, cleanSuggestionMarkers, shuffle } from '../utils'
+import { cleanSuggestionMarkers, cn, shuffle, stripMarkdown } from '../utils'
 
 describe('cn', () => {
   test('merges two class strings', () => {
@@ -162,7 +162,9 @@ describe('shuffle', () => {
     // Verify all original elements exist in shuffled result
     expect(shuffled.length).toBe(arr.length)
     shuffled.forEach((item, i) => {
-      const matchIndex = arr.findIndex(orig => orig.a === item.a && orig.b === item.b && orig.c === item.c)
+      const matchIndex = arr.findIndex(
+        orig => orig.a === item.a && orig.b === item.b && orig.c === item.c
+      )
       expect(matchIndex).toBeGreaterThanOrEqual(0)
     })
   })

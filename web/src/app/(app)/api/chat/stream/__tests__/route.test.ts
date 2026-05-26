@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, vi } from 'bun:test'
+import { beforeEach, describe, expect, test, vi } from 'bun:test'
 import { createJsonResponse } from '@/server/lib/api-helpers'
 import { checkRateLimit } from '@/server/lib/rate-limit'
 
@@ -206,9 +206,7 @@ describe('POST /api/chat/stream', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        messages: [
-          { id: '1', role: 'user', parts: [{ type: 'text', text: '' }] },
-        ],
+        messages: [{ id: '1', role: 'user', parts: [{ type: 'text', text: '' }] }],
       }),
     })
 

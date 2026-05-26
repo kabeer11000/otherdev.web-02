@@ -1,12 +1,14 @@
 import { type TextStreamPart, type ToolSet, type UIMessage, validateUIMessages } from 'ai'
-
+import { suggestionDataSchema } from '@/lib/schemas'
 import { createJsonResponse } from '@/server/lib/api-helpers'
 import { handleStreamChat } from '@/server/lib/chat'
-import { createArtifactTool, retrieveKnowledgeTool, tavilySearchTool } from '@/server/lib/chat/tools'
-import { checkRateLimit, getClientIdentifier, REQUESTS_PER_WINDOW } from '@/server/lib/rate-limit'
 import { replaceMessageAtId } from '@/server/lib/chat/message-utils'
-
-import { suggestionDataSchema } from '@/lib/schemas'
+import {
+  createArtifactTool,
+  retrieveKnowledgeTool,
+  tavilySearchTool,
+} from '@/server/lib/chat/tools'
+import { checkRateLimit, getClientIdentifier, REQUESTS_PER_WINDOW } from '@/server/lib/rate-limit'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -48,7 +50,10 @@ export async function POST(request: Request): Promise<Response> {
       // Industry-standard replace-and-replay: client sends full history + the messageId to edit
       // We slice at messageId, replace with the new content, and re-run the model.
       if (!body.messageId || !Array.isArray(body.messages)) {
-        return createJsonResponse({ error: 'messageId and messages required for edit-message' }, 400)
+        return createJsonResponse(
+          { error: 'messageId and messages required for edit-message' },
+          400
+        )
       }
       candidateMessages = replaceMessageAtId(body.messages, body.messageId, body.message)
     } else {

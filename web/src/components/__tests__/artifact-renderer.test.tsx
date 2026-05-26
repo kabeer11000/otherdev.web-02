@@ -1,5 +1,5 @@
-import { test, expect, describe, beforeEach, afterEach, vi } from 'bun:test'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'bun:test'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ArtifactRenderer, type ArtifactToolCall } from '../artifact-renderer'
 
 // Mock shiki
@@ -40,7 +40,15 @@ vi.mock('@/components/ui/button', () => ({
 
 // Mock Tabs components
 vi.mock('@/components/ui/tabs', () => ({
-  Tabs: ({ children, value, onValueChange }: { children?: React.ReactNode; value?: string; onValueChange?: (v: string) => void }) => (
+  Tabs: ({
+    children,
+    value,
+    onValueChange,
+  }: {
+    children?: React.ReactNode
+    value?: string
+    onValueChange?: (v: string) => void
+  }) => (
     <div data-value={value} onClick={() => onValueChange?.('code')}>
       {children}
     </div>

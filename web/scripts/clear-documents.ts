@@ -1,4 +1,8 @@
-import { collectionExists, deletePointsByFilter, resetCollection } from '../src/server/lib/rag/vector-search'
+import {
+  collectionExists,
+  deletePointsByFilter,
+  resetCollection,
+} from '../src/server/lib/rag/vector-search'
 
 async function main() {
   const shouldReset = process.argv.includes('--reset')

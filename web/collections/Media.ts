@@ -1,5 +1,5 @@
-import type { CollectionConfig } from 'payload'
 import path from 'path'
+import type { CollectionConfig } from 'payload'
 import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)

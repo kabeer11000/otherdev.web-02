@@ -1,7 +1,7 @@
 'use client'
 
-import { createContext, useContext } from 'react'
 import Image from 'next/image'
+import { createContext, useContext } from 'react'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { cn } from '@/lib/utils'
 
@@ -31,9 +31,7 @@ export function Source({ href, children }: SourceProps) {
 
   return (
     <SourceContext.Provider value={{ href, domain }}>
-      <HoverCard>
-        {children}
-      </HoverCard>
+      <HoverCard>{children}</HoverCard>
     </SourceContext.Provider>
   )
 }

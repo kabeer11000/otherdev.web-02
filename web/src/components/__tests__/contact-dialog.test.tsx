@@ -1,5 +1,5 @@
-import { test, expect, describe, beforeEach, afterEach, vi } from 'bun:test'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'bun:test'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ContactDialog } from '../contact-dialog'
 
 // Mock next/dynamic
@@ -48,7 +48,15 @@ vi.mock('zod', () => ({
 
 // Mock Dialog components
 vi.mock('@/components/ui/dialog', () => ({
-  Dialog: ({ children, open, onOpenChange }: { children?: React.ReactNode; open?: boolean; onOpenChange?: (open: boolean) => void }) => (
+  Dialog: ({
+    children,
+    open,
+    onOpenChange,
+  }: {
+    children?: React.ReactNode
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+  }) => (
     <div data-open={open} onClick={() => onOpenChange?.(false)}>
       {children}
     </div>

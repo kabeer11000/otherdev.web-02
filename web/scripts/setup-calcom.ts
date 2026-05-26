@@ -49,7 +49,8 @@ async function createSalesCallEventType() {
     body: JSON.stringify({
       title: 'Sales Discovery Call',
       slug: 'sales-discovery-call',
-      description: 'A 30-minute call to understand your project and see if Other Dev is the right fit.',
+      description:
+        'A 30-minute call to understand your project and see if Other Dev is the right fit.',
       length: 30, // minutes
       type: 'SCHEDULED',
       scheduling_type: 'ROUND_ROBIN',

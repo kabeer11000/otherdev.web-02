@@ -4,10 +4,10 @@
  * uploads to R2, and updates only the project cover media documents.
  */
 
-import { getPayload } from 'payload'
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import configPromise from '@payload-config'
+import { getPayload } from 'payload'
 import sharp from 'sharp'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 const OG_WIDTH = 1200
 const OG_HEIGHT = 630
@@ -29,7 +29,9 @@ async function migrateMediaOGVariants() {
   console.log(`R2 Endpoint: ${process.env.R2_ENDPOINT}`)
 
   if (!process.env.R2_BUCKET || !process.env.R2_ENDPOINT) {
-    console.error('Missing R2 configuration. Set R2_BUCKET, R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY')
+    console.error(
+      'Missing R2 configuration. Set R2_BUCKET, R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY'
+    )
     process.exit(1)
   }
 
@@ -145,7 +147,7 @@ async function migrateMediaOGVariants() {
         context: { skipHooks: true },
       })
 
-      console.log(`    Updated media doc with OG size`)
+      console.log('    Updated media doc with OG size')
       totalProcessed++
     } catch (error) {
       console.error(`    [ERROR] ${error}`)
@@ -159,7 +161,7 @@ async function migrateMediaOGVariants() {
   console.log(`Total errors: ${totalErrors}`)
 }
 
-migrateMediaOGVariants().catch((err) => {
+migrateMediaOGVariants().catch(err => {
   console.error('Migration failed:', err)
   process.exit(1)
 })

@@ -1,13 +1,13 @@
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters'
 import { knowledgeBase } from '../src/lib/knowledge-base'
+import { generateEmbeddingBatch } from '../src/server/lib/rag/embeddings'
 import {
   collectionExists,
-  resetCollection,
   deletePointsByFilter,
-  upsertDocumentBatch,
   type MatchedDocument,
+  resetCollection,
+  upsertDocumentBatch,
 } from '../src/server/lib/rag/vector-search'
-import { generateEmbeddingBatch } from '../src/server/lib/rag/embeddings'
 
 const CHUNK_SIZE = 500
 const CHUNK_OVERLAP = 50

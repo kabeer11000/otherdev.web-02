@@ -1,10 +1,10 @@
 'use client'
 
-import type React from 'react'
-import { Streamdown } from 'streamdown'
 import { code } from '@streamdown/code'
 import { math } from '@streamdown/math'
 import { mermaid } from '@streamdown/mermaid'
+import type React from 'react'
+import { Streamdown } from 'streamdown'
 import 'katex/dist/katex.min.css'
 
 // All stable constants are hoisted to module level so Streamdown's React.memo
@@ -52,9 +52,7 @@ const COMPONENTS = {
   ol: ({ children }: { children: React.ReactNode }) => (
     <ol className="list-decimal list-inside my-2 space-y-1">{children}</ol>
   ),
-  li: ({ children }: { children: React.ReactNode }) => (
-    <li className="ml-4">{children}</li>
-  ),
+  li: ({ children }: { children: React.ReactNode }) => <li className="ml-4">{children}</li>,
   blockquote: ({ children }: { children: React.ReactNode }) => (
     <blockquote className="border-l-4 border-muted-foreground/30 pl-4 my-3 italic">
       {children}
@@ -76,9 +74,7 @@ const COMPONENTS = {
   strong: ({ children }: { children: React.ReactNode }) => (
     <strong className="font-semibold">{children}</strong>
   ),
-  em: ({ children }: { children: React.ReactNode }) => (
-    <em className="italic">{children}</em>
-  ),
+  em: ({ children }: { children: React.ReactNode }) => <em className="italic">{children}</em>,
   hr: () => <hr className="my-4 border-border" />,
   br: () => <br />,
   table: ({ children }: { children: React.ReactNode }) => (

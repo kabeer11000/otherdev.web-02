@@ -1,5 +1,5 @@
-import { test, expect, describe, beforeEach, afterEach, vi } from 'bun:test'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'bun:test'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Navigation } from '../navigation'
 
 // Mock next/link
@@ -46,7 +46,15 @@ vi.mock('next/image', () => ({
     style?: React.CSSProperties
   }) => {
     const { src, alt, width, height, ...rest } = props
-    return <img src={typeof src === 'string' ? src : undefined} alt={alt} width={width} height={height} {...rest} />
+    return (
+      <img
+        src={typeof src === 'string' ? src : undefined}
+        alt={alt}
+        width={width}
+        height={height}
+        {...rest}
+      />
+    )
   },
 }))
 
@@ -60,8 +68,13 @@ vi.mock('next/navigation', () => ({
 
 // Mock ContactDialog (dynamically imported)
 vi.mock('@/components/contact-dialog', () => ({
-  ContactDialog: ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) =>
-    open ? <div data-testid="contact-dialog">ContactDialog</div> : null,
+  ContactDialog: ({
+    open,
+    onOpenChange,
+  }: {
+    open: boolean
+    onOpenChange: (open: boolean) => void
+  }) => (open ? <div data-testid="contact-dialog">ContactDialog</div> : null),
 }))
 
 // Mock Button component
@@ -87,7 +100,13 @@ vi.mock('@/components/ui/button', () => ({
       return <>{children}</>
     }
     return (
-      <button onClick={onClick} className={className} aria-label={ariaLabel} data-variant={variant} data-size={size}>
+      <button
+        onClick={onClick}
+        className={className}
+        aria-label={ariaLabel}
+        data-variant={variant}
+        data-size={size}
+      >
         {children}
       </button>
     )

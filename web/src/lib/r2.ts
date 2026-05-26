@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 /**
@@ -30,11 +30,15 @@ export async function generatePresignedPutUrl(
   // Casting through unknown to satisfy getSignedUrl's wide Client + Command generic bounds.
   // This is a known AWS SDK v3 TypeScript limitation — runtime behavior is correct.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return getSignedUrl(r2Client as any, new PutObjectCommand({
-    Bucket: process.env.R2_BUCKET,
-    Key: key,
-    ContentType: contentType,
-  }) as any, { expiresIn })
+  return getSignedUrl(
+    r2Client as any,
+    new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET,
+      Key: key,
+      ContentType: contentType,
+    }) as any,
+    { expiresIn }
+  )
 }
 
 /**

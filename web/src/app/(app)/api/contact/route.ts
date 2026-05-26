@@ -1,9 +1,9 @@
+import configPromise from '@payload-config'
 import { google } from 'googleapis'
 import nodemailer from 'nodemailer'
+import { getPayload } from 'payload'
 import { z } from 'zod'
 import { checkRateLimit, getClientIdentifier } from '@/server/lib/rate-limit'
-import { getPayload } from 'payload'
-import configPromise from '@payload-config'
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 

@@ -44,7 +44,7 @@ describe('useAutoScroll scroll detection', () => {
 
 describe('useAutoScroll user scroll tracking', () => {
   test('userScrolledRef starts as false', () => {
-    let userScrolledRef = false
+    const userScrolledRef = false
     expect(userScrolledRef).toBe(false)
   })
 

@@ -49,7 +49,12 @@ describe('RAG Types', () => {
       const docs: MatchedDocument[] = [
         { id: '1', content: 'a', metadata: { source: 's', title: 't', type: 'x' }, similarity: 0 },
         { id: '2', content: 'b', metadata: { source: 's', title: 't', type: 'x' }, similarity: 1 },
-        { id: '3', content: 'c', metadata: { source: 's', title: 't', type: 'x' }, similarity: 0.5 },
+        {
+          id: '3',
+          content: 'c',
+          metadata: { source: 's', title: 't', type: 'x' },
+          similarity: 0.5,
+        },
       ]
 
       docs.forEach(doc => {

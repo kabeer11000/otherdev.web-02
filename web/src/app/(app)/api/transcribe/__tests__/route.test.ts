@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, vi } from 'bun:test'
+import { beforeEach, describe, expect, test, vi } from 'bun:test'
 
 // Mock the AI SDK's transcribe function
 vi.mock('ai', async () => {

@@ -1,4 +1,4 @@
-import { describe, expect, test, mock, beforeEach } from 'bun:test'
+import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
 // Mock Qdrant client
 const mockSearch = mock(() =>
@@ -30,10 +30,7 @@ const mockUpsert = mock(() => Promise.resolve({ success: true }))
 const mockDelete = mock(() => Promise.resolve({ success: true }))
 const mockScroll = mock(() =>
   Promise.resolve({
-    points: [
-      { id: 'point-1' },
-      { id: 'point-2' },
-    ],
+    points: [{ id: 'point-1' }, { id: 'point-2' }],
     next_page_offset: undefined,
   })
 )
@@ -159,14 +156,12 @@ describe('Vector Search', () => {
 
     test('throws on timeout', async () => {
       mockSearch.mockImplementationOnce(
-        () => new Promise((resolve) => setTimeout(() => resolve([]), 20_000))
+        () => new Promise(resolve => setTimeout(() => resolve([]), 20_000))
       )
 
       const { searchSimilarDocuments } = await import('../vector-search')
 
-      await expect(
-        searchSimilarDocuments('slow query', [0.1], 0.1, 5)
-      ).rejects.toThrow('timed out')
+      await expect(searchSimilarDocuments('slow query', [0.1], 0.1, 5)).rejects.toThrow('timed out')
     }, 15_000)
   })
 

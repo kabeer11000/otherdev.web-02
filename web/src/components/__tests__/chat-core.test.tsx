@@ -1,5 +1,5 @@
-import { test, expect, describe, beforeEach, afterEach, vi } from 'bun:test'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'bun:test'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ChatCore } from '../chat-core'
 
 // Mock next/image
@@ -45,11 +45,7 @@ vi.mock('@ai-sdk/react', () => ({
 
 // Mock useLocalStorageMessages
 vi.mock('@/hooks/use-local-storage-messages', () => ({
-  useLocalStorageMessages: vi.fn(() => [
-    [],
-    vi.fn(),
-    vi.fn(),
-  ]),
+  useLocalStorageMessages: vi.fn(() => [[], vi.fn(), vi.fn()]),
 }))
 
 // Mock VoiceRecorder
@@ -105,19 +101,22 @@ vi.mock('@/components/ui/button', () => ({
     className?: string
     'aria-label'?: string
   }) => (
-    <button
-      type={type || 'button'}
-      onClick={onClick}
-      className={className}
-      aria-label={ariaLabel}
-    >
+    <button type={type || 'button'} onClick={onClick} className={className} aria-label={ariaLabel}>
       {children}
     </button>
   ),
 }))
 
 vi.mock('@/components/ui/card', () => ({
-  Card: ({ children, className, onClick }: { children?: React.ReactNode; className?: string; onClick?: () => void }) => (
+  Card: ({
+    children,
+    className,
+    onClick,
+  }: {
+    children?: React.ReactNode
+    className?: string
+    onClick?: () => void
+  }) => (
     <div className={className} onClick={onClick}>
       {children}
     </div>
@@ -128,12 +127,20 @@ vi.mock('@/components/ui/card', () => ({
 }))
 
 vi.mock('@/components/ui/chat-container', () => ({
-  ChatContainerRoot: ({ children, className }: { children?: React.ReactNode; className?: string }) => (
-    <div className={className}>{children}</div>
-  ),
-  ChatContainerContent: ({ children, className }: { children?: React.ReactNode; className?: string }) => (
-    <div className={className}>{children}</div>
-  ),
+  ChatContainerRoot: ({
+    children,
+    className,
+  }: {
+    children?: React.ReactNode
+    className?: string
+  }) => <div className={className}>{children}</div>,
+  ChatContainerContent: ({
+    children,
+    className,
+  }: {
+    children?: React.ReactNode
+    className?: string
+  }) => <div className={className}>{children}</div>,
   ChatContainerScrollAnchor: () => <div />,
 }))
 

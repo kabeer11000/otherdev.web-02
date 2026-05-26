@@ -13,39 +13,39 @@
 
 /* TWK Lausanne — Body & UI text */
 @font-face {
-  font-family: 'TWKLausanne';
+  font-family: "TWKLausanne";
   font-display: swap;
   font-weight: 200;
-  src: url('/fonts/TWKLausanne/TWKLausanne-200%20(1).woff2') format('woff2');
+  src: url("/fonts/TWKLausanne/TWKLausanne-200%20(1).woff2") format("woff2");
 }
 
 @font-face {
-  font-family: 'TWKLausanne';
+  font-family: "TWKLausanne";
   font-display: swap;
   font-weight: 300;
-  src: url('/fonts/TWKLausanne/TWKLausanne-300-1.woff2') format('woff2');
+  src: url("/fonts/TWKLausanne/TWKLausanne-300-1.woff2") format("woff2");
 }
 
 @font-face {
-  font-family: 'TWKLausanne';
+  font-family: "TWKLausanne";
   font-display: swap;
   font-weight: 400;
-  src: url('/fonts/TWKLausanne/TWKLausanne-400.woff2') format('woff2');
+  src: url("/fonts/TWKLausanne/TWKLausanne-400.woff2") format("woff2");
 }
 
 /* Queens Compressed — Headings */
 @font-face {
-  font-family: 'QueensCompressed';
+  font-family: "QueensCompressed";
   font-display: swap;
   font-weight: 100;
-  src: url('/fonts/QueensCompressed/QueensCompressed_W-Thin.woff2') format('woff2');
+  src: url("/fonts/QueensCompressed/QueensCompressed_W-Thin.woff2") format("woff2");
 }
 
 @font-face {
-  font-family: 'QueensCompressed';
+  font-family: "QueensCompressed";
   font-display: swap;
   font-weight: 300;
-  src: url('/fonts/QueensCompressed/QueensCompressed_W-Light.woff2') format('woff2');
+  src: url("/fonts/QueensCompressed/QueensCompressed_W-Light.woff2") format("woff2");
 }
 
 /* ==========================================================================
@@ -53,7 +53,7 @@
    ========================================================================== */
 
 :root,
-[data-theme='light'] {
+[data-theme="light"] {
   /* Elevation — surface colors (Payload uses these as background/card/sidebar) */
   --theme-elevation-0: oklch(100% 0.00011 271.152);
   --theme-elevation-50: oklch(97% 0.001 271.152);
@@ -74,7 +74,7 @@
   --theme-elevation-800: oklch(0.07 0.005 56.043);
   --theme-elevation-850: oklch(0.05 0.004 49.25);
   --theme-elevation-900: oklch(0.147 0.004 49.25);
-  --theme-elevation-950: oklch(0.10 0.003 49.25);
+  --theme-elevation-950: oklch(0.1 0.003 49.25);
 
   /* Text — matches your foreground/muted tokens */
   --theme-text: oklch(0.147 0.004 49.25);
@@ -115,7 +115,7 @@
 }
 
 /* Dark mode */
-[data-theme='dark'],
+[data-theme="dark"],
 .dark {
   --theme-elevation-0: oklch(0.147 0.004 49.25);
   --theme-elevation-50: oklch(0.18 0.005 49.25);
@@ -174,7 +174,7 @@
    ========================================================================== */
 
 body {
-  font-family: 'TWKLausanne', sans-serif;
+  font-family: "TWKLausanne", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -185,16 +185,16 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'QueensCompressed', serif;
+  font-family: "QueensCompressed", serif;
   font-weight: 300;
 }
 
 /* Payload admin label / description text */
-[class*='label'],
-[class*='description'],
-[class*='heading'],
-[class*='title'] {
-  font-family: 'TWKLausanne', sans-serif;
+[class*="label"],
+[class*="description"],
+[class*="heading"],
+[class*="title"] {
+  font-family: "TWKLausanne", sans-serif;
 }
 
 /* ==========================================================================
@@ -259,26 +259,30 @@ h6 {
 
 /* Main dashboard card styling */
 .dashboard__card,
-[class*='dashboard'] .card,
-[class*='popup'],
-[class*='dropdown'],
-[class*='modal'] {
+[class*="dashboard"] .card,
+[class*="popup"],
+[class*="dropdown"],
+[class*="modal"] {
   border-radius: var(--radius-m);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .dashboard__card:hover,
-[class*='dashboard'] .card:hover,
-[class*='popup']:hover,
-[class*='dropdown']:hover,
-[class*='modal']:hover {
+[class*="dashboard"] .card:hover,
+[class*="popup"]:hover,
+[class*="dropdown"]:hover,
+[class*="modal"]:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px oklch(0% 0 0 / 0.08), 0 4px 6px -4px oklch(0% 0 0 / 0.05);
+  box-shadow:
+    0 10px 15px -3px oklch(0% 0 0 / 0.08),
+    0 4px 6px -4px oklch(0% 0 0 / 0.05);
 }
 
 /* Hide the "Add New" shortcut buttons to remove visual clutter */
 .dashboard__card .card__actions,
-.card__actions:has(a[href*='create']) {
+.card__actions:has(a[href*="create"]) {
   display: none !important;
 }
 
@@ -319,7 +323,7 @@ section.login .template-minimal__wrap {
 }
 
 .login-brand-panel__label {
-  font-family: 'QueensCompressed', serif;
+  font-family: "QueensCompressed", serif;
   font-weight: 300;
   font-size: 3.5rem;
   line-height: 1;
@@ -328,7 +332,7 @@ section.login .template-minimal__wrap {
 }
 
 .login-brand-panel__sub {
-  font-family: 'TWKLausanne', sans-serif;
+  font-family: "TWKLausanne", sans-serif;
   font-size: 0.875rem;
   color: var(--theme-text-muted);
   margin: 0;
@@ -351,7 +355,7 @@ section.login form {
   margin: 0 auto;
 }
 
-[data-theme='dark'] .login-brand-panel {
+[data-theme="dark"] .login-brand-panel {
   background-color: var(--theme-elevation-50);
 }
 

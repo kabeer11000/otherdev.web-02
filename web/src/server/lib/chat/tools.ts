@@ -62,7 +62,10 @@ Returns the most relevant knowledge base entries with relevance scores.`,
         '\n</documents>'
       )
     } catch (error) {
-      console.error('[retrieveKnowledge] execute error:', error instanceof Error ? error.message : String(error))
+      console.error(
+        '[retrieveKnowledge] execute error:',
+        error instanceof Error ? error.message : String(error)
+      )
       return 'No relevant knowledge base entries found for this query.'
     }
   },
@@ -113,7 +116,7 @@ export const tavilySearchTool = tool({
         `<query>${escapeXml(query)}</query>\n` +
         response.results
           .map(
-            (r) =>
+            r =>
               `<result title="${escapeXml(r.title)}" url="${escapeXml(r.url)}">${escapeXml(r.content.slice(0, 300))}</result>`
           )
           .join('\n') +

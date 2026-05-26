@@ -184,7 +184,11 @@ export function Navigation({
                 size="nav-mobile"
                 className={pathname === '/work/ads-portfolio' ? 'text-foreground' : ''}
               >
-                <Link href="/work/ads-portfolio" data-slot="nav-item" onClick={() => setIsOpen(false)}>
+                <Link
+                  href="/work/ads-portfolio"
+                  data-slot="nav-item"
+                  onClick={() => setIsOpen(false)}
+                >
                   ads
                 </Link>
               </Button>

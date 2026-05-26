@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, vi } from 'bun:test'
+import { beforeEach, describe, expect, test, vi } from 'bun:test'
 import { checkRateLimit, getClientIdentifier } from '@/server/lib/rate-limit'
 
 // Mock the rate-limit module

@@ -1,5 +1,5 @@
-import { QdrantClient } from '@qdrant/js-client-rest'
 import { createHash } from 'node:crypto'
+import { QdrantClient } from '@qdrant/js-client-rest'
 import { rerankDocuments } from './embeddings'
 import type { MatchedDocument, SearchFilter } from './types'
 export type { MatchedDocument, SearchFilter }
@@ -218,7 +218,7 @@ export async function upsertDocumentBatch(
   }>
 ): Promise<void> {
   const BATCH_SIZE = 96
-  const batches: typeof docs[] = []
+  const batches: (typeof docs)[] = []
   for (let i = 0; i < docs.length; i += BATCH_SIZE) {
     batches.push(docs.slice(i, i + BATCH_SIZE))
   }

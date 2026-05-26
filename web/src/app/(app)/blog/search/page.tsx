@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { searchContent } from '@/lib/payload-api'
 import { buildSocialMetadata } from '@/lib/metadata'
+import { searchContent } from '@/lib/payload-api'
 
 interface SearchPageProps {
   searchParams: Promise<{ q?: string }>
@@ -59,10 +59,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
       {results.length > 0 && (
         <div className="grid gap-6">
-          {results.map((result) => {
+          {results.map(result => {
             const isBlog = result.doc.relationTo === 'blog'
             const isProjects = result.doc.relationTo === 'projects'
-            const doc = result.doc.value as { slug?: string; excerpt?: string; title?: string; image?: string }
+            const doc = result.doc.value as {
+              slug?: string
+              excerpt?: string
+              title?: string
+              image?: string
+            }
 
             return (
               <article
@@ -76,7 +81,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 </div>
                 <h2 className="text-sm font-bold mb-1">
                   <Link
-                    href={isBlog ? `/blog/${doc?.slug}` : isProjects ? `/projects/${doc?.slug}` : '#'}
+                    href={
+                      isBlog ? `/blog/${doc?.slug}` : isProjects ? `/projects/${doc?.slug}` : '#'
+                    }
                     className="text-neutral-900 hover:text-blue-600"
                   >
                     {result.title || doc?.title || 'Untitled'}
@@ -92,7 +99,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       )}
 
       {!q && (
-        <p className="text-neutral-500 text-sm">Enter a search term to find blog posts and projects.</p>
+        <p className="text-neutral-500 text-sm">
+          Enter a search term to find blog posts and projects.
+        </p>
       )}
     </div>
   )

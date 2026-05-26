@@ -1,7 +1,7 @@
-import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 
-;(async () => {
+;
+import { getPayload } from 'payload'(async () => {
   const payload = await getPayload({ config: configPromise })
 
   const updates = [

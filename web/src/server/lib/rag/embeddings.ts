@@ -105,7 +105,8 @@ export async function generateEmbedding(
 }
 
 async function doGenerateEmbedding(text: string): Promise<number[]> {
-  if (isCircuitOpen()) throw new AbortError(new Error('Circuit breaker open: embedding service unavailable'))
+  if (isCircuitOpen())
+    throw new AbortError(new Error('Circuit breaker open: embedding service unavailable'))
 
   let lastError: unknown
   try {
@@ -168,7 +169,8 @@ export async function rerankDocuments({
 }): Promise<MatchedDocument[]> {
   if (documents.length === 0) return []
 
-  if (isCircuitOpen()) throw new AbortError(new Error('Circuit breaker open: reranking service unavailable'))
+  if (isCircuitOpen())
+    throw new AbortError(new Error('Circuit breaker open: reranking service unavailable'))
 
   let lastError: unknown
   try {
@@ -216,7 +218,10 @@ export async function rerankDocuments({
  * - Returns `MatchedDocument[]` → valid cache hit (may be empty `[]`)
  * Never stores a failure state in the cache.
  */
-export function getCachedQueryResults(queryText: string, filterKey?: string): MatchedDocument[] | null {
+export function getCachedQueryResults(
+  queryText: string,
+  filterKey?: string
+): MatchedDocument[] | null {
   const cacheKey = `q:${queryText}:${filterKey ?? ''}`
   const cached = queryCache.get(cacheKey)
   if (!cached) return null

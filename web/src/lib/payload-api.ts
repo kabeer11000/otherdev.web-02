@@ -6,8 +6,8 @@
  * which breaks the admin List View column handling.
  */
 
-import { getPayload } from 'payload'
 import configPromise from '@payload-config'
+import { getPayload } from 'payload'
 import { cache } from 'react'
 
 export const getProjects = cache(async () => {

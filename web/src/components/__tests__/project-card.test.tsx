@@ -1,5 +1,5 @@
-import { test, expect, describe, beforeEach, afterEach, vi } from 'bun:test'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'bun:test'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ProjectCard } from '../project-card'
 
 // Mock next/image
@@ -15,13 +15,7 @@ vi.mock('next/image', () => ({
     sizes?: string
   }) => {
     const { src, alt, fill, ...rest } = props
-    return (
-      <img
-        src={typeof src === 'string' ? src : undefined}
-        alt={alt}
-        {...rest}
-      />
-    )
+    return <img src={typeof src === 'string' ? src : undefined} alt={alt} {...rest} />
   },
 }))
 
@@ -79,7 +73,13 @@ vi.mock('next/link', () => ({
 
 // Mock cva
 vi.mock('class-variance-authority', () => ({
-  cva: (base: string, config: { variants?: Record<string, Record<string, string>>; defaultVariants?: Record<string, string> }) => {
+  cva: (
+    base: string,
+    config: {
+      variants?: Record<string, Record<string, string>>
+      defaultVariants?: Record<string, string>
+    }
+  ) => {
     return (props?: Record<string, string>) => {
       let classes = base
       if (props) {

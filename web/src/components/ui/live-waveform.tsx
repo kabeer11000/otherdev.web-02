@@ -1,8 +1,8 @@
-"use client"
+'use client'
 
-import { useEffect, useRef, type HTMLAttributes } from "react"
+import { type HTMLAttributes, useEffect, useRef } from 'react'
 
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils'
 
 export type LiveWaveformProps = HTMLAttributes<HTMLDivElement> & {
   active?: boolean
@@ -21,7 +21,7 @@ export type LiveWaveformProps = HTMLAttributes<HTMLDivElement> & {
   fftSize?: number
   historySize?: number
   updateRate?: number
-  mode?: "scrolling" | "static"
+  mode?: 'scrolling' | 'static'
   onError?: (error: Error) => void
   onStreamReady?: (stream: MediaStream) => void
   onStreamEnd?: () => void
@@ -44,7 +44,7 @@ export const LiveWaveform = ({
   fftSize = 256,
   historySize = 60,
   updateRate = 30,
-  mode = "static",
+  mode = 'static',
   onError,
   onStreamReady,
   onStreamEnd,
@@ -67,7 +67,7 @@ export const LiveWaveform = ({
   const gradientCacheRef = useRef<CanvasGradient | null>(null)
   const lastWidthRef = useRef(0)
 
-  const heightStyle = typeof height === "number" ? `${height}px` : height
+  const heightStyle = typeof height === 'number' ? `${height}px` : height
 
   // Handle canvas resizing
   useEffect(() => {
@@ -84,7 +84,7 @@ export const LiveWaveform = ({
       canvas.style.width = `${rect.width}px`
       canvas.style.height = `${rect.height}px`
 
-      const ctx = canvas.getContext("2d")
+      const ctx = canvas.getContext('2d')
       if (ctx) {
         ctx.scale(dpr, dpr)
       }
@@ -105,18 +105,14 @@ export const LiveWaveform = ({
 
       const animateProcessing = () => {
         time += 0.03
-        transitionProgressRef.current = Math.min(
-          1,
-          transitionProgressRef.current + 0.02
-        )
+        transitionProgressRef.current = Math.min(1, transitionProgressRef.current + 0.02)
 
         const processingData = []
         const barCount = Math.floor(
-          (containerRef.current?.getBoundingClientRect().width || 200) /
-            (barWidth + barGap)
+          (containerRef.current?.getBoundingClientRect().width || 200) / (barWidth + barGap)
         )
 
-        if (mode === "static") {
+        if (mode === 'static') {
           const halfCount = Math.floor(barCount / 2)
 
           for (let i = 0; i < barCount; i++) {
@@ -130,14 +126,8 @@ export const LiveWaveform = ({
             const processingValue = (0.2 + combinedWave) * centerWeight
 
             let finalValue = processingValue
-            if (
-              lastActiveDataRef.current.length > 0 &&
-              transitionProgressRef.current < 1
-            ) {
-              const lastDataIndex = Math.min(
-                i,
-                lastActiveDataRef.current.length - 1
-              )
+            if (lastActiveDataRef.current.length > 0 && transitionProgressRef.current < 1) {
+              const lastDataIndex = Math.min(i, lastActiveDataRef.current.length - 1)
               const lastValue = lastActiveDataRef.current[lastDataIndex] || 0
               finalValue =
                 lastValue * (1 - transitionProgressRef.current) +
@@ -158,13 +148,8 @@ export const LiveWaveform = ({
             const processingValue = (0.2 + combinedWave) * centerWeight
 
             let finalValue = processingValue
-            if (
-              lastActiveDataRef.current.length > 0 &&
-              transitionProgressRef.current < 1
-            ) {
-              const lastDataIndex = Math.floor(
-                (i / barCount) * lastActiveDataRef.current.length
-              )
+            if (lastActiveDataRef.current.length > 0 && transitionProgressRef.current < 1) {
+              const lastDataIndex = Math.floor((i / barCount) * lastActiveDataRef.current.length)
               const lastValue = lastActiveDataRef.current[lastDataIndex] || 0
               finalValue =
                 lastValue * (1 - transitionProgressRef.current) +
@@ -175,15 +160,14 @@ export const LiveWaveform = ({
           }
         }
 
-        if (mode === "static") {
+        if (mode === 'static') {
           staticBarsRef.current = processingData
         } else {
           historyRef.current = processingData
         }
 
         needsRedrawRef.current = true
-        processingAnimationRef.current =
-          requestAnimationFrame(animateProcessing)
+        processingAnimationRef.current = requestAnimationFrame(animateProcessing)
       }
 
       animateProcessing()
@@ -195,28 +179,22 @@ export const LiveWaveform = ({
       }
     } else if (!active && !processing) {
       const hasData =
-        mode === "static"
-          ? staticBarsRef.current.length > 0
-          : historyRef.current.length > 0
+        mode === 'static' ? staticBarsRef.current.length > 0 : historyRef.current.length > 0
 
       if (hasData) {
         let fadeProgress = 0
         const fadeToIdle = () => {
           fadeProgress += 0.03
           if (fadeProgress < 1) {
-            if (mode === "static") {
-              staticBarsRef.current = staticBarsRef.current.map(
-                (value) => value * (1 - fadeProgress)
-              )
+            if (mode === 'static') {
+              staticBarsRef.current = staticBarsRef.current.map(value => value * (1 - fadeProgress))
             } else {
-              historyRef.current = historyRef.current.map(
-                (value) => value * (1 - fadeProgress)
-              )
+              historyRef.current = historyRef.current.map(value => value * (1 - fadeProgress))
             }
             needsRedrawRef.current = true
             requestAnimationFrame(fadeToIdle)
           } else {
-            if (mode === "static") {
+            if (mode === 'static') {
               staticBarsRef.current = []
             } else {
               historyRef.current = []
@@ -232,14 +210,11 @@ export const LiveWaveform = ({
   useEffect(() => {
     if (!active) {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop())
+        streamRef.current.getTracks().forEach(track => track.stop())
         streamRef.current = null
         onStreamEnd?.()
       }
-      if (
-        audioContextRef.current &&
-        audioContextRef.current.state !== "closed"
-      ) {
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close()
         audioContextRef.current = null
       }
@@ -271,8 +246,7 @@ export const LiveWaveform = ({
 
         const AudioContextConstructor =
           window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
         const audioContext = new AudioContextConstructor()
         const analyser = audioContext.createAnalyser()
         analyser.fftSize = fftSize
@@ -295,14 +269,11 @@ export const LiveWaveform = ({
 
     return () => {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop())
+        streamRef.current.getTracks().forEach(track => track.stop())
         streamRef.current = null
         onStreamEnd?.()
       }
-      if (
-        audioContextRef.current &&
-        audioContextRef.current.state !== "closed"
-      ) {
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close()
         audioContextRef.current = null
       }
@@ -311,22 +282,14 @@ export const LiveWaveform = ({
         animationRef.current = 0
       }
     }
-  }, [
-    active,
-    deviceId,
-    fftSize,
-    smoothingTimeConstant,
-    onError,
-    onStreamReady,
-    onStreamEnd,
-  ])
+  }, [active, deviceId, fftSize, smoothingTimeConstant, onError, onStreamReady, onStreamEnd])
 
   // Animation loop
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const ctx = canvas.getContext("2d")
+    const ctx = canvas.getContext('2d')
     if (!ctx) return
 
     let rafId: number
@@ -340,12 +303,10 @@ export const LiveWaveform = ({
         lastUpdateRef.current = currentTime
 
         if (analyserRef.current) {
-          const dataArray = new Uint8Array(
-            analyserRef.current.frequencyBinCount
-          )
+          const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount)
           analyserRef.current.getByteFrequencyData(dataArray)
 
-          if (mode === "static") {
+          if (mode === 'static') {
             // For static mode, update bars in place
             const startFreq = Math.floor(dataArray.length * 0.05)
             const endFreq = Math.floor(dataArray.length * 0.4)
@@ -357,24 +318,14 @@ export const LiveWaveform = ({
 
             // Mirror the data for symmetric display
             for (let i = halfCount - 1; i >= 0; i--) {
-              const dataIndex = Math.floor(
-                (i / halfCount) * relevantData.length
-              )
-              const value = Math.min(
-                1,
-                (relevantData[dataIndex] / 255) * sensitivity
-              )
+              const dataIndex = Math.floor((i / halfCount) * relevantData.length)
+              const value = Math.min(1, (relevantData[dataIndex] / 255) * sensitivity)
               newBars.push(Math.max(0.05, value))
             }
 
             for (let i = 0; i < halfCount; i++) {
-              const dataIndex = Math.floor(
-                (i / halfCount) * relevantData.length
-              )
-              const value = Math.min(
-                1,
-                (relevantData[dataIndex] / 255) * sensitivity
-              )
+              const dataIndex = Math.floor((i / halfCount) * relevantData.length)
+              const value = Math.min(1, (relevantData[dataIndex] / 255) * sensitivity)
               newBars.push(Math.max(0.05, value))
             }
 
@@ -420,7 +371,7 @@ export const LiveWaveform = ({
           const style = getComputedStyle(canvas)
           // Try to get the computed color value directly
           const color = style.color
-          return color || "#000"
+          return color || '#000'
         })()
 
       const step = barWidth + barGap
@@ -428,7 +379,7 @@ export const LiveWaveform = ({
       const centerY = rect.height / 2
 
       // Draw bars based on mode
-      if (mode === "static") {
+      if (mode === 'static') {
         // Static mode - bars in fixed positions
         const dataToRender = processing
           ? staticBarsRef.current
@@ -487,21 +438,21 @@ export const LiveWaveform = ({
           // destination-out: removes destination where source alpha is high
           // We want: fade edges out, keep center solid
           // Left edge: start opaque (1) = remove, fade to transparent (0) = keep
-          gradient.addColorStop(0, "rgba(255,255,255,1)")
-          gradient.addColorStop(fadePercent, "rgba(255,255,255,0)")
+          gradient.addColorStop(0, 'rgba(255,255,255,1)')
+          gradient.addColorStop(fadePercent, 'rgba(255,255,255,0)')
           // Center stays transparent = keep everything
-          gradient.addColorStop(1 - fadePercent, "rgba(255,255,255,0)")
+          gradient.addColorStop(1 - fadePercent, 'rgba(255,255,255,0)')
           // Right edge: fade from transparent (0) = keep to opaque (1) = remove
-          gradient.addColorStop(1, "rgba(255,255,255,1)")
+          gradient.addColorStop(1, 'rgba(255,255,255,1)')
 
           gradientCacheRef.current = gradient
           lastWidthRef.current = rect.width
         }
 
-        ctx.globalCompositeOperation = "destination-out"
+        ctx.globalCompositeOperation = 'destination-out'
         ctx.fillStyle = gradientCacheRef.current
         ctx.fillRect(0, 0, rect.width, rect.height)
-        ctx.globalCompositeOperation = "source-over"
+        ctx.globalCompositeOperation = 'source-over'
       }
 
       ctx.globalAlpha = 1
@@ -534,15 +485,11 @@ export const LiveWaveform = ({
 
   return (
     <div
-      className={cn("relative h-full w-full", className)}
+      className={cn('relative h-full w-full', className)}
       ref={containerRef}
       style={{ height: heightStyle }}
       aria-label={
-        active
-          ? "Live audio waveform"
-          : processing
-            ? "Processing audio"
-            : "Audio waveform idle"
+        active ? 'Live audio waveform' : processing ? 'Processing audio' : 'Audio waveform idle'
       }
       role="img"
       {...props}
@@ -550,11 +497,7 @@ export const LiveWaveform = ({
       {!active && !processing && (
         <div className="border-muted-foreground/20 absolute top-1/2 right-0 left-0 -translate-y-1/2 border-t-2 border-dotted" />
       )}
-      <canvas
-        className="block h-full w-full"
-        ref={canvasRef}
-        aria-hidden="true"
-      />
+      <canvas className="block h-full w-full" ref={canvasRef} aria-hidden="true" />
     </div>
   )
 }

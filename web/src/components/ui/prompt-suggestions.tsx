@@ -13,10 +13,7 @@ export const PromptSuggestions = memo(function PromptSuggestions({
   append,
   suggestions,
 }: PromptSuggestionsProps) {
-  const handleClick = useCallback(
-    (content: string) => append({ role: 'user', content }),
-    [append]
-  )
+  const handleClick = useCallback((content: string) => append({ role: 'user', content }), [append])
 
   return (
     <div className="space-y-6">

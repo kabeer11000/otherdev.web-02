@@ -1,9 +1,6 @@
 import { getProjectBySlug } from '@/lib/payload-api'
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ slug: string }> }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const project = await getProjectBySlug(slug)
 

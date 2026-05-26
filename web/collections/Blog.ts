@@ -1,24 +1,32 @@
-import type { CollectionConfig } from 'payload'
-
-import { revalidatePath } from 'next/cache'
 import { convertLexicalToHTML } from '@payloadcms/richtext-lexical/html'
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical'
+import { revalidatePath } from 'next/cache'
+import type {
+  CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
+  CollectionBeforeChangeHook,
+  CollectionConfig,
+} from 'payload'
 import { slugField } from 'payload'
-import type { CollectionBeforeChangeHook, CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'payload'
 
-const htmlConverters =
-  ({ defaultConverters }: { defaultConverters: Record<string, unknown> }) => ({
-    ...defaultConverters,
-    blocks: {
-      Code: ({ node, providedCSSString }: { node: { fields: { code?: string; language?: string } }; providedCSSString?: string }) => {
-        const code = node.fields.code ?? ''
-        const lang = node.fields.language ?? ''
-        const attrs = providedCSSString ? ` style="${providedCSSString}"` : ''
-        const langAttr = lang ? ` data-lang="${lang}"` : ''
-        return `<pre${attrs}${langAttr}><code class="language-${lang}">${code}</code></pre>`
-      },
+const htmlConverters = ({ defaultConverters }: { defaultConverters: Record<string, unknown> }) => ({
+  ...defaultConverters,
+  blocks: {
+    Code: ({
+      node,
+      providedCSSString,
+    }: {
+      node: { fields: { code?: string; language?: string } }
+      providedCSSString?: string
+    }) => {
+      const code = node.fields.code ?? ''
+      const lang = node.fields.language ?? ''
+      const attrs = providedCSSString ? ` style="${providedCSSString}"` : ''
+      const langAttr = lang ? ` data-lang="${lang}"` : ''
+      return `<pre${attrs}${langAttr}><code class="language-${lang}">${code}</code></pre>`
     },
-  })
+  },
+})
 
 const syncContentHtml: CollectionBeforeChangeHook = async ({ data }) => {
   if (data.content) {
@@ -31,7 +39,11 @@ const syncContentHtml: CollectionBeforeChangeHook = async ({ data }) => {
 }
 
 const setPublishedAt: CollectionBeforeChangeHook = async ({ data, originalDoc }) => {
-  if (data.status === 'published' && !data.publishedAt && (!originalDoc || originalDoc.status !== 'published')) {
+  if (
+    data.status === 'published' &&
+    !data.publishedAt &&
+    (!originalDoc || originalDoc.status !== 'published')
+  ) {
     data.publishedAt = new Date().toISOString()
   }
   return data
@@ -39,7 +51,10 @@ const setPublishedAt: CollectionBeforeChangeHook = async ({ data, originalDoc })
 
 const autoFillExcerpt: CollectionBeforeChangeHook = async ({ data }) => {
   if (data.excerpt || !data.contentHtml) return data
-  const text = data.contentHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  const text = data.contentHtml
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
   data.excerpt = text.slice(0, 160)
   return data
 }
@@ -72,7 +87,7 @@ export const Blog: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'author', 'status', 'createdAt'],
     listSearchableFields: ['title', 'slug', 'excerpt'],
-    preview: (doc) => doc.slug ? `/blog/${doc.slug}` : null,
+    preview: doc => (doc.slug ? `/blog/${doc.slug}` : null),
   },
   versions: {
     drafts: {
@@ -87,8 +102,7 @@ export const Blog: CollectionConfig = {
     afterDelete: [revalidateBlogDelete],
   },
   access: {
-    read: ({ req }) =>
-      req.user ? true : { _status: { equals: 'published' } },
+    read: ({ req }) => (req.user ? true : { _status: { equals: 'published' } }),
     create: ({ req }) => ['admin', 'editor'].includes(req.user?.role),
     update: ({ req }) => ['admin', 'editor'].includes(req.user?.role),
     delete: ({ req }) => req.user?.role === 'admin',

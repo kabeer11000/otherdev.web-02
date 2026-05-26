@@ -19,11 +19,21 @@ async function testSearch() {
       const matchThreshold = Number.parseFloat(process.env.RAG_SIMILARITY_THRESHOLD || '0.1')
       const matchCount = Number.parseInt(process.env.RAG_MATCH_COUNT || '5', 10)
 
-      const similarDocs = await searchSimilarDocuments(query, queryEmbedding, matchThreshold, matchCount)
+      const similarDocs = await searchSimilarDocuments(
+        query,
+        queryEmbedding,
+        matchThreshold,
+        matchCount
+      )
 
       if (similarDocs.length === 0) {
         // Try with lower threshold
-        const lowerSimilarDocs = await searchSimilarDocuments(query, queryEmbedding, 0.01, matchCount)
+        const lowerSimilarDocs = await searchSimilarDocuments(
+          query,
+          queryEmbedding,
+          0.01,
+          matchCount
+        )
 
         for (const _doc of lowerSimilarDocs.slice(0, 3)) {
         }

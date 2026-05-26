@@ -8,7 +8,7 @@ import type { UIMessage } from 'ai'
 export function replaceMessageAtId(
   messages: UIMessage[],
   messageId: string,
-  replacement: UIMessage,
+  replacement: UIMessage
 ): UIMessage[] {
   const index = messages.findIndex(m => m.id === messageId)
   if (index === -1) return messages

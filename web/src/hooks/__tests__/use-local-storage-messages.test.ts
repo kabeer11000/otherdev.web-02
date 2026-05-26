@@ -95,7 +95,7 @@ describe('useLocalStorageMessages clearHistory', () => {
 
   test('clearHistory removes item from storage', () => {
     const key = 'test-key'
-    let storage: Record<string, string> = { [key]: 'some data' }
+    const storage: Record<string, string> = { [key]: 'some data' }
 
     // Simulate clearHistory removal
     delete storage[key]

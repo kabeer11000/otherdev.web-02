@@ -21,7 +21,9 @@ describe('Chat Message Utils', () => {
 
       expect(result.length).toBe(3)
       expect(result[1].id).toBe('msg-2')
-      expect((result[1] as { content: Array<{ type: string; text: string }> }).content[0].text).toBe('Updated response')
+      expect(
+        (result[1] as { content: Array<{ type: string; text: string }> }).content[0].text
+      ).toBe('Updated response')
     })
 
     test('returns original array when id not found', () => {

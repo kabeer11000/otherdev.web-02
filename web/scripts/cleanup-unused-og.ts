@@ -3,9 +3,9 @@
  * Only keeps OG variants for media that are project cover images
  */
 
-import { getPayload } from 'payload'
+import { DeleteObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3'
 import configPromise from '@payload-config'
-import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { getPayload } from 'payload'
 
 const s3Client = new S3Client({
   region: 'auto',
@@ -66,17 +66,19 @@ async function cleanupUnusedOGVariants() {
   // Delete the unused OG variants from R2
   for (const key of ogVariantsToDelete) {
     try {
-      await s3Client.send(new DeleteObjectCommand({
-        Bucket: process.env.R2_BUCKET,
-        Key: key,
-      }))
+      await s3Client.send(
+        new DeleteObjectCommand({
+          Bucket: process.env.R2_BUCKET,
+          Key: key,
+        })
+      )
       console.log(`  [DELETED] ${key}`)
     } catch (err) {
       console.error(`  [ERROR] Failed to delete ${key}:`, err)
     }
   }
 
-  console.log(`\n=== Cleanup Complete ===`)
+  console.log('\n=== Cleanup Complete ===')
   console.log(`Deleted ${ogVariantsToDelete.length} unused OG variants`)
 }
 
