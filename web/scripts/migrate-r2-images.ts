@@ -20,7 +20,7 @@
  *   R2_MIGRATION_NEW_BUCKET
  */
 
-import { S3Client, ListObjectsV2Command, CopyObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 
 // Validate required env vars
 function getRequiredEnv(key: string): string {
@@ -61,9 +61,9 @@ const newClient = new S3Client({
   forcePathStyle: true,
 })
 
-async function objectExists(client: S3Client, bucket: string, key: string): Promise<boolean> {
+async function objectExists(key: string): Promise<boolean> {
   try {
-    await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
+    await newClient.send(new HeadObjectCommand({ Bucket: NEW_BUCKET, Key: key }))
     return true
   } catch {
     return false
@@ -72,29 +72,50 @@ async function objectExists(client: S3Client, bucket: string, key: string): Prom
 
 async function copyObject(key: string, overwrite: boolean = false): Promise<'copied' | 'skipped' | 'error'> {
   try {
+    // Check if already exists in new bucket
     if (!overwrite) {
-      const exists = await objectExists(newClient, NEW_BUCKET, key)
+      const exists = await objectExists(key)
       if (exists) {
         return 'skipped'
       }
     }
 
-    await newClient.send(
-      new CopyObjectCommand({
-        Bucket: NEW_BUCKET,
+    // Download from old bucket
+    const getResponse = await oldClient.send(
+      new GetObjectCommand({
+        Bucket: OLD_BUCKET,
         Key: key,
-        CopySource: `${OLD_BUCKET}/${key}`,
       })
     )
+
+    if (!getResponse.Body) {
+      throw new Error('Empty response body')
+    }
+
+    // Convert to buffer
+    const buffer = Buffer.from(await getResponse.Body.transformToByteArray())
+
+    // Upload to new bucket
+    await newClient.send(
+      new PutObjectCommand({
+        Bucket: NEW_BUCKET,
+        Key: key,
+        Body: buffer,
+        ContentType: getResponse.ContentType,
+      })
+    )
+
     return 'copied'
   } catch (err) {
-    console.error(`  ERROR copying ${key}:`, err instanceof Error ? err.message : err)
+    console.error(`  ERROR ${key}:`, err instanceof Error ? err.message : err)
     return 'error'
   }
 }
 
 async function migrateAllImages() {
-  console.log(`\nStarting R2 migration: ${OLD_BUCKET} → ${NEW_BUCKET}\n`)
+  console.log(`\nStarting R2 migration: ${OLD_BUCKET} → ${NEW_BUCKET}`)
+  console.log(`Source:      ${OLD_ENDPOINT}`)
+  console.log(`Destination: ${NEW_ENDPOINT}\n`)
 
   let total = 0
   let copied = 0
@@ -112,7 +133,7 @@ async function migrateAllImages() {
     )
 
     const objects = listResponse.Contents || []
-    console.log(`Found ${objects.length} objects in old bucket${continuationToken ? ' (page)' : ''}`)
+    console.log(`\nPage: found ${objects.length} objects`)
 
     // Process each object
     for (const obj of objects) {
@@ -122,11 +143,17 @@ async function migrateAllImages() {
 
       // Skip folders/directories
       if (obj.Key.endsWith('/')) {
-        console.log(`  Skipping folder: ${obj.Key}`)
+        console.log(`  ⊘ Skip folder: ${obj.Key}`)
         continue
       }
 
-      process.stdout.write(`  Migrating: ${obj.Key} ... `)
+      // Skip OG images (used for Open Graph/social sharing)
+      if (obj.Key.includes('-og.') || obj.Key.includes('_og.')) {
+        console.log(`  ⊘ Skip OG: ${obj.Key}`)
+        continue
+      }
+
+      process.stdout.write(`  ${obj.Key.slice(0, 60)}... `)
       const result = await copyObject(obj.Key, false)
 
       if (result === 'copied') {
@@ -134,7 +161,7 @@ async function migrateAllImages() {
         console.log('✓')
       } else if (result === 'skipped') {
         skipped++
-        console.log('⊘ (exists)')
+        console.log('⊘')
       } else {
         errors++
         console.log('✗')
@@ -142,7 +169,7 @@ async function migrateAllImages() {
     }
 
     continuationToken = listResponse.NextContinuationToken
-    console.log(`\nProgress: ${total} total, ${copied} copied, ${skipped} skipped, ${errors} errors\n`)
+    console.log(`\nProgress: ${total} total | ${copied} copied | ${skipped} skipped | ${errors} errors`)
 
   } while (continuationToken)
 
@@ -153,7 +180,7 @@ async function migrateAllImages() {
   console.log(`Errors:  ${errors}`)
 
   if (errors > 0) {
-    console.log('\n⚠️  Some objects failed. Re-run the script to retry failed objects.')
+    console.log('\n⚠️  Some objects failed. Re-run the script to retry.')
   }
 }
 
