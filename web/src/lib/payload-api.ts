@@ -44,6 +44,16 @@ export const getRelatedProjects = cache(async (currentId: string) => {
   return docs
 })
 
+export const getProjectSlugs = cache(async (): Promise<string[]> => {
+  const payload = await getPayload({ config: configPromise })
+  const { docs } = await payload.find({
+    collection: 'projects',
+    select: { slug: true },
+    limit: 100,
+  })
+  return docs.map((d) => d.slug).filter(Boolean)
+})
+
 export const getBlogPosts = cache(async () => {
   const payload = await getPayload({ config: configPromise })
   const { docs } = await payload.find({
