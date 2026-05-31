@@ -15,7 +15,6 @@ import { s3Storage } from '@payloadcms/storage-s3'
 import nodemailer from 'nodemailer'
 import path from 'path'
 import { buildConfig } from 'payload'
-import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 import { Blog } from './collections/Blog'
 import { Categories } from './collections/Categories'
@@ -115,7 +114,6 @@ export default buildConfig({
   db: mongooseAdapter({
     url: process.env.DATABASE_URL || '',
   }),
-  sharp,
   plugins: [
     // seoPlugin({
     //   collections: ['blog', 'projects'],

@@ -47,7 +47,8 @@ export default function cloudflareLoader({ src, width, quality }: ImageLoaderPro
   }
 
   // Build Cloudflare image transformation params
-  const params: string[] = [`width=${width}`]
+  // format=auto serves AVIF to supporting browsers, WebP to others
+  const params: string[] = [`width=${width}`, 'format=auto']
   if (quality) {
     params.push(`quality=${quality}`)
   }

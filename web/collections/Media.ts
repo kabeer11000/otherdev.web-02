@@ -25,33 +25,7 @@ export const Media: CollectionConfig = {
   ],
   upload: {
     staticDir: path.resolve(__dirname, '../../public/media'),
-    imageSizes: [
-      {
-        name: 'thumbnail',
-        width: 400,
-        height: 300,
-        position: 'centre',
-      },
-      {
-        name: 'card',
-        width: 768,
-        height: 1024,
-        position: 'centre',
-      },
-      {
-        name: 'tablet',
-        width: 1024,
-        height: undefined,
-        position: 'centre',
-      },
-      {
-        name: 'og',
-        width: 1200,
-        height: 630,
-        position: 'centre',
-      },
-    ],
-    adminThumbnail: ({ doc }) => doc.sizes?.thumbnail?.url ?? doc.url,
+    adminThumbnail: ({ doc }) => doc.url,
     mimeTypes: ['image/*'],
   },
 }

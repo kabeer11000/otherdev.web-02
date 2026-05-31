@@ -1,4 +1,3 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { convertLexicalToHTML } from '@payloadcms/richtext-lexical/html'
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical'
 import { revalidatePath } from 'next/cache'
@@ -9,59 +8,6 @@ import type {
   CollectionConfig,
 } from 'payload'
 import { slugField } from 'payload'
-import sharp from 'sharp'
-
-const OG_WIDTH = 1200
-const OG_HEIGHT = 630
-const OG_QUALITY = 80
-
-// Initialize S3 client for R2
-const s3Client = new S3Client({
-  region: 'auto',
-  endpoint: process.env.R2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
-  },
-})
-
-async function generateOGForMedia(mediaUrl: string): Promise<string | null> {
-  if (!process.env.R2_BUCKET || !process.env.R2_ENDPOINT) {
-    return null
-  }
-
-  try {
-    const response = await fetch(mediaUrl)
-    if (!response.ok) return null
-
-    const imageBuffer = await response.arrayBuffer()
-    const ogBuffer = await sharp(Buffer.from(imageBuffer))
-      .resize(OG_WIDTH, OG_HEIGHT, { fit: 'cover', position: 'center' })
-      .jpeg({ quality: OG_QUALITY })
-      .toBuffer()
-
-    const urlParts = mediaUrl.replace(process.env.R2_PUBLIC_URL || '', '').split('/')
-    const filename = urlParts.pop() || ''
-    const prefix = urlParts.join('/')
-    const baseName = filename.replace(/\.[^.]+$/, '')
-    const ogFilename = `${baseName}-og.jpg`
-    const ogKey = prefix ? `${prefix}/${ogFilename}` : ogFilename
-
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET,
-        Key: ogKey,
-        Body: ogBuffer,
-        ContentType: 'image/jpeg',
-      })
-    )
-
-    return `${process.env.R2_PUBLIC_URL}/${ogKey}`
-  } catch (error) {
-    console.error('Failed to generate OG:', error)
-    return null
-  }
-}
 
 const syncContentHtml: CollectionBeforeChangeHook = async ({ data }) => {
   if (data.content) {
@@ -78,45 +24,6 @@ const autoPopulateExcerpt: CollectionBeforeChangeHook = async ({ data }) => {
     const words = plainText.split(' ').slice(0, 15)
     data.excerpt = words.join(' ') + (plainText.split(' ').length > 15 ? '...' : '')
   }
-  return data
-}
-
-const generateProjectOG: CollectionBeforeChangeHook = async ({ data, originalDoc, req }) => {
-  const imageUrl = data?.image?.url || data?.image
-
-  if (!imageUrl) return data
-
-  // Only regenerate OG if the cover image changed
-  if (imageUrl !== originalDoc?.image?.url) {
-    const ogUrl = await generateOGForMedia(imageUrl)
-    if (ogUrl) {
-      console.log(`Generated OG for project cover: ${ogUrl}`)
-
-      // Update the Media document's og size
-      const mediaId = data?.image?.id || originalDoc?.image?.id
-      if (mediaId) {
-        try {
-          await req.payload.update({
-            collection: 'media',
-            id: mediaId,
-            data: {
-              sizes: {
-                og: {
-                  url: ogUrl,
-                  width: OG_WIDTH,
-                  height: OG_HEIGHT,
-                },
-              },
-            },
-          })
-          console.log(`Updated Media ${mediaId} with OG URL`)
-        } catch (err) {
-          console.error('Failed to update Media OG:', err)
-        }
-      }
-    }
-  }
-
   return data
 }
 
@@ -154,7 +61,7 @@ export const Projects: CollectionConfig = {
     delete: ({ req }) => req.user?.role === 'admin',
   },
   hooks: {
-    beforeChange: [syncContentHtml, autoPopulateExcerpt, generateProjectOG],
+    beforeChange: [syncContentHtml, autoPopulateExcerpt],
     afterChange: [revalidateProject],
     afterDelete: [revalidateProjectDelete],
   },
