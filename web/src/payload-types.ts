@@ -245,7 +245,11 @@ export interface Project {
   image: string | Media;
   media?:
     | {
-        image?: (string | null) | Media;
+        /**
+         * Choose media type
+         */
+        type?: ('image' | 'video') | null;
+        file?: (string | null) | Media;
         id?: string | null;
       }[]
     | null;
@@ -574,7 +578,8 @@ export interface ProjectsSelect<T extends boolean = true> {
   media?:
     | T
     | {
-        image?: T;
+        type?: T;
+        file?: T;
         id?: T;
       };
   updatedAt?: T;

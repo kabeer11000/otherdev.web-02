@@ -59,7 +59,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   const relatedProjects = await getRelatedProjects(project.id)
 
-  const mediaUrls = (project.media?.map(m => m.image?.url).filter(Boolean) as string[]) ?? []
+  const mediaItems = (project.media?.map(m => ({ url: m.file?.url as string, type: m.type || 'image' })).filter(m => m.url) ?? [])
 
   // JSON-Ld Structured Data
   const jsonLd = {
@@ -123,26 +123,37 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           )}
         </div>
 
-        {mediaUrls.length > 0 && (
+        {mediaItems.length > 0 && (
           <div className="bg-neutral-200 rounded-[5px] mb-[35.37px] md:mr-[15.3%]">
             <div className="flex flex-col gap-[90px] md:px-[145px] md:max-w-none lg:max-w-[803px] lg:mx-auto lg:px-0 py-[78px]">
-              {mediaUrls.map((mediaUrl, index) => (
+              {mediaItems.map((item, index) => (
                 <a
-                  key={mediaUrl + index}
+                  key={item.url + index}
                   href={project.url ? `https://${project.url}` : '#'}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block"
                 >
-                  <Image
-                    src={mediaUrl}
-                    alt={`${project.title} - Image ${index + 1}`}
-                    width={800}
-                    height={800}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 75vw, 50vw"
-                    className="w-full h-auto object-contain rounded-[5px] px-6"
-                    priority={index === 0}
-                  />
+                  {item.type === 'video' ? (
+                    <video
+                      src={item.url}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className="w-full h-auto object-contain rounded-[5px] px-6"
+                    />
+                  ) : (
+                    <Image
+                      src={item.url}
+                      alt={`${project.title} - Image ${index + 1}`}
+                      width={800}
+                      height={800}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 75vw, 50vw"
+                      className="w-full h-auto object-contain rounded-[5px] px-6"
+                      priority={index === 0}
+                    />
+                  )}
                 </a>
               ))}
             </div>

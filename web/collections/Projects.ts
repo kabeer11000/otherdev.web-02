@@ -134,7 +134,19 @@ export const Projects: CollectionConfig = {
       },
       fields: [
         {
-          name: 'image',
+          name: 'type',
+          type: 'select',
+          options: [
+            { label: 'Image', value: 'image' },
+            { label: 'Video', value: 'video' },
+          ],
+          defaultValue: 'image',
+          admin: {
+            description: 'Choose media type',
+          },
+        },
+        {
+          name: 'file',
           type: 'upload',
           relationTo: 'media',
         },

@@ -20,9 +20,9 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // Validate content type is an image
-  if (!contentType.startsWith('image/')) {
-    return NextResponse.json({ error: 'Only image/* content types are supported' }, { status: 400 })
+  // Validate content type is an image or video
+  if (!contentType.startsWith('image/') && !contentType.startsWith('video/')) {
+    return NextResponse.json({ error: 'Only image/* and video/* content types are supported' }, { status: 400 })
   }
 
   // Generate a unique key with original extension
