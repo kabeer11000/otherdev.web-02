@@ -175,10 +175,9 @@ export default buildConfig({
             collections: {
               media: {
                 disablePayloadAccessControl: true,
-                generateFileURL: ({ filename, prefix }) => {
-                  const key = prefix ? `${prefix}/${filename}` : filename
-                  return `${process.env.R2_PUBLIC_URL}/${key}`
-                },
+                // All files are now at R2 root (uploaded from public/images/projects/).
+                // generateFileURL uses filename only — no prefix.
+                generateFileURL: ({ filename }) => `${process.env.R2_PUBLIC_URL}/${filename}`,
               },
             },
             bucket: process.env.R2_BUCKET,
