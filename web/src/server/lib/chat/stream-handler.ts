@@ -1,7 +1,5 @@
 import {
   convertToModelMessages,
-  gateway,
-  generateText,
   type ModelMessage,
   Output,
   stepCountIs,
@@ -17,10 +15,7 @@ import { createJsonResponse } from '@/server/lib/api-helpers'
 import { checkRateLimit, getClientIdentifier, REQUESTS_PER_WINDOW } from '@/server/lib/rate-limit'
 import {
   TEXT_MODEL,
-  TEXT_MODEL_FALLBACK,
-  TEXT_MODEL_FALLBACK_2,
   VISION_MODEL,
-  VISION_MODEL_FALLBACK,
 } from './models'
 import { createArtifactTool, retrieveKnowledgeTool, tavilySearchTool } from './tools'
 
@@ -38,10 +33,9 @@ function isContentArray(arr: unknown): arr is Part[] {
 }
 
 const REQUIRED_API_KEYS = [
-  'GROQ_API_KEY',
-  'CEREBRAS_API_KEY',
-  'COHERE_API_KEY',
-  'MISTRAL_API_KEY',
+  'CLOUDFLARE_ACCOUNT_ID',
+  'CLOUDFLARE_GATEWAY_NAME',
+  'CF_AIG_TOKEN',
 ] as const
 
 function validateApiKeys(): void {
@@ -402,7 +396,14 @@ export async function handleStreamChat({
 
   // Anthropic Ch5 prefill: inject an assistant role message that tells the model exactly how to
   // start its response. The model continues from the prefill rather than generating its own preamble.
-  const prefillIndex = modelMessages.findIndex(m => m.role === 'user')
+  // Find the LAST user message so the prefill is contextually appropriate for multi-turn convos.
+  let prefillIndex = -1
+  for (let i = modelMessages.length - 1; i >= 0; i--) {
+    if (modelMessages[i].role === 'user') {
+      prefillIndex = i
+      break
+    }
+  }
   const prefillMessage = {
     role: 'assistant' as const,
     content: 'Here is my response based on the available information:',
@@ -411,36 +412,14 @@ export async function handleStreamChat({
     modelMessages.splice(prefillIndex, 0, prefillMessage)
   }
 
-  const fallbacks = hasImageContent
-    ? [VISION_MODEL_FALLBACK]
-    : [TEXT_MODEL_FALLBACK, TEXT_MODEL_FALLBACK_2]
-
-  // Provider priority: primary provider first, then failover
-  // Text: Groq primary → Cerebras → Cohere
-  // Vision: Mistral primary → Groq fallback
-  const providerPriority = hasImageContent ? ['mistral', 'groq'] : ['groq', 'cerebras', 'cohere']
-
-  // Generate suggestions before streaming — always text model with same fallback chain
-  const suggestionsPromise = generateText({
-    model: gateway(TEXT_MODEL),
+  const suggestionsPromise = streamText({
+    model: TEXT_MODEL,
     output: Output.object({
       schema: SUGGESTIONS_SCHEMA,
     }),
     system:
       'You generate 2-3 short follow-up questions (max 10 words each) that a user would genuinely ask next when chatting with an Other Dev AI assistant. Write them from the USER\'s perspective — as if YOU are the person asking Loom a question. NOT as if you are the AI responding to a user. Write direct questions the user would type, not assistant replies or "would you like me to..." phrasing. Avoid anything that sounds like an AI response or a sales pitch. Be specific and grounded in the conversation.',
     prompt: `User asked Loom: "${normalizedQuery}".\n\nWhat would this person logically ask next in this conversation? Write only the questions — phrased as if you are the user asking the assistant. No "would you like me to...", no assistant-voice responses, no sales pitches.`,
-    providerOptions: {
-      gateway: {
-        order: ['groq', 'cerebras', 'cohere'],
-        models: [TEXT_MODEL_FALLBACK, TEXT_MODEL_FALLBACK_2],
-        byok: {
-          groq: [{ apiKey: process.env.GROQ_API_KEY! }],
-          cerebras: [{ apiKey: process.env.CEREBRAS_API_KEY! }],
-          cohere: [{ apiKey: process.env.COHERE_API_KEY! }],
-          mistral: [{ apiKey: process.env.MISTRAL_API_KEY! }],
-        },
-      },
-    },
   })
     .then(r => r.output?.suggestions ?? [])
     .catch(err => {
@@ -450,8 +429,8 @@ export async function handleStreamChat({
 
   const resolvedSuggestions = await suggestionsPromise
 
-  const result = streamText({
-    model: gateway(selectedModelId),
+  const streamResult = streamText({
+    model: selectedModelId,
     system: [
       {
         role: 'system',
@@ -467,22 +446,10 @@ export async function handleStreamChat({
     stopWhen: stepCountIs(5),
     toolChoice: 'auto',
     tools,
-    providerOptions: {
-      gateway: {
-        order: providerPriority,
-        models: fallbacks,
-        byok: {
-          groq: [{ apiKey: process.env.GROQ_API_KEY! }],
-          cerebras: [{ apiKey: process.env.CEREBRAS_API_KEY! }],
-          cohere: [{ apiKey: process.env.COHERE_API_KEY! }],
-          mistral: [{ apiKey: process.env.MISTRAL_API_KEY! }],
-        },
-      },
-    },
   })
 
   return {
-    result,
+    result: streamResult,
     response: null,
     suggestions: resolvedSuggestions,
     rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: rateLimitResult.remaining },

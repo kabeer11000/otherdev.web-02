@@ -27,13 +27,17 @@ export async function generatePresignedPutUrl(
   contentType: string,
   expiresIn = 300
 ): Promise<string> {
+  const bucket = process.env.R2_BUCKET
+  if (!bucket) {
+    throw new Error('R2_BUCKET environment variable is not set')
+  }
   // Casting through unknown to satisfy getSignedUrl's wide Client + Command generic bounds.
   // This is a known AWS SDK v3 TypeScript limitation — runtime behavior is correct.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return getSignedUrl(
     r2Client as any,
     new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET,
+      Bucket: bucket,
       Key: key,
       ContentType: contentType,
     }) as any,

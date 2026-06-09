@@ -9,6 +9,14 @@ import type {
 } from 'payload'
 import { slugField } from 'payload'
 
+const escapeHtml = (str: string) =>
+  str
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"')
+    .replace(/'/g, '&#039;')
+
 const htmlConverters = ({ defaultConverters }: { defaultConverters: Record<string, unknown> }) => ({
   ...defaultConverters,
   blocks: {
@@ -19,8 +27,8 @@ const htmlConverters = ({ defaultConverters }: { defaultConverters: Record<strin
       node: { fields: { code?: string; language?: string } }
       providedCSSString?: string
     }) => {
-      const code = node.fields.code ?? ''
-      const lang = node.fields.language ?? ''
+      const code = escapeHtml(node.fields.code ?? '')
+      const lang = escapeHtml(node.fields.language ?? '')
       const attrs = providedCSSString ? ` style="${providedCSSString}"` : ''
       const langAttr = lang ? ` data-lang="${lang}"` : ''
       return `<pre${attrs}${langAttr}><code class="language-${lang}">${code}</code></pre>`

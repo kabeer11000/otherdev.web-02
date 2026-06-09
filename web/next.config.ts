@@ -19,12 +19,11 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', 'clsx', 'date-fns', 'embla-carousel-react'],
   },
   images: {
-    // Browser fetches from /r2/ proxy (same-origin) — loaderFile transforms the URL.
-    // unoptimized: true means Next.js does NOT proxy/fetch the image itself.
-    // Browser requests /r2/{filename} which our route handler fetches from R2 with CORP headers.
+    // Uses Cloudflare Image Resizing via /cdn-cgi/image/ transform.
+    // cloudflare-image-loader.ts transforms R2 URLs to Cloudflare CDN format.
     unoptimized: true,
     loader: 'custom',
-    loaderFile: './src/lib/r2-image-loader.ts',
+    loaderFile: './src/lib/cloudflare-image-loader.ts',
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],

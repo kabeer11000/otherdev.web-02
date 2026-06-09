@@ -175,8 +175,7 @@ export default buildConfig({
             collections: {
               media: {
                 disablePayloadAccessControl: true,
-                // All files are now at R2 root (uploaded from public/images/projects/).
-                // generateFileURL uses filename only — no prefix.
+                // All files are at R2 root (prefix field in MongoDB is obsolete — ignore it).
                 generateFileURL: ({ filename }) => `${process.env.R2_PUBLIC_URL}/${filename}`,
               },
             },

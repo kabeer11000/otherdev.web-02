@@ -37,7 +37,6 @@ export function LoomPageClient({ noNavigation }: { noNavigation?: boolean }) {
               activeArtifact={activeArtifact}
               onArtifactOpen={setActiveArtifact}
               onClear={handleClear}
-              showArtifactPanel={true}
             />
           </div>
           {activeArtifact && (

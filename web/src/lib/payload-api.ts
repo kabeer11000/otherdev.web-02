@@ -51,7 +51,11 @@ export const getProjectSlugs = cache(async (): Promise<string[]> => {
     select: { slug: true },
     limit: 100,
   })
-  return docs.map((d) => d.slug).filter(Boolean)
+  const slugs = docs.map((d) => d.slug).filter(Boolean)
+  if (slugs.length !== docs.length) {
+    console.warn(`[payload-api] ${docs.length - slugs.length}/${docs.length} projects dropped: missing slug`)
+  }
+  return slugs
 })
 
 export const getBlogPosts = cache(async () => {

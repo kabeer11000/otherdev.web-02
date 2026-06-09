@@ -11,18 +11,25 @@ import { slugField } from 'payload'
 
 const syncContentHtml: CollectionBeforeChangeHook = async ({ data }) => {
   if (data.content) {
-    data.contentHtml = await convertLexicalToHTML({
-      data: data.content as SerializedEditorState,
-    })
+    try {
+      data.contentHtml = await convertLexicalToHTML({
+        data: data.content as SerializedEditorState,
+      })
+    } catch (error) {
+      console.error('[projects] syncContentHtml: convertLexicalToHTML failed:', error)
+    }
   }
   return data
 }
 
 const autoPopulateExcerpt: CollectionBeforeChangeHook = async ({ data }) => {
   if (!data.excerpt && data.contentHtml) {
-    const plainText = data.contentHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-    const words = plainText.split(' ').slice(0, 15)
-    data.excerpt = words.join(' ') + (plainText.split(' ').length > 15 ? '...' : '')
+    // Decode HTML entities first, then strip tags
+    const textarea = document.createElement('textarea')
+    textarea.innerHTML = data.contentHtml
+    const plainText = textarea.value.replace(/\s+/g, ' ').trim()
+    const words = plainText.split(/\s+/).filter(Boolean).slice(0, 15)
+    data.excerpt = words.join(' ') + (words.length === 15 ? '...' : '')
   }
   return data
 }

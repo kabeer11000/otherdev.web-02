@@ -16,7 +16,7 @@ const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL ?? 'https://media.otherdev.com'
 
 export default function cloudflareLoader({ src, width, quality }: ImageLoaderProps): string {
   // If it's already a relative path or other origin, pass through
-  if (!src.startsWith('https://media.otherdev.com/')) {
+  if (!src || !src.startsWith(R2_PUBLIC_URL + '/')) {
     return src
   }
 
