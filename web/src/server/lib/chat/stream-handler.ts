@@ -193,8 +193,8 @@ function buildInstructionsSection({ supportsArtifacts }: SystemPromptOptions): s
 function buildChainOfThoughtSection(): string {
   return `<chain_of_thought>
 For multi-step questions, show your reasoning in <scratchpad> tags before answering. Then write the final answer in <answer> tags. Keep reasoning concise — 2-4 sentences max.
-- In your <scratchpad>, note which document (by title or index) each piece of information came from.
-- In your <answer>, cite the source: "According to [Document Title]..." — do not present information without attributing it.
+- In your <scratchpad>, note which document (by its index number, e.g. Document 1) each piece of information came from.
+- In your <answer>, cite the source: "According to Document 1..." — do not present information without attributing it.
 Example: <scratchpad>The user asks about Other Dev's projects. I found Document 1 about Narkins Builders with relevance 87.5%. I'll cite this.</scratchpad>
 <answer>According to Document 1, Other Dev built [Narkins Builders](https://narkinsbuilders.com) (2024)...</answer>
 </chain_of_thought>`
@@ -406,7 +406,7 @@ export async function handleStreamChat({
   }
   const prefillMessage = {
     role: 'assistant' as const,
-    content: 'Here is my response based on the available information:',
+    content: '<scratchpad>',
   }
   if (prefillIndex !== -1) {
     modelMessages.splice(prefillIndex, 0, prefillMessage)

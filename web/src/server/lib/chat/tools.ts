@@ -84,13 +84,6 @@ export const tavilySearchTool = tool({
       .describe('The plain text search query. No id, cursor, or pagination fields — query only.'),
   }),
   execute: async ({ query }: { query: string }) => {
-    type SearchResult = { id: number; title: string; url: string; snippet: string; score: number }
-    type WebSearchResult = {
-      query: string
-      results: SearchResult[]
-      answer: string | null
-      error?: string
-    }
 
     try {
       console.log(`[WebSearch] Searching for: ${query}`)
