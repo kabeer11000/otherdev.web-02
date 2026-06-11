@@ -1,6 +1,5 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
-import { mcpPlugin } from '@payloadcms/plugin-mcp'
 import { redirectsPlugin } from '@payloadcms/plugin-redirects'
 import { searchPlugin } from '@payloadcms/plugin-search'
 import { seoPlugin } from '@payloadcms/plugin-seo'
@@ -123,25 +122,7 @@ export default buildConfig({
     redirectsPlugin({
       collections: ['blog', 'projects'],
     }),
-    // mcpPlugin({
-    //   collections: {
-    //     blog: { enabled: { find: true, update: true } },
-    //     projects: { enabled: { find: true, update: true } },
-    //     media: { enabled: { find: true } },
-    //   },
-    // }),
-    ...(process.env.NODE_ENV === 'development'
-      ? [
-          mcpPlugin({
-            collections: {
-              blog: { enabled: { find: true, update: true } },
-              projects: { enabled: { find: true, update: true } },
-              media: { enabled: { find: true } },
-            },
-          }),
-        ]
-      : []),
-    ...(process.env.R2_BUCKET
+        ...(process.env.R2_BUCKET
       ? [
           s3Storage({
             enabled: true,
