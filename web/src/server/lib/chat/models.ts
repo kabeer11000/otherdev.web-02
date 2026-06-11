@@ -1,19 +1,15 @@
-// ─── Text Models ──────────────────────────────────────────────────────────────
-// groq/gpt-oss-120b:   Primary — Groq via Cloudflare AI Gateway
-// cerebras/qwen-3-235b: First fallback — Cerebras via Cloudflare AI Gateway
-// cohere/command-a:     Second fallback — Cohere via Cloudflare AI Gateway
+// ─── Text Models ────────────────────────────────────────────────────────────────
+// groq/gpt-oss-120b:   Primary — Groq BYOK
+// cerebras/qwen-3-235b: First fallback — Cerebras BYOK
+// cohere/command-a:     Second fallback — Cohere BYOK
 
-export {
-  groqTextModel as TEXT_MODEL,
-  cerebrasTextModel as TEXT_MODEL_FALLBACK,
-  cohereTextModel as TEXT_MODEL_FALLBACK_2,
-} from "@/lib/cloudflare-gateway"
+export const TEXT_MODEL = 'groq/gpt-oss-120b'
+export const TEXT_MODEL_FALLBACK = 'cerebras/qwen-3-235b'
+export const TEXT_MODEL_FALLBACK_2 = 'cohere/command-a'
 
 // ─── Vision Models ────────────────────────────────────────────────────────────
-// mistral/pixtral-large: Primary — Mistral via Cloudflare AI Gateway
-// groq/llama-4-scout:    Fallback — Groq via Cloudflare AI Gateway
+// mistral/pixtral-large: Primary — Mistral BYOK
+// groq/llama-4-scout:    Fallback — Groq BYOK
 
-export {
-  mistralVisionModel as VISION_MODEL,
-  groqVisionModel as VISION_MODEL_FALLBACK,
-} from "@/lib/cloudflare-gateway"
+export const VISION_MODEL = 'mistral/pixtral-large'
+export const VISION_MODEL_FALLBACK = 'groq/llama-4-scout-17b-16e-instruct'
