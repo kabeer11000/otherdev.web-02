@@ -1,0 +1,11 @@
+/* Horizontal scroll for wide Mermaid diagrams on mobile */
+[data-mermaid] {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+[data-mermaid] svg {
+  max-width: 100%;
+  height: auto;
+}

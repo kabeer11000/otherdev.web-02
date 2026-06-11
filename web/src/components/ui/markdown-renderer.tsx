@@ -6,6 +6,7 @@ import { mermaid } from '@streamdown/mermaid'
 import type React from 'react'
 import { Streamdown } from 'streamdown'
 import 'katex/dist/katex.min.css'
+import styles from './markdown.module.css'
 
 // All stable constants are hoisted to module level so Streamdown's React.memo
 // shallow-equality check never sees changed references — only `children` and
@@ -22,9 +23,11 @@ const ANIMATED = {
 
 const SHIKI_THEME: [string, string] = ['github-light', 'github-dark']
 
+const MERMAID_CONFIG = { config: { flowchart: { useMaxWidth: true } } }
+
 const CONTROLS = {
   code: { copy: true, download: true },
-  mermaid: { copy: true, download: true, fullscreen: true },
+  mermaid: { copy: true, download: true, fullscreen: true, panZoom: true },
   table: { copy: true, download: true },
 }
 
@@ -122,6 +125,7 @@ export function MarkdownRenderer({ children, isAnimating = false }: MarkdownRend
       shikiTheme={SHIKI_THEME}
       controls={CONTROLS}
       components={COMPONENTS}
+      mermaid={MERMAID_CONFIG}
     >
       {children}
     </Streamdown>

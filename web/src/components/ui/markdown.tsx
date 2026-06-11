@@ -5,6 +5,7 @@ import { math } from '@streamdown/math'
 import { mermaid } from '@streamdown/mermaid'
 import { Streamdown } from 'streamdown'
 import 'katex/dist/katex.min.css'
+import styles from './markdown.module.css'
 
 export type MarkdownProps = {
   children: string
@@ -16,9 +17,10 @@ export function Markdown({ children, className }: MarkdownProps) {
     <Streamdown
       plugins={{ code, math, mermaid }}
       shikiTheme={['github-light', 'github-dark']}
+      mermaid={{ config: { flowchart: { useMaxWidth: true } } }}
       controls={{
         code: { copy: true, download: true },
-        mermaid: { copy: true, download: true, fullscreen: true },
+        mermaid: { copy: true, download: true, fullscreen: true, panZoom: true },
         table: { copy: true, download: true },
       }}
       className={className}
