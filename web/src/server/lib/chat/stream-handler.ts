@@ -1,7 +1,7 @@
 import {
   convertToModelMessages,
-  generateText,
   gateway,
+  generateText,
   type ModelMessage,
   Output,
   stepCountIs,
@@ -227,9 +227,7 @@ export async function handleStreamChat({
   // Provider priority: primary provider first, then failover
   // Text: Groq primary → Cerebras → Cohere
   // Vision: Mistral primary → Groq fallback
-  const providerPriority = hasImageContent
-    ? ['mistral', 'groq']
-    : ['groq', 'cerebras', 'cohere']
+  const providerPriority = hasImageContent ? ['mistral', 'groq'] : ['groq', 'cerebras', 'cohere']
 
   // Generate suggestions before streaming — always text model with same fallback chain
   const suggestionsPromise = generateText({

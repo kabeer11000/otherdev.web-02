@@ -45,4 +45,4 @@ function TabsContent({ className, ...props }: React.ComponentProps<typeof Tabs.P
   )
 }
 
-export { TabsRoot as Tabs, TabsList, TabsTrigger, TabsContent }
+export { TabsContent, TabsList, TabsRoot as Tabs, TabsTrigger }

@@ -32,10 +32,10 @@ const imageContainerVariants = cva('relative w-full h-full bg-stone-200', {
   },
 })
 
-const imageVariants = cva('transition-all duration-300 group-hover:motion-scale-in-102', {
+const imageVariants = cva('transition-all duration-300 group-hover:scale-102', {
   variants: {
     variant: {
-      home: 'object-contain group-hover:motion-translate-y-in-[-2px] p-6 group-hover:motion-shadow-in-8',
+      home: 'object-contain group-hover:-translate-y-[2px] p-6 group-hover:shadow-lg',
       work: 'object-contain group-hover:scale-[0.99] p-6',
       broll: 'object-cover',
     },
@@ -104,7 +104,10 @@ export function ProjectCard({
         >
           {showTitle && (
             <div className="box-border flex flex-col items-start mb-[-3px] relative shrink-0 w-full">
-              <div className="flex flex-col font-normal justify-center leading-[0] not-italic relative shrink-0 text-[13px] text-black tracking-[-0.24px] w-full" style={{ fontFamily: 'var(--fraunces), serif' }}>
+              <div
+                className="flex flex-col font-normal justify-center leading-[0] not-italic relative shrink-0 text-[13px] text-black tracking-[-0.24px] w-full"
+                style={{ fontFamily: 'var(--fraunces), serif' }}
+              >
                 <p className="leading-[14px] whitespace-pre-wrap">{title}</p>
               </div>
             </div>

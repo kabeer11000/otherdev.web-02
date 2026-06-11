@@ -50,4 +50,4 @@ function ChatContainerScrollAnchor({ className, ...props }: ChatContainerScrollA
   )
 }
 
-export { ChatContainerRoot, ChatContainerContent, ChatContainerScrollAnchor }
+export { ChatContainerContent, ChatContainerRoot, ChatContainerScrollAnchor }

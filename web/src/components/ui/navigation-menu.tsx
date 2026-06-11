@@ -155,13 +155,13 @@ function NavigationMenuIndicator({
 }
 
 export {
-  NavigationMenuRoot as NavigationMenu,
-  NavigationMenuList,
-  NavigationMenuItemComponent as NavigationMenuItem,
   NavigationMenuContent,
-  NavigationMenuTrigger,
-  NavigationMenuLink,
   NavigationMenuIndicator,
+  NavigationMenuItemComponent as NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuRoot as NavigationMenu,
+  NavigationMenuTrigger,
   NavigationMenuViewport,
   navigationMenuTriggerStyle,
 }

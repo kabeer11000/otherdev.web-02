@@ -370,14 +370,14 @@ function TranscriptViewerScrubBar({
   )
 }
 
+export type { CharacterAlignmentResponseModel }
 export {
-  TranscriptViewerContainer,
-  TranscriptViewerWords,
-  TranscriptViewerWord,
   TranscriptViewerAudio,
+  TranscriptViewerContainer,
   TranscriptViewerPlayPauseButton,
-  TranscriptViewerScrubBar,
   TranscriptViewerProvider,
+  TranscriptViewerScrubBar,
+  TranscriptViewerWord,
+  TranscriptViewerWords,
   useTranscriptViewerContext,
 }
-export type { CharacterAlignmentResponseModel }

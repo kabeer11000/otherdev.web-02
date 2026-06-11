@@ -44,8 +44,8 @@ export function AgentWidget({ agentId, avatarUrl, className }: AgentWidgetProps)
               'h-14 w-14 md:h-12 md:w-12',
               'flex items-center justify-center rounded-full shadow-md',
               'bg-primary text-primary-foreground',
-              'hover:opacity-90 hover:motion-scale-in-110 active:motion-scale-out-95',
-              'transition-all focus:outline-none motion-duration-200',
+              'hover:opacity-90 hover:scale-110 active:scale-95',
+              'transition-all focus:outline-none duration-200',
               className
             )}
             style={{ zIndex: Z_INDEX.chatButton - 1 }}
@@ -116,8 +116,8 @@ function AgentWidgetInner({
             'h-14 w-14 md:h-12 md:w-12',
             'flex items-center justify-center rounded-full shadow-md',
             'bg-primary text-primary-foreground',
-            'hover:opacity-90 hover:motion-scale-in-110 active:motion-scale-out-95',
-            'transition-all focus:outline-none motion-duration-200',
+            'hover:opacity-90 hover:scale-110 active:scale-95',
+            'transition-all focus:outline-none duration-200',
             className
           )}
           style={{ zIndex: Z_INDEX.chatButton - 1 }}

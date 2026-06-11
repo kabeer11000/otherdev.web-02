@@ -75,10 +75,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${fraunces.variable} ${plusJakartaSans.variable}`}
-    >
+    <html lang="en" className={`${fraunces.variable} ${plusJakartaSans.variable}`}>
       <head>
         {/* R2 preconnect — saves DNS+TCP+TLS per image */}
         <link

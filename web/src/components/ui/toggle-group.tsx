@@ -83,4 +83,4 @@ function ToggleGroupItem({
   )
 }
 
-export { ToggleGroupRoot as ToggleGroup, ToggleGroupItem }
+export { ToggleGroupItem, ToggleGroupRoot as ToggleGroup }

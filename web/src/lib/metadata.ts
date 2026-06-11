@@ -31,9 +31,9 @@ export function buildSocialMetadata({
 }: BuildSocialMetadataOptions): Pick<Metadata, 'alternates' | 'openGraph' | 'twitter'> {
   const canonicalUrl = absoluteUrl(path)
   const slug = path.split('/').filter(Boolean).pop()
-  const socialImagePath = imagePath ?? (path === '/'
-    ? '/opengraph-image'
-    : `${path}/opengraph-image${slug ? `-${slug}` : ''}`)
+  const socialImagePath =
+    imagePath ??
+    (path === '/' ? '/opengraph-image' : `${path}/opengraph-image${slug ? `-${slug}` : ''}`)
 
   return {
     alternates: includeCanonical ? { canonical: canonicalUrl } : undefined,

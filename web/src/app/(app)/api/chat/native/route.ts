@@ -1,4 +1,10 @@
-import { type TextStreamPart, type ToolSet, type UIMessage, validateUIMessages, TypeValidationError } from 'ai'
+import {
+  type TextStreamPart,
+  type ToolSet,
+  TypeValidationError,
+  type UIMessage,
+  validateUIMessages,
+} from 'ai'
 import { suggestionDataSchema } from '@/lib/schemas'
 import { createJsonResponse } from '@/server/lib/api-helpers'
 import { handleStreamChat } from '@/server/lib/chat'

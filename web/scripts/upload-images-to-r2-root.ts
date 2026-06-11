@@ -13,10 +13,10 @@
  * Run: bun run scripts/upload-images-to-r2-root.ts
  */
 
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { readFileSync } from 'fs'
-import { join, basename } from 'path'
 import { MongoClient } from 'mongodb'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { basename, join } from 'path'
 
 // ---------------------------------------------------------------------------
 // Env
@@ -68,19 +68,26 @@ async function uploadFile(absPath: string, filename: string): Promise<string> {
   const body = readFileSync(absPath)
   const ext = filename.split('.').pop()?.toLowerCase() ?? ''
   const contentType =
-    ext === 'webp' ? 'image/webp'
-    : ext === 'png' ? 'image/png'
-    : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
-    : ext === 'pdf' ? 'application/pdf'
-    : ext === 'mp4' ? 'video/mp4'
-    : 'application/octet-stream'
+    ext === 'webp'
+      ? 'image/webp'
+      : ext === 'png'
+        ? 'image/png'
+        : ext === 'jpg' || ext === 'jpeg'
+          ? 'image/jpeg'
+          : ext === 'pdf'
+            ? 'application/pdf'
+            : ext === 'mp4'
+              ? 'video/mp4'
+              : 'application/octet-stream'
 
-  await r2.send(new PutObjectCommand({
-    Bucket: R2_BUCKET,
-    Key: filename,
-    Body: body,
-    ContentType: contentType,
-  }))
+  await r2.send(
+    new PutObjectCommand({
+      Bucket: R2_BUCKET,
+      Key: filename,
+      Body: body,
+      ContentType: contentType,
+    })
+  )
 
   return `${R2_PUBLIC_URL}/${filename}`
 }
@@ -94,7 +101,10 @@ async function main() {
   // Collect all files to upload
   const { readdirSync, statSync } = await import('fs')
 
-  interface FileEntry { absPath: string; filename: string }
+  interface FileEntry {
+    absPath: string
+    filename: string
+  }
 
   const files: FileEntry[] = []
 
@@ -134,10 +144,7 @@ async function main() {
       console.log(`UPLOAD ${file.filename} -> ${newUrl}`)
 
       // Update MongoDB
-      await mediaCol.updateOne(
-        { filename: file.filename },
-        { $set: { url: newUrl, prefix: '' } }
-      )
+      await mediaCol.updateOne({ filename: file.filename }, { $set: { url: newUrl, prefix: '' } })
 
       uploaded++
     } catch (err: unknown) {
@@ -147,7 +154,7 @@ async function main() {
     }
   }
 
-  console.log(`\n=== Results ===`)
+  console.log('\n=== Results ===')
   console.log(`Uploaded: ${uploaded}`)
   console.log(`Skipped (already correct): ${skipped}`)
   console.log(`Errors: ${errors}`)

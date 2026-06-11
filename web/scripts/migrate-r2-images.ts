@@ -20,7 +20,13 @@
  *   R2_MIGRATION_NEW_BUCKET
  */
 
-import { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
+import {
+  GetObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3'
 
 // Validate required env vars
 function getRequiredEnv(key: string): string {
@@ -70,7 +76,10 @@ async function objectExists(key: string): Promise<boolean> {
   }
 }
 
-async function copyObject(key: string, overwrite: boolean = false): Promise<'copied' | 'skipped' | 'error'> {
+async function copyObject(
+  key: string,
+  overwrite: boolean = false
+): Promise<'copied' | 'skipped' | 'error'> {
   try {
     // Check if already exists in new bucket
     if (!overwrite) {
@@ -169,8 +178,9 @@ async function migrateAllImages() {
     }
 
     continuationToken = listResponse.NextContinuationToken
-    console.log(`\nProgress: ${total} total | ${copied} copied | ${skipped} skipped | ${errors} errors`)
-
+    console.log(
+      `\nProgress: ${total} total | ${copied} copied | ${skipped} skipped | ${errors} errors`
+    )
   } while (continuationToken)
 
   console.log('\n=== Migration Complete ===')

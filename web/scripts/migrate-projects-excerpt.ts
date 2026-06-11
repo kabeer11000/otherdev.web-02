@@ -1,5 +1,5 @@
-import { getPayload } from 'payload'
 import configPromise from '@payload-config'
+import { getPayload } from 'payload'
 
 async function migrate() {
   const payload = await getPayload({ config: configPromise })
@@ -19,7 +19,10 @@ async function migrate() {
       continue
     }
 
-    const plainText = project.contentHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    const plainText = project.contentHtml
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
     const words = plainText.split(' ').slice(0, 25)
     const excerpt = words.join(' ') + (plainText.split(' ').length > 25 ? '...' : '')
 

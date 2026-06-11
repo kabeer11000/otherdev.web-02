@@ -14,7 +14,7 @@ export const revalidate = 604800
 
 export async function generateStaticParams() {
   const slugs = await getProjectSlugs()
-  return slugs.map((slug) => ({ slug }))
+  return slugs.map(slug => ({ slug }))
 }
 
 interface ProjectPageProps {
@@ -59,7 +59,10 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   const relatedProjects = await getRelatedProjects(project.id)
 
-  const mediaItems = (project.media?.map(m => ({ url: m.file?.url as string, type: m.type || 'image' })).filter(m => m.url) ?? [])
+  const mediaItems =
+    project.media
+      ?.map(m => ({ url: m.file?.url as string, type: m.type || 'image' }))
+      .filter(m => m.url) ?? []
 
   // JSON-Ld Structured Data
   const jsonLd = {

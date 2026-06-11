@@ -207,4 +207,4 @@ function ScrubBarTimeLabel({
 }
 ScrubBarTimeLabel.displayName = 'ScrubBarTimeLabel'
 
-export { ScrubBarContainer, ScrubBarTrack, ScrubBarProgress, ScrubBarThumb, ScrubBarTimeLabel }
+export { ScrubBarContainer, ScrubBarProgress, ScrubBarThumb, ScrubBarTimeLabel, ScrubBarTrack }

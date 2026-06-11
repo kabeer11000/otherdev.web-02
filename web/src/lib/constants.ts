@@ -31,7 +31,7 @@ export const Z_INDEX = {
 } as const
 
 export const SOCIAL_LINK_CLASS =
-  'h-[21px] px-1.5 bg-neutral-200 rounded-md flex items-center justify-center text-[#686868] text-[10px] font-sans font-normal leading-[14px] tracking-[-0.24px] hover:bg-neutral-300 hover:motion-scale-in-105 transition-colors motion-duration-150'
+  'h-[21px] px-1.5 bg-neutral-200 rounded-md flex items-center justify-center text-[#686868] text-[10px] font-sans font-normal leading-[14px] tracking-[-0.24px] hover:bg-neutral-300 hover:scale-105 transition-colors duration-150'
 
 /**
  * Suggested prompts for the chat widget

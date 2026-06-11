@@ -31,4 +31,4 @@ function RadioGroupItem({ className, ...props }: React.ComponentProps<typeof Rad
   )
 }
 
-export { RadioGroupRoot as RadioGroup, RadioGroupItem }
+export { RadioGroupItem, RadioGroupRoot as RadioGroup }

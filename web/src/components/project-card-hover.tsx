@@ -5,11 +5,11 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 const cardVariants =
-  'relative aspect-square overflow-hidden rounded-[5px] transition-all duration-300 group-hover:motion-scale-in-102 group-hover:motion-shadow-in-6 flex items-center justify-center'
+  'relative aspect-square overflow-hidden rounded-[5px] transition-all duration-300 group-hover:scale-102 group-hover:shadow-md flex items-center justify-center'
 const imageContainerVariants = 'relative w-full h-full bg-stone-200'
-const imageVariants = 'transition-all duration-300 group-hover:motion-scale-in-102'
+const imageVariants = 'transition-all duration-300 group-hover:scale-102'
 const homeImageClass =
-  'object-contain group-hover:motion-translate-y-in-[-2px] p-6 group-hover:motion-shadow-in-8'
+  'object-contain group-hover:-translate-y-[2px] p-6 group-hover:shadow-lg'
 
 interface ProjectCardHoverProps {
   title: string

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { QdrantClient } from '@qdrant/js-client-rest'
 import { rerankDocuments } from './embeddings'
 import type { MatchedDocument, SearchFilter } from './types'
+
 export type { MatchedDocument, SearchFilter }
 
 const qdrant = new QdrantClient({
