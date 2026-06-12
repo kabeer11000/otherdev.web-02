@@ -6,7 +6,6 @@ import { mermaid } from '@streamdown/mermaid'
 import type React from 'react'
 import { Streamdown } from 'streamdown'
 import 'katex/dist/katex.min.css'
-import styles from './markdown.module.css'
 
 // All stable constants are hoisted to module level so Streamdown's React.memo
 // shallow-equality check never sees changed references — only `children` and
