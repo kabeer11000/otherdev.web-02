@@ -116,24 +116,30 @@ export async function POST(request: Request): Promise<Response> {
     // For submit: save AFTER streaming via onFinish (industry standard)
     // Anthropic pattern: client owns history persistence — no server-side save needed
 
-    const { result, suggestions } = await handleStreamChat({
+    const handleResult = await handleStreamChat({
       messages: uiMessages,
       supportsArtifacts,
       request,
     })
 
-    if (!result.ok) {
-      return result.errorResponse
+    if (!handleResult.ok) {
+      return handleResult.errorResponse
     }
 
-    result.result.consumeStream()
-    return result.result.toUIMessageStreamResponse({
+    // Defensive null guard — streamText should never return null, but AI SDK edge cases exist
+    if (!handleResult.result) {
+      console.error('[chat] stream result is null — AI SDK returned no stream')
+      return createJsonResponse({ error: 'AI stream failed. Please try again.' }, 500)
+    }
+
+    handleResult.result.consumeStream()
+    return handleResult.result.toUIMessageStreamResponse({
       originalMessages: uiMessages,
       generateMessageId: () => crypto.randomUUID(),
       sendReasoning: true,
       messageMetadata({ part }: { part: TextStreamPart<ToolSet> }) {
         if (part.type === 'finish') {
-          return { suggestions } as Record<string, unknown>
+          return { suggestions: handleResult.suggestions } as Record<string, unknown>
         }
         return undefined
       },
