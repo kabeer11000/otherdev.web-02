@@ -319,16 +319,27 @@ export async function handleStreamChat({
       },
     })
 
-  // Run stream and suggestions in parallel — stream starts immediately,
-  // suggestions run concurrently; Promise.all waits for both before building response
-  const [result, resolvedSuggestions] = await Promise.all([
-    streamWithMiniMax().catch(() => streamWithGateway()),
-    suggestionsPromise,
-  ])
+  let resolvedSuggestions: string[] = []
+  let streamResult: Awaited<ReturnType<typeof streamText>> | null = null
+
+  try {
+    ;[streamResult, resolvedSuggestions] = await Promise.all([
+      streamWithMiniMax().catch(() => streamWithGateway()),
+      suggestionsPromise,
+    ])
+  } catch (err) {
+    console.error('[chat] stream failed:', err)
+    return {
+      ok: false,
+      errorResponse: createJsonResponse({ error: 'AI service temporarily unavailable. Please try again.' }, 503),
+      suggestions: [],
+      rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: rateLimitResult.remaining },
+    }
+  }
 
   return {
     ok: true,
-    result,
+    result: streamResult,
     suggestions: resolvedSuggestions,
     rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: rateLimitResult.remaining },
   }
