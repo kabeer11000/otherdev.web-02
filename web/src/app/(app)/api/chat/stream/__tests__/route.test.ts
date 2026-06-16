@@ -154,9 +154,10 @@ describe('POST /api/chat/stream', () => {
     }
 
     vi.mocked(handleStreamChat).mockResolvedValue({
-      result: mockResult as unknown as ReturnType<typeof handleStreamChat>['result'],
-      response: null,
+      ok: true,
+      result: mockResult,
       suggestions: [],
+      rateLimit: { limit: 60, remaining: 59 },
     })
 
     const response = await fetch('http://localhost/api/chat/stream', {

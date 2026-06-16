@@ -190,9 +190,10 @@ describe('POST /api/chat/native', () => {
       resetTime: Date.now() + 60000,
     })
     vi.mocked(handleStreamChat).mockResolvedValue({
-      result: null,
-      response: createJsonResponse({ message: 'Hello!' }, 200),
+      ok: false,
+      errorResponse: createJsonResponse({ message: 'Hello!' }, 200),
       suggestions: [],
+      rateLimit: { limit: 60, remaining: 59 },
     })
 
     const response = await fetch('http://localhost/api/chat/native', {

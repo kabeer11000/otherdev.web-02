@@ -33,17 +33,19 @@ export interface HandleStreamChatOptions {
   request: Request
 }
 
-export interface HandleStreamChatResult {
-  /** Raw streamText result — route calls toUIMessageStreamResponse */
-  result: Awaited<ReturnType<typeof streamText>> | null
-  suggestions: string[]
-  rateLimit: {
-    limit: number
-    remaining: number
-  }
-  /** Non-streaming error response (rate limit, validation), or null */
-  errorResponse: Response | null
-}
+export type HandleStreamChatResult =
+  | {
+      ok: true
+      result: Awaited<ReturnType<typeof streamText>>
+      suggestions: string[]
+      rateLimit: { limit: number; remaining: number }
+    }
+  | {
+      ok: false
+      errorResponse: Response
+      suggestions: string[]
+      rateLimit: { limit: number; remaining: number }
+    }
 
 const RAG_MAX_MESSAGE_LENGTH = Number.parseInt(process.env.RAG_MAX_MESSAGE_LENGTH || '500', 10)
 
@@ -154,15 +156,15 @@ export async function handleStreamChat({
   if (!rateLimitResult.allowed) {
     const retryAfter = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
     return {
-      result: null,
-      suggestions: [],
-      rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: 0 },
+      ok: false,
       errorResponse: createJsonResponse({ error: 'Too many requests. Please try again later.' }, 429, {
         'Retry-After': retryAfter.toString(),
         'X-RateLimit-Limit': REQUESTS_PER_WINDOW.toString(),
         'X-RateLimit-Remaining': '0',
         'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
       }),
+      suggestions: [],
+      rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: 0 },
     }
   }
 
@@ -212,10 +214,10 @@ export async function handleStreamChat({
     if (error instanceof (await import('ai')).TypeValidationError) {
       console.error('[VALIDATION] Invalid chat messages:', error.message)
       return {
-        result: null,
+        ok: false,
+        errorResponse: createJsonResponse({ error: 'Invalid message payload' }, 400),
         suggestions: [],
         rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: rateLimitResult.remaining },
-        errorResponse: createJsonResponse({ error: 'Invalid message payload' }, 400),
       }
     }
     throw error
@@ -325,10 +327,10 @@ export async function handleStreamChat({
   ])
 
   return {
+    ok: true,
     result,
     suggestions: resolvedSuggestions,
     rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: rateLimitResult.remaining },
-    errorResponse: null,
   }
 }
 

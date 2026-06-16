@@ -116,18 +116,18 @@ export async function POST(request: Request): Promise<Response> {
     // For submit: save AFTER streaming via onFinish (industry standard)
     // Anthropic pattern: client owns history persistence — no server-side save needed
 
-    const { result, suggestions, errorResponse } = await handleStreamChat({
+    const { result, suggestions } = await handleStreamChat({
       messages: uiMessages,
       supportsArtifacts,
       request,
     })
 
-    if (errorResponse) {
-      return errorResponse
+    if (!result.ok) {
+      return result.errorResponse
     }
 
-    result!.consumeStream()
-    return result!.toUIMessageStreamResponse({
+    result.result.consumeStream()
+    return result.result.toUIMessageStreamResponse({
       originalMessages: uiMessages,
       generateMessageId: () => crypto.randomUUID(),
       sendReasoning: true,
