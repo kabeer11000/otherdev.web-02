@@ -34,11 +34,15 @@ export interface HandleStreamChatOptions {
 }
 
 export interface HandleStreamChatResult {
-  response: Response
+  /** Raw streamText result — route calls toUIMessageStreamResponse */
+  result: Awaited<ReturnType<typeof streamText>> | null
+  suggestions: string[]
   rateLimit: {
     limit: number
     remaining: number
   }
+  /** Non-streaming error response (rate limit, validation), or null */
+  errorResponse: Response | null
 }
 
 const RAG_MAX_MESSAGE_LENGTH = Number.parseInt(process.env.RAG_MAX_MESSAGE_LENGTH || '500', 10)
@@ -150,13 +154,15 @@ export async function handleStreamChat({
   if (!rateLimitResult.allowed) {
     const retryAfter = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
     return {
-      response: createJsonResponse({ error: 'Too many requests. Please try again later.' }, 429, {
+      result: null,
+      suggestions: [],
+      rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: 0 },
+      errorResponse: createJsonResponse({ error: 'Too many requests. Please try again later.' }, 429, {
         'Retry-After': retryAfter.toString(),
         'X-RateLimit-Limit': REQUESTS_PER_WINDOW.toString(),
         'X-RateLimit-Remaining': '0',
         'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
       }),
-      rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: 0 },
     }
   }
 
@@ -206,8 +212,10 @@ export async function handleStreamChat({
     if (error instanceof (await import('ai')).TypeValidationError) {
       console.error('[VALIDATION] Invalid chat messages:', error.message)
       return {
-        response: createJsonResponse({ error: 'Invalid message payload' }, 400),
+        result: null,
+        suggestions: [],
         rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: rateLimitResult.remaining },
+        errorResponse: createJsonResponse({ error: 'Invalid message payload' }, 400),
       }
     }
     throw error
@@ -309,20 +317,18 @@ export async function handleStreamChat({
       },
     })
 
-  const resolvedSuggestions = await suggestionsPromise
-
-  const result = await streamWithMiniMax().catch(() => streamWithGateway())
+  // Run stream and suggestions in parallel — stream starts immediately,
+  // suggestions run concurrently; Promise.all waits for both before building response
+  const [result, resolvedSuggestions] = await Promise.all([
+    streamWithMiniMax().catch(() => streamWithGateway()),
+    suggestionsPromise,
+  ])
 
   return {
-    response: result.toUIMessageStreamResponse({
-      messageMetadata({ part }: { part: TextStreamPart<ToolSet> }) {
-        if (part.type === 'finish') {
-          return { suggestions: resolvedSuggestions } as Record<string, unknown>
-        }
-        return undefined
-      },
-    }),
+    result,
+    suggestions: resolvedSuggestions,
     rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: rateLimitResult.remaining },
+    errorResponse: null,
   }
 }
 

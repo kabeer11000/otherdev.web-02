@@ -59,7 +59,7 @@ export async function POST(request: Request): Promise<Response> {
           400
         )
       }
-      candidateMessages = replaceMessageAtId(body.messages, body.messageId, body.message)
+      candidateMessages = replaceMessageAtId(body.messages, body.messageId, body.message!)
     } else {
       // Anthropic pattern: client sends full history — use body.messages directly
       candidateMessages = Array.isArray(body.messages) ? body.messages : []
@@ -116,30 +116,28 @@ export async function POST(request: Request): Promise<Response> {
     // Save AFTER streaming via onFinish — industry standard pattern
     // Anthropic pattern: client owns history persistence — no server-side save needed
 
-    const { result, response, suggestions } = await handleStreamChat({
+    const { result, suggestions, errorResponse } = await handleStreamChat({
       messages: uiMessages,
       supportsArtifacts,
       request,
     })
 
-    if (!result) {
-      return response as Response
+    if (errorResponse) {
+      return errorResponse
     }
 
-    if (!response) {
-      result.consumeStream()
-      return result.toUIMessageStreamResponse({
-        originalMessages: uiMessages,
-        generateMessageId: () => crypto.randomUUID(),
-        sendReasoning: true,
-        messageMetadata({ part }: { part: TextStreamPart<ToolSet> }) {
-          if (part.type === 'finish') {
-            return { suggestions } as Record<string, unknown>
-          }
-          return undefined
-        },
-      })
-    }
+    result!.consumeStream()
+    return result!.toUIMessageStreamResponse({
+      originalMessages: uiMessages,
+      generateMessageId: () => crypto.randomUUID(),
+      sendReasoning: true,
+      messageMetadata({ part }: { part: TextStreamPart<ToolSet> }) {
+        if (part.type === 'finish') {
+          return { suggestions } as Record<string, unknown>
+        }
+        return undefined
+      },
+    })
   } catch (error) {
     console.error('Chat API error:', error)
     return createJsonResponse({ error: 'Internal server error. Please try again.' }, 500)
