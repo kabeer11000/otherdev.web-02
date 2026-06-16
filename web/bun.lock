@@ -49,6 +49,7 @@
         "dompurify": "^3.4.9",
         "embla-carousel-react": "^8.6.0",
         "googleapis": "^173.0.0",
+        "graphql": "^17.0.0",
         "input-otp": "^1.4.2",
         "katex": "^0.17.0",
         "lucide-react": "^1.17.0",
@@ -1553,7 +1554,7 @@
 
     "graceful-fs": ["graceful-fs@4.2.11", "", {}, "sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ=="],
 
-    "graphql": ["graphql@16.14.0", "", {}, "sha512-BBvQ/406p+4CZbTpCbVPSxfzrZrbnuWSP1ELYgyS6B+hNeKzgrdB4JczCa5VZUBQrDa9hUngm0KnexY6pJRN5Q=="],
+    "graphql": ["graphql@17.0.0", "", {}, "sha512-RSEgqrRNqHVGa46w2pmL9uTFkYPJiJbD5kksOvOaPLrKvBIidX/ttQVlWsR3+Ee8l+mNroC6darpcPIZeElbNg=="],
 
     "graphql-http": ["graphql-http@1.22.4", "", { "peerDependencies": { "graphql": ">=0.11 <=16" } }, "sha512-OC3ucK988teMf+Ak/O+ZJ0N2ukcgrEurypp8ePyJFWq83VzwRAmHxxr+XxrMpxO/FIwI4a7m/Fzv3tWGJv0wPA=="],
 

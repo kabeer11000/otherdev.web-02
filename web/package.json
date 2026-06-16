@@ -64,6 +64,7 @@
     "dompurify": "^3.4.9",
     "embla-carousel-react": "^8.6.0",
     "googleapis": "^173.0.0",
+    "graphql": "^17.0.0",
     "input-otp": "^1.4.2",
     "katex": "^0.17.0",
     "lucide-react": "^1.17.0",
