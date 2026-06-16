@@ -5,9 +5,11 @@ import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { useStore } from '@nanostores/react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { $contactDialogOpen, $mobileMenuOpen } from '@/stores/navigation'
 
 const ContactDialog = dynamic(
   () => import('@/components/contact-dialog').then(mod => mod.ContactDialog),
@@ -27,25 +29,19 @@ export function Navigation({
   onClear,
   hasActiveArtifact = false,
 }: NavigationProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [contactDialogOpen, setContactDialogOpen] = useState(false)
+  const isOpen = useStore($mobileMenuOpen)
+  const contactDialogOpen = useStore($contactDialogOpen)
   const pathname = usePathname()
   const router = useRouter()
   const isAIVariant = variant === 'ai'
 
-  useEffect(() => {
-    const saved = sessionStorage.getItem('mobileMenuOpen')
-    if (saved === 'true') {
-      setIsOpen(true)
-    }
-  }, [])
-
+  // Sync mobile menu open state to sessionStorage
   useEffect(() => {
     sessionStorage.setItem('mobileMenuOpen', isOpen.toString())
   }, [isOpen])
 
   const _handleContactClick = () => {
-    setContactDialogOpen(true)
+    $contactDialogOpen.set(true)
   }
 
   return (
@@ -107,7 +103,7 @@ export function Navigation({
         <Button
           variant="nav"
           size="nav-icon"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => $mobileMenuOpen.set(!isOpen)}
           data-slot="nav-item"
           className="text-foreground mr-2"
           aria-label="Toggle menu"
@@ -138,7 +134,7 @@ export function Navigation({
                 size="nav-mobile"
                 className={pathname?.startsWith('/work') ? 'text-foreground' : ''}
               >
-                <Link href="/work" data-slot="nav-item" onClick={() => setIsOpen(false)}>
+                <Link href="/work" data-slot="nav-item" onClick={() => $mobileMenuOpen.set(false)}>
                   work
                 </Link>
               </Button>
@@ -154,7 +150,7 @@ export function Navigation({
                 size="nav-mobile"
                 className={pathname?.startsWith('/about') ? 'text-foreground' : ''}
               >
-                <Link href="/about" data-slot="nav-item" onClick={() => setIsOpen(false)}>
+                <Link href="/about" data-slot="nav-item" onClick={() => $mobileMenuOpen.set(false)}>
                   about
                 </Link>
               </Button>
@@ -169,7 +165,7 @@ export function Navigation({
                 size="nav-mobile"
                 className={pathname?.startsWith('/loom') ? 'text-foreground' : ''}
               >
-                <Link href="/loom" data-slot="nav-item" onClick={() => setIsOpen(false)}>
+                <Link href="/loom" data-slot="nav-item" onClick={() => $mobileMenuOpen.set(false)}>
                   ai
                 </Link>
               </Button>
@@ -187,7 +183,7 @@ export function Navigation({
                 <Link
                   href="/work/ads-portfolio"
                   data-slot="nav-item"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => $mobileMenuOpen.set(false)}
                 >
                   ads
                 </Link>
@@ -203,7 +199,7 @@ export function Navigation({
                   target="_blank"
                   rel="noopener noreferrer"
                   data-slot="nav-item"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => $mobileMenuOpen.set(false)}
                 >
                   whatsapp
                 </Link>
@@ -337,7 +333,7 @@ export function Navigation({
         />
       )}
 
-      <ContactDialog open={contactDialogOpen} onOpenChange={setContactDialogOpen} />
+      <ContactDialog open={contactDialogOpen} onOpenChange={(open) => $contactDialogOpen.set(open)} />
     </nav>
   )
 }

@@ -3,7 +3,7 @@ import './globals.css'
 
 import { GoogleAnalytics } from '@next/third-parties/google'
 import dynamic from 'next/dynamic'
-import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google'
+import { JetBrains_Mono, Plus_Jakarta_Sans, Source_Serif_4 } from 'next/font/google'
 import { Suspense } from 'react'
 import { QueryProvider } from '@/components/providers'
 import { SITE_URL } from '@/lib/constants'
@@ -23,15 +23,22 @@ const AgentWidget = dynamic(
   }
 )
 
-const fraunces = Fraunces({
+const sourceSerif = Source_Serif_4({
   subsets: ['latin'],
-  variable: '--fraunces',
+  variable: '--font-serif',
   display: 'swap',
+  style: ['normal', 'italic'],
 })
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--plus-jakarta',
+  variable: '--font-sans',
+  display: 'swap',
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
   display: 'swap',
 })
 
@@ -75,7 +82,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${plusJakartaSans.variable}`}>
+    <html lang="en" className={`${sourceSerif.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable}`}>
       <head>
         {/* R2 preconnect — saves DNS+TCP+TLS per image */}
         <link

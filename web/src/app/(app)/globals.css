@@ -12,10 +12,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--plus-jakarta), sans-serif;
-  --font-serif: var(--fraunces), serif;
-  --font-mono: var(--font-geist-mono);
-    --font-ai:
+  --font-sans: var(--font-sans), sans-serif;
+  --font-serif: var(--font-serif), serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+  --font-ai:
     ui-sans-serif, -apple-system, "system-ui", "Segoe UI", Helvetica, "Apple Color Emoji", Arial,
     "sans-serif", "Segoe UI Emoji", "Segoe UI Symbol";
   --color-sidebar-ring: var(--sidebar-ring);
@@ -162,8 +162,9 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: var(--plus-jakarta), sans-serif;
+    font-family: var(--font-sans), system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: var(--text-lg);
+    font-feature-settings: "dlig" 0;
   }
 
   h1,
@@ -172,8 +173,14 @@
   h4,
   h5,
   h6 {
-    font-family: var(--fraunces), serif;
+    font-family: var(--font-serif), Georgia, "Times New Roman", serif;
     font-weight: 300;
+  }
+
+  code,
+  pre,
+  kbd {
+    font-family: var(--font-mono), ui-monospace, monospace;
   }
 }
 
@@ -391,7 +398,7 @@
 
   /* Blog / Article Prose Styles */
   .prose-article {
-    font-family: var(--plus-jakarta), sans-serif;
+    font-family: var(--font-sans), sans-serif;
     font-size: 13px;
     line-height: 1.7;
     color: var(--foreground);
@@ -402,7 +409,7 @@
   .prose-article h2,
   .prose-article h3,
   .prose-article h4 {
-    font-family: var(--fraunces), serif;
+    font-family: var(--font-serif), serif;
     font-weight: 300;
     color: var(--foreground);
     letter-spacing: -0.02em;
@@ -439,7 +446,7 @@
 
   /* Inline code */
   .prose-article code:not(pre code) {
-    font-family: var(--font-mono, ui-monospace, monospace);
+    font-family: var(--font-mono), ui-monospace, monospace;
     font-size: 0.85em;
     background: var(--muted);
     color: var(--foreground);
@@ -488,14 +495,14 @@
     top: 0.4rem;
     right: 0.6rem;
     font-size: 9px;
-    font-family: var(--plus-jakarta), sans-serif;
+    font-family: var(--font-sans), sans-serif;
     color: var(--muted-foreground);
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
 
   .prose-article pre code {
-    font-family: var(--font-mono, ui-monospace, monospace);
+    font-family: var(--font-mono), ui-monospace, monospace;
     font-size: 12px;
     line-height: 1.65;
     color: var(--foreground);
@@ -582,7 +589,7 @@
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-  .prose-article .lexical-table-container .lexical-table {
+  .prose-article .lexical-table {
     width: 100%;
     border-collapse: collapse;
     margin: 0;

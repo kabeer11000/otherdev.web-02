@@ -1,13 +1,14 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
+import { useStore } from '@nanostores/react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { $contactPending, $contactStep } from '@/stores/contact'
 
 const contactFormSchema = z.object({
   name: z.string().min(2, {
@@ -35,7 +36,8 @@ interface ContactDialogProps {
 }
 
 export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
-  const [step, setStep] = useState<'intro' | 'form'>('intro')
+  const step = useStore($contactStep)
+  const isPending = useStore($contactPending)
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactFormSchema),
@@ -48,10 +50,8 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
     },
   })
 
-  const [isPending, setIsPending] = useState(false)
-
   const onSubmit = async (data: ContactFormValues) => {
-    setIsPending(true)
+    $contactPending.set(true)
     try {
       const res = await fetch('/api/contact', {
         method: 'POST',
@@ -70,18 +70,18 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
         return
       }
       form.reset()
-      setStep('intro')
+      $contactStep.set('intro')
       onOpenChange(false)
     } catch {
       form.setError('root', { message: 'Something went wrong. Please try again.' })
     } finally {
-      setIsPending(false)
+      $contactPending.set(false)
     }
   }
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
-      setStep('intro')
+      $contactStep.set('intro')
       form.reset()
     }
     onOpenChange(newOpen)
@@ -109,7 +109,7 @@ We will reach out to you with the next steps as soon as possible.`}
             </p>
             <button
               type="button"
-              onClick={() => setStep('form')}
+              onClick={() => $contactStep.set('form')}
               className="w-full mt-[12px] sm:mt-[15px] h-8 sm:h-9 flex items-center justify-center rounded-md backdrop-blur-sm bg-card text-[11px] font-sans font-normal text-muted-foreground transition-colors hover:text-foreground"
             >
               <p>Next</p>

@@ -1,10 +1,11 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import type { ArtifactToolCall } from '@/components/artifact-renderer'
+import { useStore } from '@nanostores/react'
 import { ArtifactRenderer } from '@/components/artifact-renderer'
 import { ChatCore } from '@/components/chat-core'
 import { Navigation } from '@/components/navigation'
+import { $activeArtifact } from '@/stores/artifact'
 
 function LoomPageInner({
   onClear,
@@ -17,7 +18,7 @@ function LoomPageInner({
 }
 
 export function LoomPageClient({ noNavigation }: { noNavigation?: boolean }) {
-  const [activeArtifact, setActiveArtifact] = useState<ArtifactToolCall | null>(null)
+  const activeArtifact = useStore($activeArtifact)
   const [chatKey, setChatKey] = useState(0)
 
   const handleClear = useCallback(() => {
@@ -31,11 +32,14 @@ export function LoomPageClient({ noNavigation }: { noNavigation?: boolean }) {
       )}
       <main className="h-screen">
         <div className="flex h-full overflow-hidden">
-          <div className={`h-full ${activeArtifact ? 'hidden md:block md:w-1/2' : 'w-full'}`}>
+          <div
+            className={`h-full ${
+              activeArtifact ? 'hidden md:block md:w-1/2' : 'w-full'
+            }`}
+          >
             <ChatCore
               key={chatKey}
-              activeArtifact={activeArtifact}
-              onArtifactOpen={setActiveArtifact}
+              onArtifactOpen={(artifact) => $activeArtifact.set(artifact)}
               onClear={handleClear}
             />
           </div>
@@ -44,7 +48,7 @@ export function LoomPageClient({ noNavigation }: { noNavigation?: boolean }) {
               <ArtifactRenderer
                 toolCall={activeArtifact}
                 mode="panel"
-                onClose={() => setActiveArtifact(null)}
+                onClose={() => $activeArtifact.set(null)}
               />
             </div>
           )}

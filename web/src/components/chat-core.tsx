@@ -23,6 +23,24 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useStore } from '@nanostores/react'
+import {
+  $attachments,
+  $followUpSuggestions,
+  $inputError,
+  $inputValue,
+  $isDragging,
+  $isRecording,
+  $isRecordingProcessing,
+  $suggestion,
+} from '@/stores/chat-ui'
+import {
+  clearPersistedMessages,
+  ensureChatId,
+  loadChatMessagesFromStorage,
+  loadPersistedMessages,
+  persistMessages,
+} from '@/stores/chat-persistence'
 import type { z } from 'zod'
 import type { ArtifactToolCall } from '@/components/artifact-renderer'
 import { Button } from '@/components/ui/button'
@@ -42,7 +60,6 @@ import {
   PromptInputTextarea,
 } from '@/components/ui/prompt-input'
 import { VoiceWaveform } from '@/components/voice-waveform'
-import { useLocalStorageMessages } from '@/hooks/use-local-storage-messages'
 import { processAttachment } from '@/lib/ai-sdk-attachments'
 import { SUGGESTED_PROMPTS } from '@/lib/constants'
 import { suggestionDataSchema } from '@/lib/schemas'
@@ -681,33 +698,30 @@ export function ChatCore({
   const [_internalActiveArtifact, setInternalActiveArtifact] = useState<ArtifactToolCall | null>(
     null
   )
-  const [suggestion, setSuggestion] = useState('')
-  const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([])
-  const [inputValue, setInputValue] = useState('')
-  const [inputError, setInputError] = useState('')
-  const [attachments, setAttachments] = useState<File[]>([])
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [messageBranches, setMessageBranches] = useState<Map<string, MessageBranchState>>(new Map())
-  const [isDragging, setIsDragging] = useState(false)
+
+  // UI state from nanostores
+  const suggestion = useStore($suggestion)
+  const followUpSuggestions = useStore($followUpSuggestions)
+  const inputValue = useStore($inputValue)
+  const inputError = useStore($inputError)
+  const attachments = useStore($attachments)
+  const isDragging = useStore($isDragging)
+  const isRecording = useStore($isRecording)
+  const isRecordingProcessing = useStore($isRecordingProcessing)
 
   const [chatId, setChatId] = useState<string>('')
   useEffect(() => {
-    const stored = localStorage.getItem('chatId')
-    const id = stored || (crypto.randomUUID?.() ?? Math.random().toString(36).slice(2))
-    localStorage.setItem('chatId', id)
+    const id = ensureChatId()
     setChatId(id)
   }, [])
 
-  const { messages: storedMessages, setMessages: setStoredMessages } =
-    useLocalStorageMessages<UIMessage>({
-      key: 'otherdev-chat-messages',
-      initialValue: [],
-      expirationMinutes: 60 * 24,
-      storage: 'sessionStorage',
-    })
-  const [isRecording, setIsRecording] = useState(false)
-  const [isRecordingProcessing, setIsRecordingProcessing] = useState(false)
+  // Load persisted messages once on mount; useChat reads this as initialMessages
+  useEffect(() => {
+    loadChatMessagesFromStorage()
+  }, [])
 
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const recorderRef = useRef<VoiceRecorder | null>(null)
@@ -721,7 +735,7 @@ export function ChatCore({
 
   const { messages, sendMessage, status, setMessages, addToolOutput } = useChat<ChatUIMessage>({
     id: chatId,
-    initialMessages: storedMessages,
+    initialMessages: typeof window !== 'undefined' ? loadPersistedMessages<UIMessage>() : [],
     experimental_throttle: 50,
     dataPartSchemas: {
       suggestion: suggestionDataSchema,
@@ -759,26 +773,26 @@ export function ChatCore({
 
   useEffect(() => {
     if (messages.length > 0) {
-      setStoredMessages(messages)
+      persistMessages(messages)
     }
-  }, [messages, setStoredMessages])
+  }, [messages])
 
   const _handleClear = useCallback(() => {
     setMessages([])
-    setStoredMessages([])
-    setSuggestion('')
-    setFollowUpSuggestions([])
+    clearPersistedMessages()
+    $suggestion.set('')
+    $followUpSuggestions.set([])
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
     onClear?.()
-  }, [setMessages, setStoredMessages, onClear])
+  }, [setMessages, onClear])
 
   useEffect(() => {
     const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant')
     const suggestions = (lastAssistant?.metadata as MessageMetadata | undefined)?.suggestions
     if (suggestions?.length) {
-      setFollowUpSuggestions(suggestions)
+      $followUpSuggestions.set(suggestions)
     }
   }, [messages])
 
@@ -796,14 +810,14 @@ export function ChatCore({
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (files) {
-      setAttachments(prev => [...prev, ...Array.from(files)])
+      $attachments.set([...$attachments.get(), ...Array.from(files)])
     }
   }
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsDragging(true)
+    $isDragging.set(true)
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -818,14 +832,14 @@ export function ChatCore({
     const x = e.clientX
     const y = e.clientY
     if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-      setIsDragging(false)
+      $isDragging.set(false)
     }
   }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsDragging(false)
+    $isDragging.set(false)
 
     const files = e.dataTransfer.files
     if (files.length > 0) {
@@ -841,17 +855,17 @@ export function ChatCore({
         }
       }
       if (validFiles.length > 0) {
-        setAttachments(prev => [...prev, ...validFiles])
+        $attachments.set([...$attachments.get(), ...validFiles])
       }
     }
   }
 
   const removeAttachment = (index: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index))
+    $attachments.set($attachments.get().filter((_, i) => i !== index))
   }
 
   const handleTranscriptReceived = (text: string) => {
-    setInputValue(text)
+    $inputValue.set(text)
     inputRef.current?.focus()
   }
 
@@ -890,7 +904,7 @@ export function ChatCore({
     updatedMessages[messageIndex] = editedMsg
 
     setEditingMessageId(null)
-    setSuggestion('')
+    $suggestion.set('')
 
     await handleSubmitWithMessages(updatedMessages, editedMsg)
   }
@@ -902,8 +916,8 @@ export function ChatCore({
     const updatedMessages = messages.slice(0, messageIndex)
     setMessages(updatedMessages as ChatUIMessage[])
     setEditingMessageId(null)
-    setInputValue('')
-    setSuggestion('')
+    $inputValue.set('')
+    $suggestion.set('')
 
     await handleSubmitWithMessages(updatedMessages as ChatUIMessage[])
   }
@@ -967,9 +981,9 @@ export function ChatCore({
       )
     }
 
-    setSuggestion('')
-    setInputValue('')
-    setAttachments([])
+    $suggestion.set('')
+    $inputValue.set('')
+    $attachments.set([])
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -977,17 +991,17 @@ export function ChatCore({
 
   const handleStartRecording = async () => {
     try {
-      setIsRecordingProcessing(true)
+      $isRecordingProcessing.set(true)
       const stream = await VoiceRecorder.requestMicrophone()
       const recorder = new VoiceRecorder(stream)
       recorder.start()
       recorderRef.current = recorder
-      setIsRecording(true)
+      $isRecording.set(true)
       setRecordingStream(stream)
-      setIsRecordingProcessing(false)
+      $isRecordingProcessing.set(false)
     } catch (error) {
-      setInputError(error instanceof Error ? error.message : 'Failed to access microphone')
-      setIsRecordingProcessing(false)
+      $inputError.set(error instanceof Error ? error.message : 'Failed to access microphone')
+      $isRecordingProcessing.set(false)
     }
   }
 
@@ -996,11 +1010,11 @@ export function ChatCore({
     if (!recorder) return
 
     try {
-      setIsRecordingProcessing(true)
+      $isRecordingProcessing.set(true)
       const audioBlob = await recorder.stop()
       recorder.release()
       recorderRef.current = null
-      setIsRecording(false)
+      $isRecording.set(false)
       setRecordingStream(null)
 
       const formData = new FormData()
@@ -1025,14 +1039,14 @@ export function ChatCore({
         }
       })
 
-      setIsRecordingProcessing(false)
+      $isRecordingProcessing.set(false)
     } catch (error) {
-      setInputError(error instanceof Error ? error.message : 'Transcription error')
+      $inputError.set(error instanceof Error ? error.message : 'Transcription error')
       recorderRef.current?.release()
       recorderRef.current = null
-      setIsRecording(false)
+      $isRecording.set(false)
       setRecordingStream(null)
-      setIsRecordingProcessing(false)
+      $isRecordingProcessing.set(false)
     }
   }
 
@@ -1058,17 +1072,17 @@ export function ChatCore({
       })
     }
 
-    setSuggestion('')
-    setInputValue('')
-    setAttachments([])
+    $suggestion.set('')
+    $inputValue.set('')
+    $attachments.set([])
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
   }
 
   const applyFollowUp = (text: string) => {
-    setInputValue(text)
-    setFollowUpSuggestions([])
+    $inputValue.set(text)
+    $followUpSuggestions.set([])
     inputRef.current?.focus()
   }
 
@@ -1081,8 +1095,8 @@ export function ChatCore({
         (e.key === 'Tab' || e.key === 'ArrowRight') && suggestion && !inputElement.value
       if (shouldApplySuggestion) {
         e.preventDefault()
-        setInputValue(suggestion)
-        setSuggestion('')
+        $inputValue.set(suggestion)
+        $suggestion.set('')
       }
 
       if (e.key === 'ArrowUp' && !inputElement.value && messages.length > 0) {
@@ -1095,7 +1109,7 @@ export function ChatCore({
               .join('') || ''
           if (textContent) {
             e.preventDefault()
-            setInputValue(textContent)
+            $inputValue.set(textContent)
           }
         }
       }
@@ -1275,7 +1289,7 @@ export function ChatCore({
               <span>{inputError}</span>
               <button
                 type="button"
-                onClick={() => setInputError('')}
+                onClick={() => $inputError.set('')}
                 className="ml-auto flex h-8 w-8 items-center justify-center rounded-full hover:bg-foreground/10"
                 aria-label="Remove error message"
               >
@@ -1320,7 +1334,7 @@ export function ChatCore({
               placeholder={placeholder}
               className="font-sans text-sm sm:text-base"
               value={inputValue}
-              onChange={e => setInputValue(e.target.value)}
+              onChange={e => $inputValue.set(e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()

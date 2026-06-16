@@ -3,11 +3,13 @@
 import { ConversationProvider, useConversationStatus } from '@elevenlabs/react'
 import { X } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
+import { useStore } from '@nanostores/react'
 import { ConversationBar } from '@/components/ui/conversation-bar'
-import type { AgentState } from '@/components/ui/orb-button'
+import type { AgentState } from '@/components/ui/orb'
 import { Z_INDEX } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+import { $agentOpen, closeActiveWidget, openAgent } from '@/stores/widgets'
 
 const OrbButton = dynamic(() => import('@/components/ui/orb-button').then(mod => mod.OrbButton), {
   ssr: false,
@@ -21,15 +23,15 @@ interface AgentWidgetProps {
 }
 
 export function AgentWidget({ agentId, avatarUrl, className }: AgentWidgetProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const isOpen = useStore($agentOpen)
 
   const handleOpen = useCallback(() => {
     if (!agentId) return
-    setIsOpen(true)
+    openAgent()
   }, [agentId])
 
   const handleClose = useCallback(() => {
-    setIsOpen(false)
+    closeActiveWidget()
   }, [])
 
   if (!agentId) {
