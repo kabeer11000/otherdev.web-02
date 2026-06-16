@@ -87,6 +87,7 @@
     "use-stick-to-bottom": "^1.1.6",
     "vaul": "^1.1.2",
     "vercel": "^54.12.2",
+    "vercel-minimax-ai-provider": "^0.0.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {

@@ -1,3 +1,4 @@
+import { minimax } from 'vercel-minimax-ai-provider'
 import {
   convertToModelMessages,
   gateway,
@@ -19,6 +20,7 @@ import {
   TEXT_MODEL,
   TEXT_MODEL_FALLBACK,
   TEXT_MODEL_FALLBACK_2,
+  TEXT_MODEL_FALLBACK_3,
   VISION_MODEL,
   VISION_MODEL_FALLBACK,
 } from './models'
@@ -222,65 +224,94 @@ export async function handleStreamChat({
 
   const fallbacks = hasImageContent
     ? [VISION_MODEL_FALLBACK]
-    : [TEXT_MODEL_FALLBACK, TEXT_MODEL_FALLBACK_2]
+    : [TEXT_MODEL_FALLBACK, TEXT_MODEL_FALLBACK_2, TEXT_MODEL_FALLBACK_3]
 
   // Provider priority: primary provider first, then failover
-  // Text: Groq primary → Cerebras → Cohere
+  // Text: MiniMax primary (direct) → Groq → Cerebras → Cohere (via gateway)
   // Vision: Mistral primary → Groq fallback
-  const providerPriority = hasImageContent ? ['mistral', 'groq'] : ['groq', 'cerebras', 'cohere']
+  const gatewayOrder = hasImageContent ? ['mistral', 'groq'] : ['groq', 'cerebras', 'cohere']
 
-  // Generate suggestions before streaming — always text model with same fallback chain
+  // Generate suggestions before streaming — MiniMax direct, then gateway fallbacks
   const suggestionsPromise = generateText({
-    model: gateway(TEXT_MODEL),
+    model: minimax('MiniMax-M2.7'),
     output: Output.object({
       schema: SUGGESTIONS_SCHEMA,
     }),
     system:
       'Generate 2-3 short follow-up questions (max 10 words each) a user might ask next about web development, design, or Other Dev services. Be specific to what was asked. Return only the questions.',
     prompt: `User asked: "${normalizedQuery}".`,
-    providerOptions: {
-      gateway: {
-        order: ['groq', 'cerebras', 'cohere'],
-        models: [TEXT_MODEL_FALLBACK, TEXT_MODEL_FALLBACK_2],
-        byok: {
-          groq: [{ apiKey: process.env.GROQ_API_KEY! }],
-          cerebras: [{ apiKey: process.env.CEREBRAS_API_KEY! }],
-          cohere: [{ apiKey: process.env.COHERE_API_KEY! }],
-          mistral: [{ apiKey: process.env.MISTRAL_API_KEY! }],
-        },
-      },
-    },
+    temperature: 0.5,
   })
+    .catch(() =>
+      generateText({
+        model: gateway(TEXT_MODEL_FALLBACK),
+        output: Output.object({
+          schema: SUGGESTIONS_SCHEMA,
+        }),
+        system:
+          'Generate 2-3 short follow-up questions (max 10 words each) a user might ask next about web development, design, or Other Dev services. Be specific to what was asked. Return only the questions.',
+        prompt: `User asked: "${normalizedQuery}".`,
+        temperature: 0.5,
+        providerOptions: {
+          gateway: {
+            order: gatewayOrder,
+            models: fallbacks,
+            byok: {
+              groq: [{ apiKey: process.env.GROQ_API_KEY! }],
+              cerebras: [{ apiKey: process.env.CEREBRAS_API_KEY! }],
+              cohere: [{ apiKey: process.env.COHERE_API_KEY! }],
+              mistral: [{ apiKey: process.env.MISTRAL_API_KEY! }],
+            },
+          },
+        },
+      })
+    )
     .then(r => r.output?.suggestions ?? [])
     .catch(err => {
       console.error('[chat] suggestion generation failed:', err)
       return [] as string[]
     })
 
-  const resolvedSuggestions = await suggestionsPromise
+  // Try MiniMax direct first, fall back to gateway chain
+  const streamWithMiniMax = async () =>
+    streamText({
+      model: minimax('MiniMax-M2.7'),
+      system: getSystemPrompt(),
+      messages: modelMessages,
+      temperature: 0.5,
+      maxOutputTokens: supportsArtifacts ? 4096 : 1024,
+      stopWhen: stepCountIs(5),
+      toolChoice: 'auto',
+      tools,
+    })
 
-  const result = streamText({
-    model: gateway(selectedModelId),
-    system: getSystemPrompt(),
-    messages: modelMessages,
-    temperature: 0.5,
-    maxOutputTokens: supportsArtifacts ? 4096 : 1024,
-    stopWhen: stepCountIs(5),
-    toolChoice: 'auto',
-    tools,
-    providerOptions: {
-      gateway: {
-        order: providerPriority,
-        models: fallbacks,
-        byok: {
-          groq: [{ apiKey: process.env.GROQ_API_KEY! }],
-          cerebras: [{ apiKey: process.env.CEREBRAS_API_KEY! }],
-          cohere: [{ apiKey: process.env.COHERE_API_KEY! }],
-          mistral: [{ apiKey: process.env.MISTRAL_API_KEY! }],
+  const streamWithGateway = () =>
+    streamText({
+      model: gateway(selectedModelId),
+      system: getSystemPrompt(),
+      messages: modelMessages,
+      temperature: 0.5,
+      maxOutputTokens: supportsArtifacts ? 4096 : 1024,
+      stopWhen: stepCountIs(5),
+      toolChoice: 'auto',
+      tools,
+      providerOptions: {
+        gateway: {
+          order: gatewayOrder,
+          models: fallbacks,
+          byok: {
+            groq: [{ apiKey: process.env.GROQ_API_KEY! }],
+            cerebras: [{ apiKey: process.env.CEREBRAS_API_KEY! }],
+            cohere: [{ apiKey: process.env.COHERE_API_KEY! }],
+            mistral: [{ apiKey: process.env.MISTRAL_API_KEY! }],
+          },
         },
       },
-    },
-  })
+    })
+
+  const resolvedSuggestions = await suggestionsPromise
+
+  const result = await streamWithMiniMax().catch(() => streamWithGateway())
 
   return {
     response: result.toUIMessageStreamResponse({
@@ -300,7 +331,7 @@ function getSystemPrompt(): string {
 
 <who>
 Other Dev is a web development and design studio in Karachi, Pakistan, specializing in fashion e-commerce, real estate, legal tech, SaaS, and enterprise systems.
-Website: https://otherdev.com | Location: Karachi, Pakistan
+Website: https://otherdev.com | Location: Karachi, Pakistan | Current year: 2026
 </who>
 
 <instructions>
