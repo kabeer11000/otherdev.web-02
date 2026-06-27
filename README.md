@@ -4,7 +4,7 @@
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/kabeer11000/otherdev.web-02)
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.2-black?style=flat-square&logo=next.js&logoColor=000000&labelColor=ffffff)](https://nextjs.org)&nbsp;[![Flutter](https://img.shields.io/badge/Flutter-Desktop%20%2B%20Mobile-02569B?style=flat-square&logo=flutter&logoColor=ffffff)](https://flutter.dev)&nbsp;[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=ffffff)](https://typescriptlang.org)
+[![Next.js](https://img.shields.io/badge/Next.js-16.2-black?style=flat-square&logo=next.js&logoColor=000000&labelColor=ffffff)](https://nextjs.org)&nbsp;[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=ffffff)](https://typescriptlang.org)
 
 Monorepo containing multiple web applications built by [otherdev](https://otherdev.com) — a full-service web development and design studio based in Karachi City.
 
@@ -16,7 +16,7 @@ Monorepo containing multiple web applications built by [otherdev](https://otherd
 graph TB
     %% ── Clients ──────────────────────────────────────────────────────────────
     Web[Web App<br/>Next.js 16]
-    Flutter[Flutter App<br/>Desktop + Mobile]
+    Flutter[Flutter App<br/><https://github.com/ossaidqadri/otherdev-flutter>]
 
     %% ── API Layer ─────────────────────────────────────────────────────────────
     APIStream["/api/chat/stream"]
@@ -50,7 +50,7 @@ graph TB
 
     %% ── Styles (accessible contrast on white bg) ─────────────────────────────
     style Web fill:#0284c7,stroke:#0369a1,color:#fff
-    style Flutter fill:#16a34a,stroke:#15803d,color:#fff
+    style Flutter fill:#16a34a,stroke:#15803d,color:#fff,href:https://github.com/ossaidqadri/otherdev-flutter
     style StreamHandler fill:#ea580c,stroke:#c2410c,color:#fff
     style LLM fill:#c2410c,stroke:#9a3412,color:#fff
     style TK fill:#16a34a,stroke:#15803d,color:#fff
@@ -68,7 +68,6 @@ graph TB
 | Project | Description | Stack |
 |---------|-------------|-------|
 | [`web/`](web/README.md) | Main portfolio website (production) | Next.js 16 · React 19 · Tailwind CSS 4 |
-| [`flutter_app/`](flutter_app/README.md) | Desktop (macOS/Win/Linux) + mobile companion | Flutter 3 · Riverpod · GoRouter |
 
 ### [`web/`](web/README.md) — Main Portfolio Website
 
@@ -82,16 +81,6 @@ graph TB
 - Radix UI + Tailwind CSS component system
 - SEO-optimized with OG images and structured data
 
-### [`flutter_app/`](flutter_app/README.md) — Flutter Companion App
-
-**Start:** `cd flutter_app && flutter pub get && flutter run`
-
-- Native desktop (macOS, Windows, Linux) + mobile via SSE to `/api/chat/native`
-- Shared chat UI with web via `flutter_riverpod` state management
-- `window_manager` + `tray_manager` + `hotkey_manager` for desktop polish
-- `connectivity_plus` for offline detection
-- `hive` + `flutter_secure_storage` for local persistence
-
 ---
 
 ## Quick Start
@@ -102,9 +91,6 @@ bun install
 
 # Run web app (Next.js)
 cd web && bun dev
-
-# Run Flutter app
-cd flutter_app && flutter run
 ```
 
 ---
@@ -116,7 +102,6 @@ cd flutter_app && flutter run
 | Web Framework | Next.js 16.2.1 (App Router), React 19.2.4 |
 | Web Language | TypeScript 5.9, CSS (Tailwind CSS 4) |
 | Web AI | Vercel AI SDK, Vercel AI Gateway, Groq, Mistral |
-| Flutter | Flutter 3, Riverpod 3, GoRouter 14, Dio |
 | Embeddings | Cohere embed-v4.0 via AI Gateway |
 | Vector Search | Qdrant (1536-dim, cosine similarity) |
 | Cache / Rate Limit | Upstash Redis |
@@ -141,8 +126,6 @@ otherdev-v2/
 │   │   ├── components/   # React components + UI primitives
 │   │   └── server/lib/   # Server utilities (RAG, rate limit, chat)
 │   └── docs/             # Detailed web app documentation
-├── flutter_app/           # Flutter desktop + mobile companion
-│   └── lib/              # ChatRepository, SSE client, Riverpod providers
 ├── docs/                  # Shared project documentation
 └── CLAUDE.md             # Claude Code guidance
 ```
@@ -155,7 +138,6 @@ otherdev-v2/
 |-----|-------------|
 | [`web/README.md`](web/README.md) | Full web app documentation |
 | [`web/docs/`](web/docs/) | Architecture, API reference, component library |
-| [`flutter_app/README.md`](flutter_app/README.md) | Flutter app documentation |
 | [`AGENTS.md`](AGENTS.md) | AI agent configuration |
 
 ---
