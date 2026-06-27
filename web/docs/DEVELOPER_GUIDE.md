@@ -996,55 +996,6 @@ docker run -p 3000:3000 otherdev-web
 
 ---
 
-## Flutter Companion App
-
-### Location
-
-`flutter_app/` — Flutter desktop (macOS, Windows, Linux) + mobile companion app.
-
-### Setup
-
-```bash
-cd flutter_app
-flutter pub get
-```
-
-### Building
-
-```bash
-# Desktop
-flutter build macos      # macOS
-flutter build windows   # Windows
-flutter build linux     # Linux
-
-# Mobile
-flutter build apk       # Android
-flutter build ipa       # iOS (requires macOS)
-```
-
-### Key Dependencies
-
-- **State management:** `flutter_riverpod` 3 with code-gen
-- **Routing:** `go_router` 14
-- **HTTP/SSE:** `dio` + `http`
-- **Local storage:** `hive` + `hive_flutter`
-- **Secure storage:** `flutter_secure_storage`
-- **Desktop:** `window_manager`, `tray_manager`, `hotkey_manager`
-- **Connectivity:** `connectivity_plus`
-
-### Chat Communication
-
-Flutter communicates with the web backend via **SSE** (`POST /api/chat/native`):
-
-- Auth passed as `?key=` query param (EventSource cannot set custom headers)
-- Same streaming handler as `/api/chat/stream` but returns raw SSE
-- Suggestions parsed from raw SSE `finish` event metadata
-
-### Adding Flutter-dependant Web Components
-
-Shared React components usable in Flutter are in `src/components/chat-core.tsx`. Flutter reads `MarkdownRenderer` output via a custom platform channel or shared artifact format.
-
----
 
 ## Additional Resources
 
