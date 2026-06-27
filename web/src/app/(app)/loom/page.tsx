@@ -20,7 +20,7 @@ export const metadata: Metadata = {
       "Chat with Loom, Other Dev's AI assistant. Get instant answers about our projects, services, and technical expertise.",
     path: '/loom',
     imagePath: '/otherdev-loom-og.png',
-    imageAlt: 'Other Dev Loom',
+    imageAlt: "Loom - Other Dev's AI Assistant",
   }),
   robots: {
     index: true,
