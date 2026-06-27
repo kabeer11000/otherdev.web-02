@@ -367,7 +367,7 @@ function UserMessage({
         </div>
         <Image
           src="/loom-avatar-64.webp"
-          alt="User"
+          alt=""
           width={32}
           height={32}
           className="h-7 w-7 flex-shrink-0 rounded-full sm:h-8 sm:w-8"
@@ -525,7 +525,7 @@ function AssistantMessage({
       <div className="flex items-start gap-2 mt-12">
         <Image
           src="/otherdev-chat-logo-32.webp"
-          alt="OtherDev Loom"
+          alt=""
           width={32}
           height={32}
           className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
@@ -593,7 +593,7 @@ function AssistantMessage({
     <div className="flex justify-start items-start gap-2">
       <Image
         src="/otherdev-chat-logo-32.webp"
-        alt="OtherDev Loom"
+        alt=""
         width={32}
         height={32}
         className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
@@ -1130,7 +1130,7 @@ export function ChatCore({
     return (!hasText && !hasValidAttachments) || isBlocked
   }, [inputValue, attachments, isRecording, isRecordingProcessing])
 
-  const placeholder = 'Type your message...'
+  const placeholder = 'Type your message…'
 
   return (
     <div
@@ -1165,7 +1165,7 @@ export function ChatCore({
                     <div className="flex justify-center">
                       <Image
                         src="/otherdev-chat-logo-32.webp"
-                        alt="Other Dev Loom"
+                        alt=""
                         width={32}
                         height={32}
                         className="h-7 w-7 sm:h-8 sm:w-8 object-contain"

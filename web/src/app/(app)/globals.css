@@ -357,7 +357,7 @@
     text-decoration: underline;
     text-underline-offset: 2px;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: color 0.2s ease, text-decoration-thickness 0.2s ease;
   }
 
   .prose a:hover {

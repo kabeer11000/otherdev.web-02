@@ -128,7 +128,7 @@ We will reach out to you with the next steps as soon as possible.`}
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input placeholder="Name" {...field} className="bg-card" />
+                        <Input placeholder="Name…" {...field} className="bg-card" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -141,7 +141,7 @@ We will reach out to you with the next steps as soon as possible.`}
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input placeholder="Company Name" {...field} className="bg-card" />
+                        <Input placeholder="Company Name…" {...field} className="bg-card" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -154,7 +154,7 @@ We will reach out to you with the next steps as soon as possible.`}
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input type="email" placeholder="Email" {...field} className="bg-card" />
+                        <Input type="email" placeholder="Email…" autocomplete="email" {...field} className="bg-card" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -167,7 +167,7 @@ We will reach out to you with the next steps as soon as possible.`}
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input placeholder="Subject" {...field} className="bg-card" />
+                        <Input placeholder="Subject…" {...field} className="bg-card" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -181,7 +181,7 @@ We will reach out to you with the next steps as soon as possible.`}
                     <FormItem>
                       <FormControl>
                         <Textarea
-                          placeholder="Message"
+                          placeholder="Message…"
                           className="resize-none min-h-[70px] sm:min-h-[80px] bg-card"
                           {...field}
                         />
@@ -196,7 +196,7 @@ We will reach out to you with the next steps as soon as possible.`}
                   className="w-full mt-[12px] sm:mt-[15px] h-8 sm:h-9 flex items-center justify-center rounded-md backdrop-blur-sm bg-card text-[11px] font-sans font-normal text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isPending}
                 >
-                  <p>{isPending ? 'Submitting...' : 'Submit'}</p>
+                  <p>{isPending ? 'Submitting…' : 'Submit'}</p>
                 </button>
               </form>
             </Form>
