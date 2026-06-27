@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: PageProps) {
       title: `${post.title} | Other Dev Blog`,
       description,
       path: `/blog/${slug}`,
-      imagePath: post.featuredImage?.url ?? '',
+      imagePath: '/og_image.png',
       imageAlt: `${post.title} | Other Dev Blog`,
       type: 'article',
     }),

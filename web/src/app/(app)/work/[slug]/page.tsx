@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
       title: `${project.title} | Other Dev Portfolio`,
       description: seoDescription,
       path: `/work/${slug}`,
-      imagePath: project.image?.url ?? undefined,
+      imagePath: '/og_image.png',
       imageAlt: `${project.title} | Other Dev Portfolio`,
     }),
   }

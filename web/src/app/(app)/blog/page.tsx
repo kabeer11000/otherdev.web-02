@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     description:
       'Thoughts, insights, and updates from the Other Dev studio on web development, design, and digital platforms.',
     path: '/blog',
-    imagePath: '/images/projects/olly-2025/products-page-desktop.webp',
+    imagePath: '/og_image.png',
     imageAlt: 'Blog | Other Dev',
   }),
 }

@@ -14,6 +14,7 @@ export const metadata: Metadata = {
     title: 'Search | Other Dev',
     description: 'Search blog posts and projects on Other Dev.',
     path: '/blog/search',
+    imagePath: '/og_image.png',
   }),
 }
 
