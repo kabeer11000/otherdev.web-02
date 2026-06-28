@@ -91,6 +91,23 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: '/',
+        headers: [
+          {
+            key: 'Link',
+            value: '</.well-known/api-catalog>; rel="api-catalog"',
+          },
+          {
+            key: 'Link',
+            value: '</docs/developer-guide>; rel="service-doc"',
+          },
+          {
+            key: 'Link',
+            value: '</docs/api-reference>; rel="service-desc"',
+          },
+        ],
+      },
     ]
   },
   async redirects() {
