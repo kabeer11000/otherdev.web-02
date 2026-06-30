@@ -47,6 +47,8 @@ export type HandleStreamChatResult =
 
 const RAG_MAX_MESSAGE_LENGTH = Number.parseInt(process.env.RAG_MAX_MESSAGE_LENGTH || '500', 10)
 
+const GATEWAY_ORDER = ['groq', 'cerebras', 'cohere'] as const
+
 const INJECTION_PATTERN =
   /\[INST\]|\[\/INST\]|<\|im_start\|>|<\|im_end\|>|<\|system\|>|<\|user\|>|<\|assistant\|>/gi
 
@@ -220,8 +222,7 @@ export async function handleStreamChat({
 
   const fallbacks = [TEXT_MODEL_FALLBACK, TEXT_MODEL_FALLBACK_2, TEXT_MODEL_FALLBACK_3]
 
-  // Provider priority: primary provider first, then failover
-  // MiniMax-M3 direct → Groq → Cerebras → Cohere (via gateway)
+  // Provider priority: MiniMax-M3 direct → Groq → Cerebras → Cohere (via gateway)
 
   // Generate suggestions before streaming — MiniMax direct, then gateway fallbacks
   const suggestionsPromise = generateText({
@@ -246,7 +247,7 @@ export async function handleStreamChat({
         temperature: 0.5,
         providerOptions: {
           gateway: {
-            order: ['groq', 'cerebras', 'cohere'],
+            order: GATEWAY_ORDER,
             models: fallbacks,
             byok: {
               groq: [{ apiKey: process.env.GROQ_API_KEY! }],
@@ -288,7 +289,7 @@ export async function handleStreamChat({
       tools,
       providerOptions: {
         gateway: {
-          order: ['groq', 'cerebras', 'cohere'],
+          order: GATEWAY_ORDER,
           models: fallbacks,
           byok: {
             groq: [{ apiKey: process.env.GROQ_API_KEY! }],
