@@ -1,4 +1,4 @@
-import { minimax } from 'vercel-minimax-ai-provider'
+import { minimaxOpenAI } from 'vercel-minimax-ai-provider'
 import {
   convertToModelMessages,
   gateway,
@@ -21,8 +21,6 @@ import {
   TEXT_MODEL_FALLBACK,
   TEXT_MODEL_FALLBACK_2,
   TEXT_MODEL_FALLBACK_3,
-  VISION_MODEL,
-  VISION_MODEL_FALLBACK,
 } from './models'
 import { createArtifactTool, retrieveKnowledgeTool, tavilySearchTool } from './tools'
 
@@ -172,18 +170,6 @@ export async function handleStreamChat({
   const lastUserText = extractUserText(lastUserMessage)
   const normalizedQuery = sanitizeInput(lastUserText).replace(/otherdev/gi, 'Other Dev')
 
-  const hasImageContent = messages.some((m: UIMessage) =>
-    m.parts?.some(
-      p =>
-        p.type === 'file' &&
-        'mediaType' in p &&
-        (p as { mediaType?: string }).mediaType?.startsWith('image/')
-    )
-  )
-
-  // Model selection: vision for images, fast for text
-  const selectedModelId = hasImageContent ? VISION_MODEL : TEXT_MODEL
-
   // Build the tools object — model decides which to use via its own reasoning
   const tools: ToolSet = {
     retrieveKnowledge: retrieveKnowledgeTool,
@@ -232,18 +218,14 @@ export async function handleStreamChat({
   const sanitizedMessages = sanitizeModelMessages(rawModelMessages)
   const modelMessages = resolveDataURIs(sanitizedMessages)
 
-  const fallbacks = hasImageContent
-    ? [VISION_MODEL_FALLBACK]
-    : [TEXT_MODEL_FALLBACK, TEXT_MODEL_FALLBACK_2, TEXT_MODEL_FALLBACK_3]
+  const fallbacks = [TEXT_MODEL_FALLBACK, TEXT_MODEL_FALLBACK_2, TEXT_MODEL_FALLBACK_3]
 
   // Provider priority: primary provider first, then failover
-  // Text: MiniMax primary (direct) → Groq → Cerebras → Cohere (via gateway)
-  // Vision: Mistral primary → Groq fallback
-  const gatewayOrder = hasImageContent ? ['mistral', 'groq'] : ['groq', 'cerebras', 'cohere']
+  // MiniMax-M3 direct → Groq → Cerebras → Cohere (via gateway)
 
   // Generate suggestions before streaming — MiniMax direct, then gateway fallbacks
   const suggestionsPromise = generateText({
-    model: minimax('MiniMax-M3'),
+    model: minimaxOpenAI('MiniMax-M3'),
     output: Output.object({
       schema: SUGGESTIONS_SCHEMA,
     }),
@@ -264,13 +246,12 @@ export async function handleStreamChat({
         temperature: 0.5,
         providerOptions: {
           gateway: {
-            order: gatewayOrder,
+            order: ['groq', 'cerebras', 'cohere'],
             models: fallbacks,
             byok: {
               groq: [{ apiKey: process.env.GROQ_API_KEY! }],
               cerebras: [{ apiKey: process.env.CEREBRAS_API_KEY! }],
               cohere: [{ apiKey: process.env.COHERE_API_KEY! }],
-              mistral: [{ apiKey: process.env.MISTRAL_API_KEY! }],
             },
           },
         },
@@ -285,7 +266,7 @@ export async function handleStreamChat({
   // Try MiniMax direct first, fall back to gateway chain
   const streamWithMiniMax = async () =>
     streamText({
-      model: minimax('MiniMax-M3'),
+      model: minimaxOpenAI('MiniMax-M3'),
       system: getSystemPrompt(),
       messages: modelMessages,
       temperature: 0.5,
@@ -297,7 +278,7 @@ export async function handleStreamChat({
 
   const streamWithGateway = () =>
     streamText({
-      model: gateway(selectedModelId),
+      model: gateway(TEXT_MODEL),
       system: getSystemPrompt(),
       messages: modelMessages,
       temperature: 0.5,
@@ -307,13 +288,12 @@ export async function handleStreamChat({
       tools,
       providerOptions: {
         gateway: {
-          order: gatewayOrder,
+          order: ['groq', 'cerebras', 'cohere'],
           models: fallbacks,
           byok: {
             groq: [{ apiKey: process.env.GROQ_API_KEY! }],
             cerebras: [{ apiKey: process.env.CEREBRAS_API_KEY! }],
             cohere: [{ apiKey: process.env.COHERE_API_KEY! }],
-            mistral: [{ apiKey: process.env.MISTRAL_API_KEY! }],
           },
         },
       },
