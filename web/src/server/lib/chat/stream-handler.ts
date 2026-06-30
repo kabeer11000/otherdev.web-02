@@ -243,7 +243,7 @@ export async function handleStreamChat({
 
   // Generate suggestions before streaming — MiniMax direct, then gateway fallbacks
   const suggestionsPromise = generateText({
-    model: minimax('MiniMax-M2.7'),
+    model: minimax('MiniMax-M3'),
     output: Output.object({
       schema: SUGGESTIONS_SCHEMA,
     }),
@@ -285,7 +285,7 @@ export async function handleStreamChat({
   // Try MiniMax direct first, fall back to gateway chain
   const streamWithMiniMax = async () =>
     streamText({
-      model: minimax('MiniMax-M2.7'),
+      model: minimax('MiniMax-M3'),
       system: getSystemPrompt(),
       messages: modelMessages,
       temperature: 0.5,
