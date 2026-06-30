@@ -1,9 +1,0 @@
-[mcp_servers.Payload]
-url = "http://127.0.0.1:3000/api/mcp"
-
-[mcp_servers.Payload.http_headers]
-Authorization = "Bearer 3fbc6cdd-89cd-446b-808f-80674e00d4d7"
-
-[mcp_servers.dart]
-command = "dart"
-args = ["mcp-server"]

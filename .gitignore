@@ -4,6 +4,7 @@ node_modules
 .pnp.js
 .pnp.cjs
 .claude
+.codex
 # testing
 coverage
 *.lcov
