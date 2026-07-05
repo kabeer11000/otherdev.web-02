@@ -6,6 +6,7 @@ import type {
   CollectionAfterDeleteHook,
   CollectionBeforeChangeHook,
   CollectionConfig,
+  Endpoint,
 } from 'payload'
 import { slugField } from 'payload'
 
@@ -52,6 +53,92 @@ const revalidateProjectDelete: CollectionAfterDeleteHook = ({ doc, context }) =>
   return doc
 }
 
+type ProjectMediaRow = {
+  file?: string | { id?: string } | null
+  type?: 'image' | 'video' | null
+}
+
+const getMediaID = (media: ProjectMediaRow['file']): string | null => {
+  if (!media) return null
+  if (typeof media === 'string') return media
+  return media.id ?? null
+}
+
+const deleteGalleryImagesEndpoint: Endpoint = {
+  path: '/:id/delete-gallery-images',
+  method: 'post',
+  handler: async req => {
+    if (req.user?.role !== 'admin') {
+      return Response.json({ error: 'Only admins can delete project media.' }, { status: 403 })
+    }
+
+    const projectID = req.routeParams?.id
+
+    if (typeof projectID !== 'string') {
+      return Response.json({ error: 'Project ID is required.' }, { status: 400 })
+    }
+
+    const project = await req.payload.findByID({
+      collection: 'projects',
+      id: projectID,
+      depth: 0,
+      overrideAccess: false,
+      user: req.user,
+    })
+
+    const mediaRows = (Array.isArray(project.media) ? project.media : []) as ProjectMediaRow[]
+    const heroImageID = getMediaID(project.image)
+    const imageRows = mediaRows.filter(row => row.type !== 'video')
+    const imageIDs = [
+      ...new Set(
+        imageRows
+          .map(row => getMediaID(row.file))
+          .filter((id): id is string => id !== null && id !== heroImageID)
+      ),
+    ]
+    const remainingRows = mediaRows.filter(row => row.type === 'video')
+
+    await req.payload.update({
+      collection: 'projects',
+      id: projectID,
+      data: {
+        media: remainingRows,
+      },
+      depth: 0,
+      overrideAccess: false,
+      user: req.user,
+    })
+
+    const failed: Array<{ id: string; message: string }> = []
+
+    for (const id of imageIDs) {
+      try {
+        await req.payload.delete({
+          collection: 'media',
+          id,
+          depth: 0,
+          overrideAccess: false,
+          user: req.user,
+        })
+      } catch (error) {
+        failed.push({
+          id,
+          message: error instanceof Error ? error.message : 'Unknown delete error',
+        })
+      }
+    }
+
+    return Response.json(
+      {
+        deletedCount: imageIDs.length - failed.length,
+        failed,
+        remainingMedia: remainingRows,
+      },
+      { status: failed.length ? 207 : 200 }
+    )
+  },
+}
+
 export const Projects: CollectionConfig = {
   slug: 'projects',
   admin: {
@@ -63,8 +150,8 @@ export const Projects: CollectionConfig = {
   },
   access: {
     read: () => true,
-    create: ({ req }) => ['admin', 'editor'].includes(req.user?.role),
-    update: ({ req }) => ['admin', 'editor'].includes(req.user?.role),
+    create: ({ req }) => ['admin', 'editor'].includes(req.user?.role ?? ''),
+    update: ({ req }) => ['admin', 'editor'].includes(req.user?.role ?? ''),
     delete: ({ req }) => req.user?.role === 'admin',
   },
   hooks: {
@@ -72,6 +159,7 @@ export const Projects: CollectionConfig = {
     afterChange: [revalidateProject],
     afterDelete: [revalidateProjectDelete],
   },
+  endpoints: [deleteGalleryImagesEndpoint],
   fields: [
     {
       name: 'title',
@@ -138,6 +226,9 @@ export const Projects: CollectionConfig = {
       type: 'array',
       admin: {
         position: 'sidebar',
+        components: {
+          beforeInput: ['./src/plugins/ProjectMediaBulkActions#ProjectMediaBulkActions'],
+        },
       },
       fields: [
         {
