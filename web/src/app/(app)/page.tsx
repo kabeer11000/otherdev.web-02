@@ -38,7 +38,7 @@ export default async function Home() {
   const projects = await getProjects()
 
   const projectsWithExtraImages = projects.flatMap(project => {
-    const cards = [{ ...project, image: project.image?.url ?? '' }]
+    const cards = [{ ...project, image: project.image?.url ?? null }]
     const mediaUrls = project.media?.map(m => m.image?.url).filter(Boolean) as string[]
     if (mediaUrls && mediaUrls.length >= 2) {
       cards.push({

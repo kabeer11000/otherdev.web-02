@@ -48,7 +48,7 @@ const imageVariants = cva('transition-all duration-300 group-hover:scale-102', {
 interface ProjectCardProps extends VariantProps<typeof cardVariants> {
   title: string
   slug: string
-  image: string
+  image?: string | null
   description?: string
   showText?: boolean
   showTitle?: boolean
@@ -68,6 +68,7 @@ export function ProjectCard({
   sizes = '(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw',
 }: ProjectCardProps) {
   const useHover = variant === 'home' || variant === 'broll'
+  const hasImage = typeof image === 'string' && image.trim().length > 0
 
   return (
     <div className="flex flex-col gap-[13px]">
@@ -75,7 +76,7 @@ export function ProjectCard({
         <ProjectCardHover
           title={title}
           slug={slug}
-          image={image}
+          image={hasImage ? image : null}
           variant={variant}
           priority={priority}
           sizes={sizes}
@@ -84,14 +85,16 @@ export function ProjectCard({
         <Link href={`/work/${slug}`} className="block group">
           <div className={cardVariants({ variant })}>
             <div className={imageContainerVariants({ variant })}>
-              <Image
-                src={image}
-                alt={title}
-                fill
-                sizes={sizes}
-                className={imageVariants({ variant })}
-                priority={priority}
-              />
+              {hasImage && (
+                <Image
+                  src={image}
+                  alt={title}
+                  fill
+                  sizes={sizes}
+                  className={imageVariants({ variant })}
+                  priority={priority}
+                />
+              )}
             </div>
           </div>
         </Link>

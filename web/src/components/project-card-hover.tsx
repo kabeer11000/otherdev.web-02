@@ -13,7 +13,7 @@ const homeImageClass = 'object-contain group-hover:-translate-y-[2px] p-6 group-
 interface ProjectCardHoverProps {
   title: string
   slug: string
-  image: string
+  image?: string | null
   variant: 'home' | 'broll'
   priority?: boolean
   sizes?: string
@@ -29,20 +29,23 @@ export function ProjectCardHover({
 }: ProjectCardHoverProps) {
   const href = variant === 'broll' ? (slug ?? '#') : `/work/${slug}`
   const imgClass = variant === 'home' ? homeImageClass : 'object-cover'
+  const hasImage = typeof image === 'string' && image.trim().length > 0
 
   return (
     <Tooltip.Root trackCursorAxis="both">
       <Tooltip.Trigger render={<Link href={href} className="block group" />}>
         <div className={cardVariants}>
           <div className={imageContainerVariants}>
-            <Image
-              src={image}
-              alt={title}
-              fill
-              sizes={sizes}
-              className={`${imageVariants} ${imgClass}`}
-              priority={priority}
-            />
+            {hasImage && (
+              <Image
+                src={image}
+                alt={title}
+                fill
+                sizes={sizes}
+                className={`${imageVariants} ${imgClass}`}
+                priority={priority}
+              />
+            )}
           </div>
         </div>
       </Tooltip.Trigger>

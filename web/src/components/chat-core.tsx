@@ -247,91 +247,100 @@ function UserMessage({
   ) || []
 
   return (
-    <Message from="user">
-      <MessageContent>
-        {imageParts.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {imageParts.map((img, i) => (
-              <Image
-                key={`img-${i}-${img.url}`}
-                src={img.url}
-                alt={img.filename || 'Attachment'}
-                width={192}
-                height={192}
-                className="max-h-48 max-w-48 rounded-xl object-cover"
-                unoptimized
-              />
-            ))}
-          </div>
-        )}
-        {fileParts.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {fileParts.map((file, i) => (
-              <div
-                key={`file-${i}-${file.filename || 'file'}`}
-                className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground"
-              >
-                <Paperclip className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                <span className="max-w-[180px] truncate">{file.filename || 'File'}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {isEditing ? (
-          <textarea
-            ref={textareaRef}
-            defaultValue={textContent}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                const target = e.currentTarget as HTMLTextAreaElement
-                const newText = target.value.trim()
-                if (newText) onEditConfirm?.(message.id, newText)
-              }
-              if (e.key === 'Escape') {
-                e.preventDefault()
-                onEditCancel?.(message.id)
-              }
-            }}
-            className="w-full rounded-2xl bg-background px-3 py-2 text-sm text-foreground sm:px-4 sm:py-3 sm:text-base resize-none min-h-[60px] max-h-[300px] overflow-y-auto border border-input"
-            rows={3}
-          />
-        ) : (
-          textContent.trim() && (
-            <div className="px-3 py-2 text-sm text-foreground sm:px-4 sm:py-3 sm:text-base">
-              {textContent}
+    <div className="flex items-end justify-end gap-2 sm:gap-3">
+      <Message from="user" className="items-end">
+        <MessageContent>
+          {imageParts.length > 0 && (
+            <div className="flex flex-wrap justify-end gap-2">
+              {imageParts.map((img, i) => (
+                <Image
+                  key={`img-${i}-${img.url}`}
+                  src={img.url}
+                  alt={img.filename || 'Attachment'}
+                  width={192}
+                  height={192}
+                  className="max-h-48 max-w-48 rounded-xl object-cover"
+                  unoptimized
+                />
+              ))}
             </div>
-          )
+          )}
+          {fileParts.length > 0 && (
+            <div className="flex flex-wrap justify-end gap-2">
+              {fileParts.map((file, i) => (
+                <div
+                  key={`file-${i}-${file.filename || 'file'}`}
+                  className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground"
+                >
+                  <Paperclip className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                  <span className="max-w-[180px] truncate">{file.filename || 'File'}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {isEditing ? (
+            <textarea
+              ref={textareaRef}
+              defaultValue={textContent}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  const target = e.currentTarget as HTMLTextAreaElement
+                  const newText = target.value.trim()
+                  if (newText) onEditConfirm?.(message.id, newText)
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  onEditCancel?.(message.id)
+                }
+              }}
+              className="w-full rounded-2xl bg-background px-3 py-2 text-sm text-foreground sm:px-4 sm:py-3 sm:text-base resize-none min-h-[60px] max-h-[300px] overflow-y-auto border border-input"
+              rows={3}
+            />
+          ) : (
+            textContent.trim() && (
+              <div className="px-3 py-2 text-sm text-foreground sm:px-4 sm:py-3 sm:text-base">
+                {textContent}
+              </div>
+            )
+          )}
+        </MessageContent>
+        {!isEditing && (
+          <MessageActions>
+            <MessageAction tooltip="Edit" onClick={() => onStartEdit?.(message.id)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </MessageAction>
+          </MessageActions>
         )}
-      </MessageContent>
-      {!isEditing && (
-        <MessageActions>
-          <MessageAction tooltip="Edit" onClick={() => onStartEdit?.(message.id)}>
-            <Pencil className="h-3.5 w-3.5" />
-          </MessageAction>
-        </MessageActions>
-      )}
-      {isEditing && (
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => onEditConfirm?.(message.id, (textareaRef.current?.value ?? '').trim())}
-            className="px-2 py-1 rounded-lg bg-primary text-primary-foreground text-xs hover:bg-primary/90"
-            aria-label="Confirm edit"
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            onClick={() => onEditCancel?.(message.id)}
-            className="px-2 py-1 rounded-lg bg-muted text-muted-foreground text-xs hover:bg-muted/80"
-            aria-label="Cancel edit"
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-    </Message>
+        {isEditing && (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onEditConfirm?.(message.id, (textareaRef.current?.value ?? '').trim())}
+              className="px-2 py-1 rounded-lg bg-primary text-primary-foreground text-xs hover:bg-primary/90"
+              aria-label="Confirm edit"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => onEditCancel?.(message.id)}
+              className="px-2 py-1 rounded-lg bg-muted text-muted-foreground text-xs hover:bg-muted/80"
+              aria-label="Cancel edit"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </Message>
+      <Image
+        src="/loom-avatar-64.webp"
+        alt=""
+        width={32}
+        height={32}
+        className="h-7 w-7 flex-shrink-0 rounded-full sm:h-8 sm:w-8"
+      />
+    </div>
   )
 }
 
@@ -431,6 +440,80 @@ function AssistantMessage({
     const title = artifactData?.title
 
     return (
+      <div className="flex items-start gap-2 sm:gap-3">
+        <Image
+          src="/otherdev-chat-logo-32.webp"
+          alt=""
+          width={32}
+          height={32}
+          className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
+          style={{ width: 'auto', height: 'auto' }}
+        />
+        <Message from="assistant">
+          <MessageContent>
+            {hasReasoning && (
+              <Reasoning isStreaming={isAnimating}>
+                <ReasoningTrigger />
+                <ReasoningContent>{reasoningText}</ReasoningContent>
+              </Reasoning>
+            )}
+            {cleanedText && (
+              <MessageResponse isAnimating={isAnimating}>{cleanedText}</MessageResponse>
+            )}
+            {artifactToolCall && (
+              <Card
+                onClick={() => {
+                  const result =
+                    artifactToolCall.state === 'output-available'
+                      ? artifactToolCall.output
+                      : artifactToolCall.input
+                  setActiveArtifact({
+                    toolCallId: artifactToolCall.toolCallId,
+                    toolName: 'createArtifact',
+                    state: 'output-available',
+                    // biome-ignore lint/suspicious/noExplicitAny: artifact result type
+                    result: (result ?? artifactToolCall.output) as any,
+                  })
+                }}
+                className="w-full max-w-md cursor-pointer border-border/60 bg-card/50 transition-all duration-200 hover:border-foreground/20 hover:bg-card/80 hover:shadow-sm active:scale-[0.99]"
+              >
+                <CardHeader className="flex-row items-center justify-between gap-4 p-3.5">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-muted/50">
+                      <FileCode2 className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="truncate text-sm font-medium leading-tight">
+                        {title || 'View Artifact'}
+                      </CardTitle>
+                      <CardDescription className="mt-1 text-xs">Artifact · HTML</CardDescription>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground/60" />
+                </CardHeader>
+              </Card>
+            )}
+          </MessageContent>
+          <MessageActions>
+            <MessageAction tooltip="Regenerate" onClick={() => onRegenerate?.(message)}>
+              <RotateCcw className="h-3.5 w-3.5" />
+            </MessageAction>
+          </MessageActions>
+        </Message>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-start gap-2 sm:gap-3">
+      <Image
+        src="/otherdev-chat-logo-32.webp"
+        alt=""
+        width={32}
+        height={32}
+        className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
+        style={{ width: 'auto', height: 'auto' }}
+      />
       <Message from="assistant">
         <MessageContent>
           {hasReasoning && (
@@ -439,84 +522,34 @@ function AssistantMessage({
               <ReasoningContent>{reasoningText}</ReasoningContent>
             </Reasoning>
           )}
-          {cleanedText && <MessageResponse isAnimating={isAnimating}>{cleanedText}</MessageResponse>}
-          {artifactToolCall && (
-            <Card
-              onClick={() => {
-                const result =
-                  artifactToolCall.state === 'output-available'
-                    ? artifactToolCall.output
-                    : artifactToolCall.input
-                setActiveArtifact({
-                  toolCallId: artifactToolCall.toolCallId,
-                  toolName: 'createArtifact',
-                  state: 'output-available',
-                  // biome-ignore lint/suspicious/noExplicitAny: artifact result type
-                  result: (result ?? artifactToolCall.output) as any,
-                })
-              }}
-              className="w-full max-w-md cursor-pointer border-border/60 bg-card/50 transition-all duration-200 hover:border-foreground/20 hover:bg-card/80 hover:shadow-sm active:scale-[0.99]"
-            >
-              <CardHeader className="flex-row items-center justify-between gap-4 p-3.5">
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-muted/50">
-                    <FileCode2 className="h-4 w-4 text-muted-foreground" />
+          {toolResultParts.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {toolResultParts.map((part, i) => {
+                const toolName = part.toolName
+                const isKnowledge = toolName === 'retrieveKnowledge'
+                return (
+                  <div
+                    key={`tool-${part.toolName}-${i}`}
+                    className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
+                  >
+                    <span>{isKnowledge ? 'Knowledge retrieved' : `Tool: ${toolName}`}</span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <CardTitle className="truncate text-sm font-medium leading-tight">
-                      {title || 'View Artifact'}
-                    </CardTitle>
-                    <CardDescription className="mt-1 text-xs">Artifact · HTML</CardDescription>
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground/60" />
-              </CardHeader>
-            </Card>
+                )
+              })}
+            </div>
+          )}
+          {cleanedText && (
+            <MessageResponse isAnimating={isAnimating}>{cleanedText}</MessageResponse>
           )}
         </MessageContent>
         <MessageActions>
+          <MessageAction tooltip="Copy response" copyContent={cleanedText} />
           <MessageAction tooltip="Regenerate" onClick={() => onRegenerate?.(message)}>
             <RotateCcw className="h-3.5 w-3.5" />
           </MessageAction>
         </MessageActions>
       </Message>
-    )
-  }
-
-  return (
-    <Message from="assistant">
-      <MessageContent>
-        {hasReasoning && (
-          <Reasoning isStreaming={isAnimating}>
-            <ReasoningTrigger />
-            <ReasoningContent>{reasoningText}</ReasoningContent>
-          </Reasoning>
-        )}
-        {toolResultParts.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {toolResultParts.map((part, i) => {
-              const toolName = part.toolName
-              const isKnowledge = toolName === 'retrieveKnowledge'
-              return (
-                <div
-                  key={`tool-${part.toolName}-${i}`}
-                  className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
-                >
-                  <span>{isKnowledge ? 'Knowledge retrieved' : `Tool: ${toolName}`}</span>
-                </div>
-              )
-            })}
-          </div>
-        )}
-        {cleanedText && <MessageResponse isAnimating={isAnimating}>{cleanedText}</MessageResponse>}
-      </MessageContent>
-      <MessageActions>
-        <MessageAction tooltip="Copy response" copyContent={cleanedText} />
-        <MessageAction tooltip="Regenerate" onClick={() => onRegenerate?.(message)}>
-          <RotateCcw className="h-3.5 w-3.5" />
-        </MessageAction>
-      </MessageActions>
-    </Message>
+    </div>
   )
 }
 

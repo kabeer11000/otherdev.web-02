@@ -176,7 +176,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
                 <ProjectCard
                   title={relatedProject.title}
                   slug={relatedProject.slug}
-                  image={relatedProject.image?.url ?? ''}
+                  image={relatedProject.image?.url}
                   description={relatedProject.excerpt}
                   variant="work"
                   showText={true}

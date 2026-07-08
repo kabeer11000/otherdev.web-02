@@ -86,7 +86,7 @@ export default async function WorkPage() {
                 <ProjectCard
                   title={project.title}
                   slug={project.slug}
-                  image={project.image?.url ?? ''}
+                  image={project.image?.url}
                   description={project.excerpt}
                   variant="work"
                   showText={true}
