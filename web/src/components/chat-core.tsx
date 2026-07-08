@@ -9,26 +9,20 @@ import {
   type UIMessage,
 } from 'ai'
 import {
-  ArrowUp,
-  AudioLines,
   Brain,
   Briefcase,
-  ChevronLeft,
   ChevronRight,
   Code2,
   Copy,
   FileCode2,
-  FileText,
   Globe,
   Paperclip,
   Pencil,
   RotateCcw,
-  Square,
   Users,
   X,
 } from 'lucide-react'
 import Image from 'next/image'
-import { nanoid } from 'nanoid'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { z } from 'zod'
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning'
@@ -38,9 +32,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { CopyButton } from '@/components/ui/copy-button'
 import { SUGGESTED_PROMPTS } from '@/lib/constants'
 import { suggestionDataSchema } from '@/lib/schemas'
-import { parseSSEStream } from '@/lib/sse'
 import { cleanSuggestionMarkers, cn } from '@/lib/utils'
-import { VoiceRecorder } from '@/lib/voice-recorder'
 import {
   clearPersistedMessages,
   ensureChatId,
@@ -53,11 +45,8 @@ import {
   $inputError,
   $inputValue,
   $isDragging,
-  $isRecording,
-  $isRecordingProcessing,
   $suggestion,
 } from '@/stores/chat-ui'
-import { VoiceWaveform } from '@/components/voice-waveform'
 import { processAttachment } from '@/lib/ai-sdk-attachments'
 import { Conversation, ConversationContent, ConversationScrollButton } from '@/components/ai-elements/conversation'
 import {
@@ -85,6 +74,7 @@ import {
   PromptInputButton,
   usePromptInputAttachments,
 } from '@/components/ai-elements/prompt-input'
+import { SpeechInput } from '@/components/ai-elements/speech-input'
 import type { FileUIPart } from 'ai'
 
 // Define custom data parts for the chat stream
@@ -97,11 +87,6 @@ type MessageMetadata = {
 }
 
 export type ChatUIMessage = UIMessage<MessageMetadata, ChatDataParts>
-
-type MessageBranchState = {
-  snapshots: ChatUIMessage[][]
-  activeIndex: number
-}
 
 const GREETINGS: { range: [number, number]; options: string[] }[] = [
   {
@@ -230,18 +215,12 @@ function UserMessage({
   isEditing,
   onEditConfirm,
   onEditCancel,
-  branchCount = 1,
-  branchIndex = 0,
-  onBranchSwitch,
   onStartEdit,
 }: {
   message: UIMessage
   isEditing?: boolean
   onEditConfirm?: (messageId: string, newText: string) => void
   onEditCancel?: (messageId: string) => void
-  branchCount?: number
-  branchIndex?: number
-  onBranchSwitch?: (delta: number) => void
   onStartEdit?: (messageId: string) => void
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -251,132 +230,91 @@ function UserMessage({
       .map(p => p.text)
       .join('') || ''
 
-  const imageParts =
-    (message.parts?.filter(p => p.type === 'file' && p.mediaType?.startsWith('image/')) as Array<{
+  const imageParts = (
+    message.parts?.filter(p => p.type === 'file' && p.mediaType?.startsWith('image/')) as Array<{
       type: 'file'
       mediaType: string
       url: string
       filename?: string
-    }>) || []
+    }>
+  ) || []
 
-  const fileParts =
-    (message.parts?.filter(p => p.type === 'file' && !p.mediaType?.startsWith('image/')) as Array<{
+  const fileParts = (
+    message.parts?.filter(p => p.type === 'file' && !p.mediaType?.startsWith('image/')) as Array<{
       type: 'file'
       mediaType: string
       url: string
       filename?: string
-    }>) || []
+    }>
+  ) || []
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex justify-end items-end gap-2 sm:gap-3">
-        <div className="max-w-[85%] gap-2 sm:gap-3 lg:max-w-5xl flex flex-col">
-          <div className="flex flex-col gap-2">
-            {imageParts.length > 0 && (
-              <div className="flex flex-wrap gap-2 justify-end">
-                {imageParts.map((img, i) => (
-                  <Image
-                    key={`img-${i}-${img.url}`}
-                    src={img.url}
-                    alt={img.filename || 'Attachment'}
-                    width={192}
-                    height={192}
-                    className="max-h-48 max-w-48 rounded-xl object-cover"
-                    unoptimized
-                  />
-                ))}
-              </div>
-            )}
-            {fileParts.length > 0 && (
-              <div className="flex flex-wrap gap-2 justify-end">
-                {fileParts.map((file, i) => (
-                  <div
-                    key={`file-${i}-${file.filename || 'file'}`}
-                    className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground"
-                  >
-                    <FileText className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                    <span className="max-w-[180px] truncate">{file.filename || 'File'}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {isEditing ? (
-              <textarea
-                ref={textareaRef}
-                defaultValue={textContent}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    const target = e.currentTarget as HTMLTextAreaElement
-                    const newText = target.value.trim()
-                    if (newText) onEditConfirm?.(message.id, newText)
-                  }
-                  if (e.key === 'Escape') {
-                    e.preventDefault()
-                    onEditCancel?.(message.id)
-                  }
-                }}
-                className="rounded-2xl bg-accent px-3 py-2 text-sm text-accent-foreground sm:px-4 sm:py-3 sm:text-base resize-none min-h-[60px] max-h-[300px] overflow-y-auto w-full"
-                rows={3}
+    <Message from="user">
+      <MessageContent>
+        {imageParts.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {imageParts.map((img, i) => (
+              <Image
+                key={`img-${i}-${img.url}`}
+                src={img.url}
+                alt={img.filename || 'Attachment'}
+                width={192}
+                height={192}
+                className="max-h-48 max-w-48 rounded-xl object-cover"
+                unoptimized
               />
-            ) : (
-              textContent.trim() && (
-                <div className="rounded-2xl bg-accent px-3 py-2 text-sm text-accent-foreground sm:px-4 sm:py-3 sm:text-base">
-                  {textContent}
-                </div>
-              )
-            )}
+            ))}
           </div>
-        </div>
-        <Image
-          src="/loom-avatar-64.webp"
-          alt=""
-          width={32}
-          height={32}
-          className="h-7 w-7 flex-shrink-0 rounded-full sm:h-8 sm:w-8"
-        />
-      </div>
+        )}
+        {fileParts.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {fileParts.map((file, i) => (
+              <div
+                key={`file-${i}-${file.filename || 'file'}`}
+                className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground"
+              >
+                <Paperclip className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                <span className="max-w-[180px] truncate">{file.filename || 'File'}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {isEditing ? (
+          <textarea
+            ref={textareaRef}
+            defaultValue={textContent}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                const target = e.currentTarget as HTMLTextAreaElement
+                const newText = target.value.trim()
+                if (newText) onEditConfirm?.(message.id, newText)
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault()
+                onEditCancel?.(message.id)
+              }
+            }}
+            className="w-full rounded-2xl bg-background px-3 py-2 text-sm text-foreground sm:px-4 sm:py-3 sm:text-base resize-none min-h-[60px] max-h-[300px] overflow-y-auto border border-input"
+            rows={3}
+          />
+        ) : (
+          textContent.trim() && (
+            <div className="px-3 py-2 text-sm text-foreground sm:px-4 sm:py-3 sm:text-base">
+              {textContent}
+            </div>
+          )
+        )}
+      </MessageContent>
       {!isEditing && (
-        <div className="flex items-center gap-0.5 mr-8 sm:mr-10">
-          {branchCount > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={() => onBranchSwitch?.(-1)}
-                disabled={branchIndex === 0}
-                className="p-1 rounded-full hover:bg-accent disabled:opacity-30"
-                aria-label="Previous version"
-              >
-                <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-              <span className="text-xs text-muted-foreground select-none px-0.5">
-                {branchIndex + 1}/{branchCount}
-              </span>
-              <button
-                type="button"
-                onClick={() => onBranchSwitch?.(1)}
-                disabled={branchIndex === branchCount - 1}
-                className="p-1 rounded-full hover:bg-accent disabled:opacity-30"
-                aria-label="Next version"
-              >
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            </>
-          )}
-          {onStartEdit && (
-            <button
-              type="button"
-              onClick={() => onStartEdit(message.id)}
-              className="p-1.5 rounded-full hover:bg-accent"
-              aria-label="Edit message"
-            >
-              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-          )}
-        </div>
+        <MessageActions>
+          <MessageAction tooltip="Edit" onClick={() => onStartEdit?.(message.id)}>
+            <Pencil className="h-3.5 w-3.5" />
+          </MessageAction>
+        </MessageActions>
       )}
       {isEditing && (
-        <div className="flex items-center gap-1 mr-8 sm:mr-10">
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => onEditConfirm?.(message.id, (textareaRef.current?.value ?? '').trim())}
@@ -395,7 +333,7 @@ function UserMessage({
           </button>
         </div>
       )}
-    </div>
+    </Message>
   )
 }
 
@@ -475,15 +413,16 @@ function AssistantMessage({
 
   const cleanedText = cleanSuggestionMarkers(textPart)
 
-  const toolResultParts =
-    (message.parts?.filter(part => part.type === 'tool-result' && isToolUIPart(part)) as Array<{
+  const toolResultParts = (
+    message.parts?.filter(part => part.type === 'tool-result' && isToolUIPart(part)) as Array<{
       type: `tool-${string}`
       toolCallId: string
       toolName: string
       state: string
       input?: unknown
       output?: unknown
-    }>) || []
+    }>
+  ) || []
 
   if (hasArtifact && artifactToolCall) {
     const artifactData = (
@@ -605,17 +544,13 @@ export function ChatCore({
   const [_internalActiveArtifact, setInternalActiveArtifact] = useState<ArtifactToolCall | null>(
     null
   )
-  const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
-  const [messageBranches, setMessageBranches] = useState<Map<string, MessageBranchState>>(new Map())
 
   // UI state from nanostores
   const suggestion = useStore($suggestion)
   const followUpSuggestions = useStore($followUpSuggestions)
   const inputError = useStore($inputError)
   const isDragging = useStore($isDragging)
-  const isRecording = useStore($isRecording)
-  const isRecordingProcessing = useStore($isRecordingProcessing)
 
   const [chatId, setChatId] = useState<string>('')
   useEffect(() => {
@@ -629,7 +564,6 @@ export function ChatCore({
   }, [])
 
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const recorderRef = useRef<VoiceRecorder | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const setActiveArtifact = onArtifactOpen ?? setInternalActiveArtifact
@@ -699,11 +633,6 @@ export function ChatCore({
     }
   }, [messages])
 
-  const handleTranscriptReceived = useCallback((text: string) => {
-    $inputValue.set(text)
-    inputRef.current?.focus()
-  }, [])
-
   const handleEditCancel = (_messageId: string) => {
     setEditingMessageId(null)
   }
@@ -724,16 +653,6 @@ export function ChatCore({
         return p
       }) as ChatUIMessage['parts'],
     }
-
-    const currentSnapshots = messages
-    setMessageBranches(prev => {
-      const next = new Map(prev)
-      next.set(messageId, {
-        snapshots: [...(prev.get(messageId)?.snapshots ?? [currentSnapshots]), currentSnapshots],
-        activeIndex: prev.get(messageId)?.snapshots.length ?? 0,
-      })
-      return next
-    })
 
     const updatedMessages = messages.slice(0, messageIndex + 1)
     updatedMessages[messageIndex] = editedMsg
@@ -757,24 +676,8 @@ export function ChatCore({
     await handleSubmitWithMessages(updatedMessages as ChatUIMessage[])
   }
 
-  const handleBranchSwitch = (messageId: string, delta: number) => {
-    const branch = messageBranches.get(messageId)
-    if (!branch) return
-    const newIndex = branch.activeIndex + delta
-    if (newIndex < 0 || newIndex >= branch.snapshots.length) return
-    const targetMessages = branch.snapshots[newIndex]
-    setMessages(targetMessages as ChatUIMessage[])
-    setMessageBranches(prev => {
-      const next = new Map(prev)
-      next.set(messageId, { ...branch, activeIndex: newIndex })
-      return next
-    })
-  }
-
   // Upload files and send message
   const handleSubmitWithMessages = async (msgs: ChatUIMessage[], editedUserMsg?: ChatUIMessage) => {
-    if (isRecording || isRecordingProcessing) return
-
     const lastMsg = editedUserMsg ?? msgs[msgs.length - 1]
     const messageText =
       editedUserMsg?.parts
@@ -794,7 +697,7 @@ export function ChatCore({
             id: chatId,
             message: lastMsg,
             messages: msgs,
-            trigger: 'edit-message' as const,
+            trigger: editedUserMsg ? ('edit-message' as const) : ('submit-user-message' as const),
             messageId: lastMsg.id,
             supportsArtifacts: true,
           },
@@ -805,67 +708,6 @@ export function ChatCore({
     $suggestion.set('')
   }
 
-  const handleStartRecording = async () => {
-    try {
-      $isRecordingProcessing.set(true)
-      const stream = await VoiceRecorder.requestMicrophone()
-      const recorder = new VoiceRecorder(stream)
-      recorder.start()
-      recorderRef.current = recorder
-      $isRecording.set(true)
-      setRecordingStream(stream)
-      $isRecordingProcessing.set(false)
-    } catch (error) {
-      $inputError.set(error instanceof Error ? error.message : 'Failed to access microphone')
-      $isRecordingProcessing.set(false)
-    }
-  }
-
-  const handleStopRecording = async () => {
-    const recorder = recorderRef.current
-    if (!recorder) return
-
-    try {
-      $isRecordingProcessing.set(true)
-      const audioBlob = await recorder.stop()
-      recorder.release()
-      recorderRef.current = null
-      $isRecording.set(false)
-      setRecordingStream(null)
-
-      const formData = new FormData()
-      formData.append('audio', audioBlob, 'recording.webm')
-
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData,
-      })
-      if (!response.ok) throw new Error('Transcription failed')
-
-      const reader = response.body?.getReader()
-      if (!reader) throw new Error('Response body is not readable')
-
-      let fullTranscript = ''
-      await parseSSEStream(reader, event => {
-        if (event.type === 'transcript-chunk' && typeof event.content === 'string') {
-          fullTranscript += event.content
-          handleTranscriptReceived(fullTranscript)
-        } else if (event.type === 'transcript-complete' && typeof event.content === 'string') {
-          handleTranscriptReceived(event.content)
-        }
-      })
-
-      $isRecordingProcessing.set(false)
-    } catch (error) {
-      $inputError.set(error instanceof Error ? error.message : 'Transcription error')
-      recorderRef.current?.release()
-      recorderRef.current = null
-      $isRecording.set(false)
-      setRecordingStream(null)
-      $isRecordingProcessing.set(false)
-    }
-  }
-
   const applyFollowUp = (text: string) => {
     $inputValue.set(text)
     $followUpSuggestions.set([])
@@ -874,38 +716,29 @@ export function ChatCore({
 
   // AI Elements PromptInput submit handler
   const handlePromptSubmit = async (message: { text: string; files: FileUIPart[] }) => {
-    if (isRecording || isRecordingProcessing) return
-
     const hasText = Boolean(message.text.trim())
     const hasFiles = message.files && message.files.length > 0
     if (!hasText && !hasFiles) return
 
     // Process attachments (upload to R2 or convert)
-    const attachmentsToSend =
-      hasFiles
-        ? await Promise.all(
-            message.files.map(async f => {
-              // f is already a FileUIPart from PromptInput — it may have a blob URL
-              // If it has a blob URL, we need to convert it or upload it
-              if (f.url?.startsWith('blob:')) {
-                // It's a local blob — use processAttachment which handles conversion
-                // But processAttachment expects a File, not FileUIPart
-                // We need to fetch the blob and create a File
-                const res = await fetch(f.url)
-                const blob = await res.blob()
-                const file = new File([blob], f.filename || 'file', { type: f.mediaType })
-                return processAttachment(file)
-              }
-              // Already processed (e.g., data: URL or R2 URL)
-              return {
-                url: f.url ?? '',
-                base64: '',
-                name: f.filename || 'file',
-                contentType: f.mediaType,
-              }
-            })
-          )
-        : []
+    const attachmentsToSend = hasFiles
+      ? await Promise.all(
+          message.files.map(async f => {
+            if (f.url?.startsWith('blob:')) {
+              const res = await fetch(f.url)
+              const blob = await res.blob()
+              const file = new File([blob], f.filename || 'file', { type: f.mediaType })
+              return processAttachment(file)
+            }
+            return {
+              url: f.url ?? '',
+              base64: '',
+              name: f.filename || 'file',
+              contentType: f.mediaType,
+            }
+          })
+        )
+      : []
 
     const fileParts = attachmentsToSend.map(a => ({
       type: 'file' as const,
@@ -935,6 +768,49 @@ export function ChatCore({
 
     $suggestion.set('')
   }
+
+  // SpeechInput transcription callback — sends audio to /api/transcribe and returns transcript
+  const handleTranscription = useCallback(async (audioBlob: Blob): Promise<string> => {
+    const formData = new FormData()
+    formData.append('audio', audioBlob, 'recording.webm')
+
+    const response = await fetch('/api/transcribe', {
+      method: 'POST',
+      body: formData,
+    })
+    if (!response.ok) throw new Error('Transcription failed')
+
+    let fullTranscript = ''
+    const reader = response.body?.getReader()
+    if (!reader) throw new Error('Response body is not readable')
+
+    const decoder = new TextDecoder()
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      const chunk = decoder.decode(value, { stream: true })
+      // SSE lines: data: {"type":"transcript-chunk","content":"..."}
+      for (const line of chunk.split('\n')) {
+        const trimmed = line.trim()
+        if (!trimmed.startsWith('data:')) continue
+        try {
+          const json = JSON.parse(trimmed.slice(5))
+          if (json.type === 'transcript-chunk' && typeof json.content === 'string') {
+            fullTranscript += json.content
+            $inputValue.set(fullTranscript)
+          } else if (json.type === 'transcript-complete' && typeof json.content === 'string') {
+            fullTranscript = json.content
+            $inputValue.set(fullTranscript)
+          }
+        } catch {
+          // skip malformed lines
+        }
+      }
+    }
+
+    return fullTranscript
+  }, [])
 
   // Drag and drop on the region
   const handleDragEnter = (e: React.DragEvent) => {
@@ -1045,9 +921,6 @@ export function ChatCore({
                   onEditConfirm={handleEditConfirm}
                   onEditCancel={handleEditCancel}
                   onStartEdit={id => setEditingMessageId(id)}
-                  branchCount={(messageBranches.get(message.id)?.snapshots.length ?? 0) + 1}
-                  branchIndex={messageBranches.get(message.id)?.activeIndex ?? 0}
-                  onBranchSwitch={delta => handleBranchSwitch(message.id, delta)}
                 />
               ) : (
                 <AssistantMessage
@@ -1127,35 +1000,26 @@ export function ChatCore({
             <AttachmentChips />
           </PromptInputHeader>
           <PromptInputBody>
-            {recordingStream ? (
-              <VoiceWaveform stream={recordingStream} />
-            ) : (
-              <PromptInputTextarea
-                ref={inputRef}
-                placeholder="Type your message…"
-                className="font-sans text-sm sm:text-base"
-                autoFocus
-              />
-            )}
+            <PromptInputTextarea
+              ref={inputRef}
+              placeholder="Type your message…"
+              className="font-sans text-sm sm:text-base"
+              autoFocus
+            />
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>
-              <PromptInputButton
-                tooltip={{ content: 'Attach file', shortcut: '⌘K' }}
-              >
+              <PromptInputButton tooltip={{ content: 'Attach file', shortcut: '⌘K' }}>
                 <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
               </PromptInputButton>
-              <PromptInputButton
-                tooltip={isRecording ? 'Stop recording' : 'Use voice mode'}
-                onClick={isRecording ? handleStopRecording : handleStartRecording}
-                disabled={isRecordingProcessing}
-              >
-                {isRecording ? (
-                  <Square className="h-4 w-4 fill-current sm:h-5 sm:w-5" />
-                ) : (
-                  <AudioLines className="h-4 w-4 sm:h-5 sm:w-5" />
-                )}
-              </PromptInputButton>
+              <SpeechInput
+                onTranscriptionChange={text => {
+                  $inputValue.set(text)
+                  inputRef.current?.focus()
+                }}
+                onAudioRecorded={handleTranscription}
+                className="h-9 w-9 sm:h-10 sm:w-10"
+              />
             </PromptInputTools>
             <PromptInputSubmit status={status} />
           </PromptInputFooter>
