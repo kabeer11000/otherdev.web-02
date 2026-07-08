@@ -973,19 +973,14 @@ export function ChatCore({
           {followUpSuggestions.length > 0 && (
             <Suggestions className="pb-1">
               {followUpSuggestions.map(q => (
-                <Suggestion
-                  key={q}
-                  suggestion={q}
-                  onClick={applyFollowUp}
-                  className="max-w-[200px] truncate"
-                />
+                <Suggestion key={q} suggestion={q} onClick={applyFollowUp} />
               ))}
             </Suggestions>
           )}
         </div>
 
         <PromptInput
-          className="relative rounded-2xl border-border shadow-sm pointer-events-auto"
+          className="relative rounded-2xl border-border pointer-events-auto [&_[data-slot=input-group]]:bg-background/95 dark:[&_[data-slot=input-group]]:bg-background/90 [&_[data-slot=input-group]]:shadow-lg [&_[data-slot=input-group]]:shadow-black/10 [&_[data-slot=input-group]]:backdrop-blur-xl"
           onSubmit={handlePromptSubmit}
           accept="image/*,.pdf,.txt,.md,.js,.ts,.json,.py"
           multiple

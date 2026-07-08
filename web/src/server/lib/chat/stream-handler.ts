@@ -63,6 +63,33 @@ const SUGGESTIONS_SCHEMA = z.object({
   suggestions: z.array(z.string()).min(2).max(3),
 })
 
+function parseSuggestionText(text: string): string[] {
+  const trimmed = text.trim()
+  const jsonText = trimmed.match(/\{[\s\S]*\}/)?.[0] ?? trimmed
+
+  try {
+    const parsed = SUGGESTIONS_SCHEMA.safeParse(JSON.parse(jsonText))
+    return parsed.success ? parsed.data.suggestions : []
+  } catch {
+    return []
+  }
+}
+
+async function generateFallbackSuggestions(normalizedQuery: string): Promise<string[]> {
+  const fallback = await generateText({
+    model: workersAI(CF_FALLBACK_MODEL),
+    output: Output.object({
+      schema: SUGGESTIONS_SCHEMA,
+      structuredOutputs: true,
+    }),
+    instructions:
+      'Generate 2-3 short follow-up questions (max 10 words each) a user might ask next about web development, design, or Other Dev services. Be specific to what was asked. Return only the questions.',
+    prompt: `User asked: "${normalizedQuery}".`,
+    temperature: 0.5,
+  })
+  return fallback.output?.suggestions ?? []
+}
+
 function sanitizeInput(text: string): string {
   return text.replace(INJECTION_PATTERN, '').slice(0, RAG_MAX_MESSAGE_LENGTH)
 }
@@ -230,32 +257,22 @@ export async function handleStreamChat({
   // Generate suggestions — MiniMax direct, then Cloudflare Workers AI fallback
   const suggestionsPromise = generateText({
     model: minimaxOpenAI('MiniMax-M3'),
-    output: Output.object({
-      schema: SUGGESTIONS_SCHEMA,
-      structuredOutputs: true,
-    }),
     instructions:
-      'Generate 2-3 short follow-up questions (max 10 words each) a user might ask next about web development, design, or Other Dev services. Be specific to what was asked. Return only the questions.',
+      'Generate 2-3 short follow-up questions (max 10 words each) a user might ask next about web development, design, or Other Dev services. Be specific to what was asked. Return only JSON in this shape: {"suggestions":["question one","question two"]}.',
     prompt: `User asked: "${normalizedQuery}".`,
     temperature: 0.5,
   })
-    .catch(() =>
-      generateText({
-        model: workersAI(CF_FALLBACK_MODEL),
-        output: Output.object({
-          schema: SUGGESTIONS_SCHEMA,
-          structuredOutputs: true,
-        }),
-        instructions:
-          'Generate 2-3 short follow-up questions (max 10 words each) a user might ask next about web development, design, or Other Dev services. Be specific to what was asked. Return only the questions.',
-        prompt: `User asked: "${normalizedQuery}".`,
-        temperature: 0.5,
-      })
+    .then(r => parseSuggestionText(r.text))
+    .then(suggestions =>
+      suggestions.length > 0 ? suggestions : generateFallbackSuggestions(normalizedQuery)
     )
-    .then(r => r.output?.suggestions ?? [])
-    .catch(err => {
-      console.error('[chat] suggestion generation failed:', err)
-      return [] as string[]
+    .catch(async () => {
+      try {
+        return await generateFallbackSuggestions(normalizedQuery)
+      } catch (err) {
+        console.error('[chat] suggestion generation failed:', err)
+        return [] as string[]
+      }
     })
 
   // Try MiniMax direct first, fall back to gateway chain

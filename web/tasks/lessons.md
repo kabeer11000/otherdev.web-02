@@ -13,3 +13,9 @@
 
 - **Clarify relationship removal vs asset deletion up front** — when an admin asks to delete project images, confirm whether that means removing project gallery references only or permanently deleting media documents/storage objects. R2-backed media deletion should go through Payload's media delete flow unless there is a specific reason to bypass the configured storage adapter.
 - **Prompt user for lint runs** — when verification reaches linting in this repo, ask the user to run the linter instead of running it directly.
+
+## Session: Qdrant Node runtime failure
+
+- **Isolate provider failures by runtime before changing SDKs** — when RAG tools fail after an AI SDK refactor, first compare Cohere, raw fetch, Qdrant JS client, and the live Next route under the actual Node version. A valid env can still fail if the client library's runtime transport is incompatible.
+- **Do not treat Qdrant `checkCompatibility=false` as a connectivity fix** — it only skips the server-version probe; if the search/read request still fails, fix the runtime/client transport path instead.
+- **Keep package metadata aligned with the user's runtime preference** — if the user asks to keep `package.json` Bun-only, do not reintroduce a Node engine there; use `.node-version` / `.nvmrc` for Node runtime guidance instead.

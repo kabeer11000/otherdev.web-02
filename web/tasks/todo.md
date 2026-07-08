@@ -1,31 +1,33 @@
-# Project Media Bulk Delete Plan
+# Qdrant Node 22 Runtime Pin
 
 ## Goal
 
-Add an admin CMS control that lets admins delete all image rows from a project's media gallery without manually removing each row.
+Fix the RAG/Qdrant runtime failure after the AI SDK v7 tool refactor by running the Next.js app on Node 22 LTS instead of Node 26.
 
-## Scope
+## Root Cause
 
-- Target the `projects.media` array field in Payload admin.
-- Remove gallery rows whose media type is image or unset/default image.
-- Preserve video rows and the required hero `image` field to avoid invalid project documents.
-- Permanently delete the selected gallery image media documents so their R2 objects are removed by Payload storage.
-- Use Payload's supported custom admin field component API with `useField`.
+The env vars, Cohere embeddings, Qdrant Cloud endpoint, and raw fetch requests work. The failure is specific to `@qdrant/js-client-rest` under Node `26.3.1`, where its undici dispatcher path throws `UND_ERR_INVALID_ARG` / `fetch failed`.
 
 ## Implementation
 
-- [x] Add a server endpoint for deleting all gallery image media documents for a project.
-- [x] Add a client-side Payload admin component for project media bulk actions.
-- [x] Wire the component into the `projects.media` array field with access-safe behavior.
-- [x] Keep the UI guarded with a confirmation prompt and disabled state when no image rows exist.
-- [x] Avoid deleting videos or the required hero image media document.
+- [x] Add Node 22 version files for local tooling.
+- [x] Add Bun metadata to `package.json` while keeping Node 22 in version-manager files only.
+- [x] Keep the existing Qdrant JS client and RAG code unchanged.
+- [x] Do not use `checkCompatibility=false` as the fix because it does not repair the failing request path.
+- [x] Remove the MiniMax structured-output warning by avoiding unsupported `responseFormat` on MiniMax suggestion generation.
+- [x] Refine AI Elements suggestion pills so longer suggestions wrap cleanly.
+- [x] Increase the prompt input bar background opacity.
 
 ## Verification
 
-- [x] Run type checking with `bun run type-check`.
-- [ ] Run lint/check with `bun run lint --cache` or the closest supported cached equivalent.
-- [x] Inspect the changed diff for minimal impact and Payload import-map compatibility.
+- [ ] Confirm the active shell is running Node 22 before final live verification.
+- [x] Verify the Qdrant JS client can read the `otherdev_documents` collection under Node 22.
+- [ ] Verify `GET /api/qdrant-ping` returns `ok: true` under Node 22.
+- [ ] Verify `POST /api/chat/stream` no longer logs `[retrieveKnowledge] execute error: fetch failed`.
+- [ ] Prompt the user to run lint instead of running it directly.
 
 ## Review
 
-Implemented with a Payload collection endpoint and a Payload admin field component. `bun run type-check` still fails on existing repo-wide issues; the change-specific media ID type issue was fixed and no new `ProjectMediaBulkActions` type error appeared in the rerun. Lint was not run directly because the user asked to be prompted for lint runs.
+Added `.node-version`, `.nvmrc`, and Bun package metadata. Node is intentionally not listed in `package.json`. Verified with a temp-only Node `v22.23.1` binary that `@qdrant/js-client-rest` can read the `otherdev_documents` collection and perform a search successfully. The MiniMax suggestion path now asks for JSON as plain text and validates it locally, so it no longer sends `Output.object()` / `responseFormat` to the MiniMax provider. Follow-up suggestion pills still use the local AI Elements component and now wrap longer text. Verified the runtime config parses and `git diff --check` passes.
+
+Live Next route verification is still pending because an existing Next dev server is running on port 3000 under Node `26.3.1`; replacing that server was not approved. Lint was not run directly because this repo asks for a user prompt before lint runs.
