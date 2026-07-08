@@ -73,12 +73,12 @@ import {
   AttachmentPreview,
   AttachmentRemove,
 } from '@/components/ai-elements/attachments'
+import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion'
 import {
   PromptInput,
   PromptInputBody,
   PromptInputFooter,
   PromptInputHeader,
-  PromptInputProvider,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
@@ -1104,18 +1104,16 @@ export function ChatCore({
           )}
 
           {followUpSuggestions.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            <Suggestions className="pb-1">
               {followUpSuggestions.map(q => (
-                <button
+                <Suggestion
                   key={q}
-                  type="button"
-                  onClick={() => applyFollowUp(q)}
-                  className="flex-shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground max-w-[200px] truncate"
-                >
-                  {q}
-                </button>
+                  suggestion={q}
+                  onClick={applyFollowUp}
+                  className="max-w-[200px] truncate"
+                />
               ))}
-            </div>
+            </Suggestions>
           )}
         </div>
 
