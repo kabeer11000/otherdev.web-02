@@ -905,7 +905,7 @@ export function ChatCore({
             </div>
           )}
 
-          <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-4xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-12">
+          <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-5xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-8 lg:px-10">
             {messages.map((message, index) =>
               message.role === 'user' ? (
                 <UserMessage
@@ -954,7 +954,7 @@ export function ChatCore({
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="absolute bottom-0 left-0 right-0 z-10 p-3 sm:p-4 w-full max-w-3xl mx-auto pointer-events-none">
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-3 sm:p-4 w-full max-w-4xl mx-auto pointer-events-none">
         <div className="space-y-3 pointer-events-auto">
           {inputError && (
             <div className="rounded-t-lg bg-red-100 px-3 py-2 text-sm text-destructive flex items-center justify-between pb-4 mb-2">
@@ -980,7 +980,7 @@ export function ChatCore({
         </div>
 
         <PromptInput
-          className="relative rounded-2xl border-border pointer-events-auto [&_[data-slot=input-group]]:bg-background/95 dark:[&_[data-slot=input-group]]:bg-background/90 [&_[data-slot=input-group]]:shadow-lg [&_[data-slot=input-group]]:shadow-black/10 [&_[data-slot=input-group]]:backdrop-blur-xl"
+          className="relative rounded-2xl border-border pointer-events-auto [&_[data-slot=input-group]]:bg-background/80 dark:[&_[data-slot=input-group]]:bg-background/75 [&_[data-slot=input-group]]:shadow-lg [&_[data-slot=input-group]]:shadow-black/10 [&_[data-slot=input-group]]:backdrop-blur-xl"
           onSubmit={handlePromptSubmit}
           accept="image/*,.pdf,.txt,.md,.js,.ts,.json,.py"
           multiple
