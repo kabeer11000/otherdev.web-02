@@ -1,5 +1,5 @@
 import { groq } from '@ai-sdk/groq'
-import { experimental_transcribe as transcribe } from 'ai'
+import { transcribe } from 'ai'
 
 export async function POST(request: Request): Promise<Response> {
   try {

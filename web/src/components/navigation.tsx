@@ -1,12 +1,12 @@
 'use client'
 
+import { useStore } from '@nanostores/react'
 import { Menu, Trash2, X } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { useStore } from '@nanostores/react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { $contactDialogOpen, $mobileMenuOpen } from '@/stores/navigation'
@@ -333,7 +333,7 @@ export function Navigation({
         />
       )}
 
-      <ContactDialog open={contactDialogOpen} onOpenChange={(open) => $contactDialogOpen.set(open)} />
+      <ContactDialog open={contactDialogOpen} onOpenChange={open => $contactDialogOpen.set(open)} />
     </nav>
   )
 }

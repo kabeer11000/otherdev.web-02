@@ -1,6 +1,7 @@
 'use client'
 
 import { useChat } from '@ai-sdk/react'
+import { useStore } from '@nanostores/react'
 import { DefaultChatTransport, getToolName, isToolUIPart, type UIMessage } from 'ai'
 import {
   ArrowUp,
@@ -23,24 +24,6 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useStore } from '@nanostores/react'
-import {
-  $attachments,
-  $followUpSuggestions,
-  $inputError,
-  $inputValue,
-  $isDragging,
-  $isRecording,
-  $isRecordingProcessing,
-  $suggestion,
-} from '@/stores/chat-ui'
-import {
-  clearPersistedMessages,
-  ensureChatId,
-  loadChatMessagesFromStorage,
-  loadPersistedMessages,
-  persistMessages,
-} from '@/stores/chat-persistence'
 import type { z } from 'zod'
 import type { ArtifactToolCall } from '@/components/artifact-renderer'
 import { Button } from '@/components/ui/button'
@@ -66,6 +49,23 @@ import { suggestionDataSchema } from '@/lib/schemas'
 import { parseSSEStream } from '@/lib/sse'
 import { cleanSuggestionMarkers, cn } from '@/lib/utils'
 import { VoiceRecorder } from '@/lib/voice-recorder'
+import {
+  clearPersistedMessages,
+  ensureChatId,
+  loadChatMessagesFromStorage,
+  loadPersistedMessages,
+  persistMessages,
+} from '@/stores/chat-persistence'
+import {
+  $attachments,
+  $followUpSuggestions,
+  $inputError,
+  $inputValue,
+  $isDragging,
+  $isRecording,
+  $isRecordingProcessing,
+  $suggestion,
+} from '@/stores/chat-ui'
 
 // Define custom data parts for the chat stream
 type ChatDataParts = {

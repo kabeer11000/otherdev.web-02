@@ -5,7 +5,8 @@ vi.mock('ai', async () => {
   const actual = await vi.importActual('ai')
   return {
     ...actual,
-    experimental_transcribe: vi.fn(),
+    experimental_transcribe: vi.fn(), // v6 name for backwards-compatible mock
+    transcribe: vi.fn(),
   }
 })
 
@@ -47,8 +48,8 @@ describe('POST /api/transcribe', () => {
   })
 
   test('returns streaming response with text/event-stream content type', async () => {
-    const { experimental_transcribe } = await import('ai')
-    vi.mocked(experimental_transcribe).mockResolvedValue({
+    const { transcribe } = await import('ai')
+    vi.mocked(transcribe).mockResolvedValue({
       text: 'This is a test transcription',
     })
 
@@ -70,8 +71,8 @@ describe('POST /api/transcribe', () => {
   })
 
   test('streams transcription in chunks', async () => {
-    const { experimental_transcribe } = await import('ai')
-    vi.mocked(experimental_transcribe).mockResolvedValue({
+    const { transcribe } = await import('ai')
+    vi.mocked(transcribe).mockResolvedValue({
       text: 'Hello world this is a test transcription',
     })
 
@@ -110,8 +111,8 @@ describe('POST /api/transcribe', () => {
   })
 
   test('returns 500 when transcription fails', async () => {
-    const { experimental_transcribe } = await import('ai')
-    vi.mocked(experimental_transcribe).mockRejectedValue(new Error('Transcription API error'))
+    const { transcribe } = await import('ai')
+    vi.mocked(transcribe).mockRejectedValue(new Error('Transcription API error'))
 
     const audioBuffer = new ArrayBuffer(128)
     const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' })
@@ -132,8 +133,8 @@ describe('POST /api/transcribe', () => {
   })
 
   test('handles empty transcription text', async () => {
-    const { experimental_transcribe } = await import('ai')
-    vi.mocked(experimental_transcribe).mockResolvedValue({
+    const { transcribe } = await import('ai')
+    vi.mocked(transcribe).mockResolvedValue({
       text: '',
     })
 

@@ -82,7 +82,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${sourceSerif.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable}`}>
+    <html
+      lang="en"
+      className={`${sourceSerif.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable}`}
+    >
       <head>
         {/* R2 preconnect — saves DNS+TCP+TLS per image */}
         <link

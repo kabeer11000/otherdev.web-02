@@ -1,7 +1,7 @@
-import { type TextStreamPart, type ToolSet, type UIMessage, validateUIMessages } from 'ai'
+import { type UIMessage } from 'ai'
 import { suggestionDataSchema } from '@/lib/schemas'
 import { createJsonResponse } from '@/server/lib/api-helpers'
-import { handleStreamChat } from '@/server/lib/chat'
+import { buildUIMessageStreamResponse, handleStreamChat } from '@/server/lib/chat'
 import { replaceMessageAtId } from '@/server/lib/chat/message-utils'
 import {
   createArtifactTool,
@@ -85,39 +85,11 @@ export async function POST(request: Request): Promise<Response> {
       return createJsonResponse({ error: 'No valid messages provided' }, 400)
     }
 
-    // Pass artifact tool for validation (no execute = client-side only)
-    const artifactTool = createArtifactTool
-
-    // Validate messages
-    let uiMessages: UIMessage[]
-    try {
-      uiMessages = (await validateUIMessages({
-        messages: candidateMessages,
-        dataSchemas: {
-          suggestion: suggestionDataSchema,
-        },
-        tools: {
-          // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool validation
-          createArtifact: artifactTool as any,
-          // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool validation
-          retrieveKnowledge: retrieveKnowledgeTool as any,
-          // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool validation
-          tavilySearch: tavilySearchTool as any,
-        },
-      })) as UIMessage[]
-    } catch (error) {
-      if (error instanceof (await import('ai')).TypeValidationError) {
-        console.error('[VALIDATION] Invalid chat messages:', error.message)
-        return createJsonResponse({ error: 'Invalid message payload' }, 400)
-      }
-      throw error
-    }
-
     // For submit: save AFTER streaming via onFinish (industry standard)
     // Anthropic pattern: client owns history persistence — no server-side save needed
 
     const handleResult = await handleStreamChat({
-      messages: uiMessages,
+      messages: candidateMessages,
       supportsArtifacts,
       request,
     })
@@ -126,24 +98,8 @@ export async function POST(request: Request): Promise<Response> {
       return handleResult.errorResponse
     }
 
-    // Defensive null guard — streamText should never return null, but AI SDK edge cases exist
-    if (!handleResult.result) {
-      console.error('[chat] stream result is null — AI SDK returned no stream')
-      return createJsonResponse({ error: 'AI stream failed. Please try again.' }, 500)
-    }
-
-    handleResult.result.consumeStream()
-    return handleResult.result.toUIMessageStreamResponse({
-      originalMessages: uiMessages,
-      generateMessageId: () => crypto.randomUUID(),
-      sendReasoning: true,
-      messageMetadata({ part }: { part: TextStreamPart<ToolSet> }) {
-        if (part.type === 'finish') {
-          return { suggestions: handleResult.suggestions } as Record<string, unknown>
-        }
-        return undefined
-      },
-    })
+    const { result: textResult, suggestions } = handleResult
+    return buildUIMessageStreamResponse(textResult, candidateMessages, suggestions)
   } catch (error) {
     console.error('Chat API error:', error)
     return createJsonResponse({ error: 'Internal server error. Please try again.' }, 500)

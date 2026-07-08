@@ -122,7 +122,7 @@ export default buildConfig({
     redirectsPlugin({
       collections: ['blog', 'projects'],
     }),
-        ...(process.env.R2_BUCKET
+    ...(process.env.R2_BUCKET
       ? [
           s3Storage({
             enabled: true,

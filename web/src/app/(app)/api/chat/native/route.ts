@@ -1,13 +1,10 @@
-import {
-  type TextStreamPart,
-  type ToolSet,
-  TypeValidationError,
-  type UIMessage,
-  validateUIMessages,
-} from 'ai'
+import { type UIMessage } from 'ai'
 import { suggestionDataSchema } from '@/lib/schemas'
 import { createJsonResponse } from '@/server/lib/api-helpers'
-import { handleStreamChat } from '@/server/lib/chat'
+import {
+  buildUIMessageStreamResponse,
+  handleStreamChat,
+} from '@/server/lib/chat'
 import { replaceMessageAtId } from '@/server/lib/chat/message-utils'
 import {
   createArtifactTool,
@@ -116,28 +113,18 @@ export async function POST(request: Request): Promise<Response> {
     // Save AFTER streaming via onFinish — industry standard pattern
     // Anthropic pattern: client owns history persistence — no server-side save needed
 
-    const { result, suggestions } = await handleStreamChat({
+    const streamResult = await handleStreamChat({
       messages: uiMessages,
       supportsArtifacts,
       request,
     })
 
-    if (!result.ok) {
-      return result.errorResponse
+    if (!streamResult.ok) {
+      return streamResult.errorResponse
     }
 
-    result.result.consumeStream()
-    return result.result.toUIMessageStreamResponse({
-      originalMessages: uiMessages,
-      generateMessageId: () => crypto.randomUUID(),
-      sendReasoning: true,
-      messageMetadata({ part }: { part: TextStreamPart<ToolSet> }) {
-        if (part.type === 'finish') {
-          return { suggestions } as Record<string, unknown>
-        }
-        return undefined
-      },
-    })
+    const { result: textResult, suggestions } = streamResult
+    return buildUIMessageStreamResponse(textResult, uiMessages, suggestions)
   } catch (error) {
     console.error('Chat API error:', error)
     return createJsonResponse({ error: 'Internal server error. Please try again.' }, 500)

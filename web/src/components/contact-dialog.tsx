@@ -1,9 +1,9 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useStore } from '@nanostores/react'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
-import { useStore } from '@nanostores/react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -154,7 +154,13 @@ We will reach out to you with the next steps as soon as possible.`}
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input type="email" placeholder="Email…" autocomplete="email" {...field} className="bg-card" />
+                        <Input
+                          type="email"
+                          placeholder="Email…"
+                          autocomplete="email"
+                          {...field}
+                          className="bg-card"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

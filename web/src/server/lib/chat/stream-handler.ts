@@ -1,17 +1,21 @@
-import { minimaxOpenAI } from 'vercel-minimax-ai-provider'
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   gateway,
   generateText,
   type ModelMessage,
   Output,
-  stepCountIs,
+  isStepCount,
   streamText,
+  toUIMessageStream,
   type TextStreamPart,
   type ToolSet,
   type UIMessage,
   validateUIMessages,
+  type TypeValidationError,
+  type StreamTextResult,
 } from 'ai'
+import { minimaxOpenAI } from 'vercel-minimax-ai-provider'
 import { z } from 'zod'
 
 import { createJsonResponse } from '@/server/lib/api-helpers'
@@ -47,7 +51,7 @@ export type HandleStreamChatResult =
 
 const RAG_MAX_MESSAGE_LENGTH = Number.parseInt(process.env.RAG_MAX_MESSAGE_LENGTH || '500', 10)
 
-const GATEWAY_ORDER = ['groq', 'cerebras', 'cohere'] as const
+const GATEWAY_ORDER = ['groq', 'cerebras', 'cohere'] as const satisfies string[]
 
 const INJECTION_PATTERN =
   /\[INST\]|\[\/INST\]|<\|im_start\|>|<\|im_end\|>|<\|system\|>|<\|user\|>|<\|assistant\|>/gi
@@ -157,12 +161,16 @@ export async function handleStreamChat({
     const retryAfter = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
     return {
       ok: false,
-      errorResponse: createJsonResponse({ error: 'Too many requests. Please try again later.' }, 429, {
-        'Retry-After': retryAfter.toString(),
-        'X-RateLimit-Limit': REQUESTS_PER_WINDOW.toString(),
-        'X-RateLimit-Remaining': '0',
-        'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
-      }),
+      errorResponse: createJsonResponse(
+        { error: 'Too many requests. Please try again later.' },
+        429,
+        {
+          'Retry-After': retryAfter.toString(),
+          'X-RateLimit-Limit': REQUESTS_PER_WINDOW.toString(),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+        }
+      ),
       suggestions: [],
       rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: 0 },
     }
@@ -199,7 +207,7 @@ export async function handleStreamChat({
       },
     })) as UIMessage[]
   } catch (error) {
-    if (error instanceof (await import('ai')).TypeValidationError) {
+    if (error instanceof TypeValidationError) {
       console.error('[VALIDATION] Invalid chat messages:', error.message)
       return {
         ok: false,
@@ -230,7 +238,7 @@ export async function handleStreamChat({
     output: Output.object({
       schema: SUGGESTIONS_SCHEMA,
     }),
-    system:
+    instructions:
       'Generate 2-3 short follow-up questions (max 10 words each) a user might ask next about web development, design, or Other Dev services. Be specific to what was asked. Return only the questions.',
     prompt: `User asked: "${normalizedQuery}".`,
     temperature: 0.5,
@@ -241,7 +249,7 @@ export async function handleStreamChat({
         output: Output.object({
           schema: SUGGESTIONS_SCHEMA,
         }),
-        system:
+        instructions:
           'Generate 2-3 short follow-up questions (max 10 words each) a user might ask next about web development, design, or Other Dev services. Be specific to what was asked. Return only the questions.',
         prompt: `User asked: "${normalizedQuery}".`,
         temperature: 0.5,
@@ -268,11 +276,11 @@ export async function handleStreamChat({
   const streamWithMiniMax = async () =>
     streamText({
       model: minimaxOpenAI('MiniMax-M3'),
-      system: getSystemPrompt(),
+      instructions: getSystemPrompt(),
       messages: modelMessages,
       temperature: 0.5,
       maxOutputTokens: supportsArtifacts ? 4096 : 1024,
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
       toolChoice: 'auto',
       tools,
     })
@@ -280,11 +288,11 @@ export async function handleStreamChat({
   const streamWithGateway = () =>
     streamText({
       model: gateway(TEXT_MODEL),
-      system: getSystemPrompt(),
+      instructions: getSystemPrompt(),
       messages: modelMessages,
       temperature: 0.5,
       maxOutputTokens: supportsArtifacts ? 4096 : 1024,
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
       toolChoice: 'auto',
       tools,
       providerOptions: {
@@ -312,7 +320,10 @@ export async function handleStreamChat({
     console.error('[chat] stream failed:', err)
     return {
       ok: false,
-      errorResponse: createJsonResponse({ error: 'AI service temporarily unavailable. Please try again.' }, 503),
+      errorResponse: createJsonResponse(
+        { error: 'AI service temporarily unavailable. Please try again.' },
+        503
+      ),
       suggestions: [],
       rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: rateLimitResult.remaining },
     }
@@ -324,6 +335,33 @@ export async function handleStreamChat({
     suggestions: resolvedSuggestions,
     rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: rateLimitResult.remaining },
   }
+}
+
+/**
+ * Builds a streaming UI message HTTP response from a streamText result.
+ * Centralizes the v7 toUIMessageStream + createUIMessageStreamResponse pattern
+ * so both /api/chat/native and /api/chat/stream stay in sync.
+ */
+export function buildUIMessageStreamResponse(
+  streamResult: StreamTextResult<ToolSet>,
+  originalMessages: UIMessage[],
+  suggestions: string[],
+): Response {
+  streamResult.consumeStream()
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: streamResult.stream,
+      originalMessages,
+      generateMessageId: () => crypto.randomUUID(),
+      sendReasoning: true,
+      messageMetadata({ part }: { part: TextStreamPart<ToolSet> }) {
+        if (part.type === 'finish') {
+          return { suggestions } as Record<string, unknown>
+        }
+        return undefined
+      },
+    }),
+  })
 }
 
 function getSystemPrompt(): string {

@@ -8,8 +8,7 @@
  * URL overrides: ?flag_USE_AI_SDK_CHAT=true
  */
 
-import { atom } from 'nanostores'
-import { map, type MapStore } from 'nanostores'
+import { atom, type MapStore, map } from 'nanostores'
 
 const FEATURE_FLAGS = {
   USE_AI_SDK_CHAT: false,

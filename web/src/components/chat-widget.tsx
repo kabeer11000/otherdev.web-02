@@ -1,10 +1,10 @@
 'use client'
 
+import { useStore } from '@nanostores/react'
 import { MoreHorizontal, X } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import * as React from 'react'
-import { useStore } from '@nanostores/react'
 import { ChatCore } from '@/components/chat-core'
 import { Card } from '@/components/ui/card'
 import { Z_INDEX } from '@/lib/constants'

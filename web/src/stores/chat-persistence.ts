@@ -5,8 +5,8 @@
  * - $chatMessages: messages scoped to current tab (sessionStorage)
  */
 
-import { atom } from 'nanostores'
 import { persistentAtom } from '@nanostores/persistent'
+import { atom } from 'nanostores'
 
 const EXPIRATION_MS = 60 * 60 * 1000 // 1 hour — ponytail: change here if you need longer
 
@@ -14,7 +14,7 @@ const EXPIRATION_MS = 60 * 60 * 1000 // 1 hour — ponytail: change here if you 
 
 export const $chatId = persistentAtom<string>('otherdev-chat-id', '', {
   encode: JSON.stringify,
-  decode: (raw) => {
+  decode: raw => {
     try {
       const val = JSON.parse(raw)
       return typeof val === 'string' ? val : ''

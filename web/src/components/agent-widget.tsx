@@ -1,10 +1,10 @@
 'use client'
 
 import { ConversationProvider, useConversationStatus } from '@elevenlabs/react'
+import { useStore } from '@nanostores/react'
 import { X } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useCallback } from 'react'
-import { useStore } from '@nanostores/react'
 import { ConversationBar } from '@/components/ui/conversation-bar'
 import type { AgentState } from '@/components/ui/orb'
 import { Z_INDEX } from '@/lib/constants'
