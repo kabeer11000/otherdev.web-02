@@ -1,10 +1,6 @@
 // ─── Text Models ────────────────────────────────────────────────────────────────
-// MiniMax-M3:           Primary — MiniMax BYOK (200k context, multimodal: text + image)
-// groq/gpt-oss-120b:   First fallback — Groq BYOK
-// cerebras/qwen-3-235b: Second fallback — Cerebras BYOK
-// cohere/command-a:     Third fallback — Cohere BYOK
+// MiniMax-M3:           Primary — MiniMax direct (200k context, multimodal: text + image)
+// @cf/moonshotai/kimi-k2.7-code: Fallback — Cloudflare Workers AI (256k ctx, reasoning, tools)
 
 export const TEXT_MODEL = 'minimax/MiniMax-M3'
-export const TEXT_MODEL_FALLBACK = 'groq/gpt-oss-120b'
-export const TEXT_MODEL_FALLBACK_2 = 'cerebras/qwen-3-235b'
-export const TEXT_MODEL_FALLBACK_3 = 'cohere/command-a'
+export const CF_FALLBACK_MODEL = '@cf/moonshotai/kimi-k2.7-code'

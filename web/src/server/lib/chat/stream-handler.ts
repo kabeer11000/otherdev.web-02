@@ -1,31 +1,26 @@
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
-  gateway,
   generateText,
-  type ModelMessage,
-  Output,
   isStepCount,
+  Output,
   streamText,
   toUIMessageStream,
+  type ModelMessage,
+  type StreamTextResult,
   type TextStreamPart,
   type ToolSet,
   type UIMessage,
   validateUIMessages,
   type TypeValidationError,
-  type StreamTextResult,
 } from 'ai'
 import { minimaxOpenAI } from 'vercel-minimax-ai-provider'
+import { createWorkersAI } from 'workers-ai-provider'
 import { z } from 'zod'
 
 import { createJsonResponse } from '@/server/lib/api-helpers'
 import { checkRateLimit, getClientIdentifier, REQUESTS_PER_WINDOW } from '@/server/lib/rate-limit'
-import {
-  TEXT_MODEL,
-  TEXT_MODEL_FALLBACK,
-  TEXT_MODEL_FALLBACK_2,
-  TEXT_MODEL_FALLBACK_3,
-} from './models'
+import { CF_FALLBACK_MODEL } from './models'
 import { createArtifactTool, retrieveKnowledgeTool, tavilySearchTool } from './tools'
 
 export interface HandleStreamChatOptions {
@@ -51,7 +46,11 @@ export type HandleStreamChatResult =
 
 const RAG_MAX_MESSAGE_LENGTH = Number.parseInt(process.env.RAG_MAX_MESSAGE_LENGTH || '500', 10)
 
-const GATEWAY_ORDER = ['groq', 'cerebras', 'cohere'] as const satisfies string[]
+// Cloudflare Workers AI — configured via REST API (no Workers binding in Next.js)
+const workersAI = createWorkersAI({
+  accountId: process.env.CLOUDFLARE_ACCOUNT_ID!,
+  apiKey: process.env.CF_AIG_TOKEN!,
+})
 
 const INJECTION_PATTERN =
   /\[INST\]|\[\/INST\]|<\|im_start\|>|<\|im_end\|>|<\|system\|>|<\|user\|>|<\|assistant\|>/gi
@@ -228,15 +227,12 @@ export async function handleStreamChat({
   const sanitizedMessages = sanitizeModelMessages(rawModelMessages)
   const modelMessages = resolveDataURIs(sanitizedMessages)
 
-  const fallbacks = [TEXT_MODEL_FALLBACK, TEXT_MODEL_FALLBACK_2, TEXT_MODEL_FALLBACK_3]
-
-  // Provider priority: MiniMax-M3 direct → Groq → Cerebras → Cohere (via gateway)
-
-  // Generate suggestions before streaming — MiniMax direct, then gateway fallbacks
+  // Generate suggestions — MiniMax direct, then Cloudflare Workers AI fallback
   const suggestionsPromise = generateText({
     model: minimaxOpenAI('MiniMax-M3'),
     output: Output.object({
       schema: SUGGESTIONS_SCHEMA,
+      structuredOutputs: true,
     }),
     instructions:
       'Generate 2-3 short follow-up questions (max 10 words each) a user might ask next about web development, design, or Other Dev services. Be specific to what was asked. Return only the questions.',
@@ -245,25 +241,15 @@ export async function handleStreamChat({
   })
     .catch(() =>
       generateText({
-        model: gateway(TEXT_MODEL_FALLBACK),
+        model: workersAI(CF_FALLBACK_MODEL),
         output: Output.object({
           schema: SUGGESTIONS_SCHEMA,
+          structuredOutputs: true,
         }),
         instructions:
           'Generate 2-3 short follow-up questions (max 10 words each) a user might ask next about web development, design, or Other Dev services. Be specific to what was asked. Return only the questions.',
         prompt: `User asked: "${normalizedQuery}".`,
         temperature: 0.5,
-        providerOptions: {
-          gateway: {
-            order: GATEWAY_ORDER,
-            models: fallbacks,
-            byok: {
-              groq: [{ apiKey: process.env.GROQ_API_KEY! }],
-              cerebras: [{ apiKey: process.env.CEREBRAS_API_KEY! }],
-              cohere: [{ apiKey: process.env.COHERE_API_KEY! }],
-            },
-          },
-        },
       })
     )
     .then(r => r.output?.suggestions ?? [])
@@ -285,9 +271,9 @@ export async function handleStreamChat({
       tools,
     })
 
-  const streamWithGateway = () =>
+  const streamWithCF = () =>
     streamText({
-      model: gateway(TEXT_MODEL),
+      model: workersAI(CF_FALLBACK_MODEL),
       instructions: getSystemPrompt(),
       messages: modelMessages,
       temperature: 0.5,
@@ -295,17 +281,6 @@ export async function handleStreamChat({
       stopWhen: isStepCount(5),
       toolChoice: 'auto',
       tools,
-      providerOptions: {
-        gateway: {
-          order: GATEWAY_ORDER,
-          models: fallbacks,
-          byok: {
-            groq: [{ apiKey: process.env.GROQ_API_KEY! }],
-            cerebras: [{ apiKey: process.env.CEREBRAS_API_KEY! }],
-            cohere: [{ apiKey: process.env.COHERE_API_KEY! }],
-          },
-        },
-      },
     })
 
   let resolvedSuggestions: string[] = []
@@ -313,7 +288,7 @@ export async function handleStreamChat({
 
   try {
     ;[streamResult, resolvedSuggestions] = await Promise.all([
-      streamWithMiniMax().catch(() => streamWithGateway()),
+      streamWithMiniMax().catch(() => streamWithCF()),
       suggestionsPromise,
     ])
   } catch (err) {
