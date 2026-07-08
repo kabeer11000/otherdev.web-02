@@ -736,7 +736,7 @@ export function ChatCore({
   const { messages, sendMessage, status, setMessages, addToolOutput } = useChat<ChatUIMessage>({
     id: chatId,
     initialMessages: typeof window !== 'undefined' ? loadPersistedMessages<UIMessage>() : [],
-    experimental_throttle: 50,
+    throttle: 50,
     dataPartSchemas: {
       suggestion: suggestionDataSchema,
     },

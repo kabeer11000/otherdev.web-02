@@ -5,7 +5,6 @@ vi.mock('ai', async () => {
   const actual = await vi.importActual('ai')
   return {
     ...actual,
-    experimental_transcribe: vi.fn(), // v6 name for backwards-compatible mock
     transcribe: vi.fn(),
   }
 })
