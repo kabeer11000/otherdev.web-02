@@ -54,6 +54,7 @@ import {
   MessageActions,
   MessageAction,
 } from '@/components/ai-elements/message'
+import { Source, Sources, SourcesContent, SourcesTrigger } from '@/components/ai-elements/sources'
 import {
   Attachments,
   Attachment,
@@ -85,6 +86,65 @@ type MessageMetadata = {
 }
 
 export type ChatUIMessage = UIMessage<MessageMetadata, ChatDataParts>
+
+type ChatSource = {
+  id: string
+  title: string
+  url?: string
+  description?: string
+}
+
+const decodeXmlEntities = (value: string): string =>
+  value
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+
+const getToolOutputText = (output: unknown): string => {
+  if (typeof output === 'string') {
+    return output
+  }
+  if (output == null) {
+    return ''
+  }
+  return JSON.stringify(output)
+}
+
+function extractToolSources(toolName: string, output: unknown): ChatSource[] {
+  const text = getToolOutputText(output)
+  if (!text) {
+    return []
+  }
+
+  if (toolName === 'tavilySearch') {
+    return [...text.matchAll(/<result\s+title="([^"]*)"\s+url="([^"]*)">([\s\S]*?)<\/result>/g)]
+      .map((match, index) => ({
+        id: `web-${index}-${match[2]}`,
+        title: decodeXmlEntities(match[1]),
+        url: decodeXmlEntities(match[2]),
+        description: decodeXmlEntities(match[3]).trim(),
+      }))
+      .filter(source => source.title || source.url)
+  }
+
+  if (toolName === 'retrieveKnowledge') {
+    return [
+      ...text.matchAll(
+        /<document\s+index="([^"]*)"\s+relevance="([^"]*)"\s+title="([^"]*)">([\s\S]*?)<\/document>/g
+      ),
+    ]
+      .map((match, index) => ({
+        id: `rag-${match[1] || index}`,
+        title: decodeXmlEntities(match[3]),
+        description: `${decodeXmlEntities(match[2])} relevance`,
+      }))
+      .filter(source => source.title)
+  }
+
+  return []
+}
 
 const GREETINGS: { range: [number, number]; options: string[] }[] = [
   {
@@ -420,16 +480,17 @@ function AssistantMessage({
 
   const cleanedText = cleanSuggestionMarkers(textPart)
 
-  const toolResultParts = (
-    message.parts?.filter(part => part.type === 'tool-result' && isToolUIPart(part)) as Array<{
-      type: `tool-${string}`
-      toolCallId: string
-      toolName: string
-      state: string
-      input?: unknown
-      output?: unknown
-    }>
-  ) || []
+  const toolResultParts =
+    message.parts
+      ?.filter(
+        (part): part is Extract<UIMessage['parts'][number], { type: `tool-${string}` }> =>
+          isToolUIPart(part) && part.state === 'output-available'
+      )
+      .map(part => ({
+        toolName: getToolName(part),
+        output: part.output,
+      })) ?? []
+  const sources = toolResultParts.flatMap(part => extractToolSources(part.toolName, part.output))
 
   if (hasArtifact && artifactToolCall) {
     const artifactData = (
@@ -522,21 +583,31 @@ function AssistantMessage({
               <ReasoningContent>{reasoningText}</ReasoningContent>
             </Reasoning>
           )}
-          {toolResultParts.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {toolResultParts.map((part, i) => {
-                const toolName = part.toolName
-                const isKnowledge = toolName === 'retrieveKnowledge'
-                return (
-                  <div
-                    key={`tool-${part.toolName}-${i}`}
-                    className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
-                  >
-                    <span>{isKnowledge ? 'Knowledge retrieved' : `Tool: ${toolName}`}</span>
-                  </div>
-                )
-              })}
-            </div>
+          {sources.length > 0 && (
+            <Sources>
+              <SourcesTrigger count={sources.length} />
+              <SourcesContent>
+                {sources.map(source =>
+                  source.url ? (
+                    <Source key={source.id} href={source.url} title={source.title}>
+                      <span className="block max-w-[min(32rem,70vw)] truncate font-medium">
+                        {source.title || source.url}
+                      </span>
+                    </Source>
+                  ) : (
+                    <div
+                      key={source.id}
+                      className="flex items-center gap-2 text-muted-foreground"
+                    >
+                      <span className="block max-w-[min(32rem,70vw)] truncate font-medium">
+                        {source.title}
+                      </span>
+                      {source.description && <span>{source.description}</span>}
+                    </div>
+                  )
+                )}
+              </SourcesContent>
+            </Sources>
           )}
           {cleanedText && (
             <MessageResponse isAnimating={isAnimating}>{cleanedText}</MessageResponse>

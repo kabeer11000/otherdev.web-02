@@ -26,6 +26,13 @@ The env vars, Cohere embeddings, Qdrant Cloud endpoint, and raw fetch requests w
 - [ ] Verify `POST /api/chat/stream` no longer logs `[retrieveKnowledge] execute error: fetch failed`.
 - [ ] Prompt the user to run lint instead of running it directly.
 
+## Follow-up Sources/Citations
+
+- [x] Render currently available Tavily and RAG tool outputs with the AI Elements `Sources` component.
+- [ ] Change `retrieveKnowledge` and `tavilySearch` tool outputs to return structured source metadata instead of XML-like strings.
+- [ ] Add URLs/slugs to RAG documents where possible so knowledge-base sources can be clickable.
+- [ ] Consider AI Elements `InlineCitation` only after the model is instructed to cite specific claims with source ids.
+
 ## Review
 
 Added `.node-version`, `.nvmrc`, and Bun package metadata. Node is intentionally not listed in `package.json`. Verified with a temp-only Node `v22.23.1` binary that `@qdrant/js-client-rest` can read the `otherdev_documents` collection and perform a search successfully. The MiniMax suggestion path now asks for JSON as plain text and validates it locally, so it no longer sends `Output.object()` / `responseFormat` to the MiniMax provider. Follow-up suggestion pills still use the local AI Elements component and now wrap longer text. Verified the runtime config parses and `git diff --check` passes.
