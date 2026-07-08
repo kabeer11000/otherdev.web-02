@@ -2,16 +2,21 @@
 
 import { useChat } from '@ai-sdk/react'
 import { useStore } from '@nanostores/react'
-import { DefaultChatTransport, getToolName, isToolUIPart, type UIMessage } from 'ai'
+import {
+  DefaultChatTransport,
+  getToolName,
+  isToolUIPart,
+  type UIMessage,
+} from 'ai'
 import {
   ArrowUp,
   AudioLines,
   Brain,
   Briefcase,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Code2,
+  Copy,
   FileCode2,
   FileText,
   Globe,
@@ -23,27 +28,14 @@ import {
   X,
 } from 'lucide-react'
 import Image from 'next/image'
+import { nanoid } from 'nanoid'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { z } from 'zod'
+import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning'
 import type { ArtifactToolCall } from '@/components/artifact-renderer'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  ChatContainerContent,
-  ChatContainerRoot,
-  ChatContainerScrollAnchor,
-} from '@/components/ui/chat-container'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { CopyButton } from '@/components/ui/copy-button'
-import { MarkdownRenderer } from '@/components/ui/markdown-renderer'
-import {
-  PromptInput,
-  PromptInputAction,
-  PromptInputActions,
-  PromptInputTextarea,
-} from '@/components/ui/prompt-input'
-import { VoiceWaveform } from '@/components/voice-waveform'
-import { processAttachment } from '@/lib/ai-sdk-attachments'
 import { SUGGESTED_PROMPTS } from '@/lib/constants'
 import { suggestionDataSchema } from '@/lib/schemas'
 import { parseSSEStream } from '@/lib/sse'
@@ -57,7 +49,6 @@ import {
   persistMessages,
 } from '@/stores/chat-persistence'
 import {
-  $attachments,
   $followUpSuggestions,
   $inputError,
   $inputValue,
@@ -66,6 +57,35 @@ import {
   $isRecordingProcessing,
   $suggestion,
 } from '@/stores/chat-ui'
+import { VoiceWaveform } from '@/components/voice-waveform'
+import { processAttachment } from '@/lib/ai-sdk-attachments'
+import { Conversation, ConversationContent, ConversationScrollButton } from '@/components/ai-elements/conversation'
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+  MessageActions,
+  MessageAction,
+} from '@/components/ai-elements/message'
+import {
+  Attachments,
+  Attachment,
+  AttachmentPreview,
+  AttachmentRemove,
+} from '@/components/ai-elements/attachments'
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputHeader,
+  PromptInputProvider,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputTools,
+  PromptInputButton,
+  usePromptInputAttachments,
+} from '@/components/ai-elements/prompt-input'
+import type { FileUIPart } from 'ai'
 
 // Define custom data parts for the chat stream
 type ChatDataParts = {
@@ -162,51 +182,6 @@ function useTimeBasedGreeting() {
   return greeting
 }
 
-function useScrollToBottom(containerRef: React.RefObject<HTMLDivElement | null>) {
-  const [showButton, setShowButton] = useState(false)
-
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-      setShowButton(!isNearBottom)
-    }
-
-    container.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll()
-
-    return () => container.removeEventListener('scroll', handleScroll)
-  }, [containerRef])
-
-  const scrollToBottom = useCallback(() => {
-    const container = containerRef.current
-    if (!container) return
-    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
-  }, [containerRef])
-
-  return { showButton, scrollToBottom }
-}
-
-function ReasoningCollapsible({ reasoning }: { reasoning: string }) {
-  return (
-    <Collapsible defaultOpen={false}>
-      <CollapsibleTrigger className="flex items-center gap-1.5 font-sans text-xs text-muted-foreground transition-colors hover:text-foreground group">
-        <Brain className="h-3 w-3" />
-        <span>View thinking process</span>
-        <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="mt-2">
-        <div className="max-w-full break-words rounded-xl border border-border bg-muted/50 p-3 font-sans text-xs leading-relaxed text-muted-foreground sm:p-4 sm:text-sm">
-          <MarkdownRenderer>{reasoning}</MarkdownRenderer>
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
-  )
-}
-
 function SuggestionButton({
   display,
   prompt,
@@ -215,21 +190,9 @@ function SuggestionButton({
 }: {
   display: string
   prompt: string
-  sendMessage: (message: {
-    text: string
-    files?: Array<{
-      type: 'file'
-      mediaType: string
-      url: string
-      name: string
-    }>
-  }) => void
+  sendMessage: (message: { text: string }) => void
   icon?: 'briefcase' | 'users' | 'code' | 'globe'
 }) {
-  const handleClick = () => {
-    sendMessage({ text: prompt })
-  }
-
   const IconComponent = useMemo(() => {
     switch (icon) {
       case 'briefcase':
@@ -249,7 +212,7 @@ function SuggestionButton({
     <Button
       type="button"
       variant="outline"
-      onClick={handleClick}
+      onClick={() => sendMessage({ text: prompt })}
       className="h-auto justify-start rounded-xl bg-card p-4 text-left text-xs transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-md active:scale-[0.98] sm:p-4 sm:text-sm whitespace-normal break-words"
     >
       <div className="flex items-start gap-3">
@@ -436,6 +399,26 @@ function UserMessage({
   )
 }
 
+// Renders inside PromptInput, where usePromptInputAttachments context is available
+function AttachmentChips() {
+  const attachmentItems = usePromptInputAttachments()
+  if (attachmentItems.files.length === 0) return null
+  return (
+    <Attachments variant="grid">
+      {attachmentItems.files.map(file => (
+        <Attachment
+          key={file.id}
+          data={{ ...file, id: file.id }}
+          onRemove={() => attachmentItems.remove(file.id)}
+        >
+          <AttachmentPreview />
+          <AttachmentRemove />
+        </Attachment>
+      ))}
+    </Attachments>
+  )
+}
+
 function AssistantMessage({
   message,
   setActiveArtifact,
@@ -447,8 +430,6 @@ function AssistantMessage({
   isAnimating?: boolean
   onRegenerate?: (message: UIMessage) => void
 }) {
-  const contentRef = useRef<HTMLDivElement>(null)
-
   const textPart =
     message.parts
       ?.filter(p => p.type === 'text')
@@ -484,24 +465,15 @@ function AssistantMessage({
       }
     | undefined
 
-  const reasoningPart = message.parts?.find(part => part.type === 'reasoning') as
-    | {
-        type: 'reasoning'
-        text: string
-      }
-    | undefined
-
-  const reasoning =
-    reasoningPart?.text ||
-    message.parts
-      ?.filter(p => p.type === 'reasoning')
-      .map(p => (p as { type: 'reasoning'; text: string }).text)
-      .join('') ||
-    ''
+  const reasoningParts = message.parts?.filter(p => p.type === 'reasoning') as Array<{
+    type: 'reasoning'
+    text: string
+  }>
+  const reasoningText = reasoningParts?.map(p => p.text).join('') || ''
+  const hasReasoning = reasoningParts && reasoningParts.length > 0
   const hasArtifact = Boolean(artifactToolCall)
 
   const cleanedText = cleanSuggestionMarkers(textPart)
-  const getHtmlContent = () => contentRef.current?.innerHTML
 
   const toolResultParts =
     (message.parts?.filter(part => part.type === 'tool-result' && isToolUIPart(part)) as Array<{
@@ -522,161 +494,96 @@ function AssistantMessage({
     const title = artifactData?.title
 
     return (
-      <div className="flex items-start gap-2 mt-12">
-        <Image
-          src="/otherdev-chat-logo-32.webp"
-          alt=""
-          width={32}
-          height={32}
-          className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
-        />
-        <div className="w-full max-w-[85%] sm:gap-3 lg:max-w-5xl mx-auto flex flex-col">
-          <div className="flex-1 space-y-3 min-w-0">
-            {reasoning && <ReasoningCollapsible reasoning={reasoning} />}
-            {cleanedText && (
-              <div ref={contentRef}>
-                <div className="max-w-none rounded-lg bg-transparent p-0">
-                  <MarkdownRenderer isAnimating={isAnimating}>{cleanedText}</MarkdownRenderer>
-                </div>
-              </div>
-            )}
-            {artifactToolCall && (
-              <Card
-                onClick={() => {
-                  const result =
-                    artifactToolCall.state === 'output-available'
-                      ? artifactToolCall.output
-                      : artifactToolCall.input
-                  setActiveArtifact({
-                    toolCallId: artifactToolCall.toolCallId,
-                    toolName: 'createArtifact',
-                    state: 'output-available',
-                    // biome-ignore lint/suspicious/noExplicitAny: artifact result type
-                    result: (result ?? artifactToolCall.output) as any,
-                  })
-                }}
-                className="w-full max-w-md cursor-pointer border-border/60 bg-card/50 transition-all duration-200 hover:border-foreground/20 hover:bg-card/80 hover:shadow-sm active:scale-[0.99]"
-              >
-                <CardHeader className="flex-row items-center justify-between gap-4 p-3.5">
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-muted/50">
-                      <FileCode2 className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <CardTitle className="truncate text-sm font-medium leading-tight">
-                        {title || 'View Artifact'}
-                      </CardTitle>
-                      <CardDescription className="mt-1 text-xs">Artifact · HTML</CardDescription>
-                    </div>
+      <Message from="assistant">
+        <MessageContent>
+          {hasReasoning && (
+            <Reasoning isStreaming={isAnimating}>
+              <ReasoningTrigger />
+              <ReasoningContent>{reasoningText}</ReasoningContent>
+            </Reasoning>
+          )}
+          {cleanedText && <MessageResponse isAnimating={isAnimating}>{cleanedText}</MessageResponse>}
+          {artifactToolCall && (
+            <Card
+              onClick={() => {
+                const result =
+                  artifactToolCall.state === 'output-available'
+                    ? artifactToolCall.output
+                    : artifactToolCall.input
+                setActiveArtifact({
+                  toolCallId: artifactToolCall.toolCallId,
+                  toolName: 'createArtifact',
+                  state: 'output-available',
+                  // biome-ignore lint/suspicious/noExplicitAny: artifact result type
+                  result: (result ?? artifactToolCall.output) as any,
+                })
+              }}
+              className="w-full max-w-md cursor-pointer border-border/60 bg-card/50 transition-all duration-200 hover:border-foreground/20 hover:bg-card/80 hover:shadow-sm active:scale-[0.99]"
+            >
+              <CardHeader className="flex-row items-center justify-between gap-4 p-3.5">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-muted/50">
+                    <FileCode2 className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground/60" />
-                </CardHeader>
-              </Card>
-            )}
-            <div className="flex items-center gap-0.5">
-              <button
-                type="button"
-                onClick={() => onRegenerate?.(message)}
-                className="p-1.5 rounded-full hover:bg-accent"
-                aria-label="Regenerate response"
-              >
-                <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="truncate text-sm font-medium leading-tight">
+                      {title || 'View Artifact'}
+                    </CardTitle>
+                    <CardDescription className="mt-1 text-xs">Artifact · HTML</CardDescription>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground/60" />
+              </CardHeader>
+            </Card>
+          )}
+        </MessageContent>
+        <MessageActions>
+          <MessageAction tooltip="Regenerate" onClick={() => onRegenerate?.(message)}>
+            <RotateCcw className="h-3.5 w-3.5" />
+          </MessageAction>
+        </MessageActions>
+      </Message>
     )
   }
 
   return (
-    <div className="flex justify-start items-start gap-2">
-      <Image
-        src="/otherdev-chat-logo-32.webp"
-        alt=""
-        width={32}
-        height={32}
-        className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8"
-        style={{ width: 'auto', height: 'auto' }}
-      />
-      <div className="w-full max-w-[85%] sm:gap-3 lg:max-w-5xl mx-auto flex flex-col">
-        <div className="flex-1 space-y-2 min-w-0">
-          {reasoning && <ReasoningCollapsible reasoning={reasoning} />}
-          {toolResultParts.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {toolResultParts.map((part, i) => {
-                const toolName = part.toolName
-                const isKnowledge = toolName === 'retrieveKnowledge'
-                return (
-                  <div
-                    key={`tool-${part.toolName}-${i}`}
-                    className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
-                  >
-                    <span>{isKnowledge ? 'Knowledge retrieved' : `Tool: ${toolName}`}</span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-          {cleanedText && (
-            <div ref={contentRef}>
-              <div className="max-w-none rounded-lg bg-transparent p-0">
-                <MarkdownRenderer isAnimating={isAnimating}>{cleanedText}</MarkdownRenderer>
-              </div>
-            </div>
-          )}
-          {cleanedText && (
-            <div className="flex items-center gap-0.5">
-              <CopyButton
-                content={cleanedText}
-                htmlContent={getHtmlContent()}
-                copyMessage="Copied response to clipboard"
-              />
-              <button
-                type="button"
-                onClick={() => onRegenerate?.(message)}
-                className="p-1.5 rounded-full hover:bg-accent"
-                aria-label="Regenerate response"
-              >
-                <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function AttachmentChip({ file, onRemove }: { file: File; onRemove: () => void }) {
-  const isImage = file.type.startsWith('image/')
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!isImage) return
-    const url = URL.createObjectURL(file)
-    setPreviewUrl(url)
-    return () => URL.revokeObjectURL(url)
-  }, [isImage, file])
-
-  return (
-    <div className="relative flex group items-center gap-1.5 border rounded-t-xl pb-4 mb-2.5 bg-accent px-2 py-1.5 text-xs text-accent-foreground">
-      {isImage && previewUrl ? (
-        <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-background">
-          <Image src={previewUrl} alt={file.name} fill className="object-contain" unoptimized />
-        </div>
-      ) : (
-        <FileText className="h-6 w-6 shrink-0 opacity-70" />
-      )}
-      <span className="truncate">{file.name}</span>
-      <button
-        type="button"
-        onClick={onRemove}
-        className="ml-auto flex h-8 w-8 items-center justify-center rounded-full hover:bg-foreground/10"
-      >
-        <X className="h-4 w-4" />
-      </button>
-    </div>
+    <Message from="assistant">
+      <MessageContent>
+        {hasReasoning && (
+          <Reasoning isStreaming={isAnimating}>
+            <ReasoningTrigger />
+            <ReasoningContent>{reasoningText}</ReasoningContent>
+          </Reasoning>
+        )}
+        {toolResultParts.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {toolResultParts.map((part, i) => {
+              const toolName = part.toolName
+              const isKnowledge = toolName === 'retrieveKnowledge'
+              return (
+                <div
+                  key={`tool-${part.toolName}-${i}`}
+                  className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
+                >
+                  <span>{isKnowledge ? 'Knowledge retrieved' : `Tool: ${toolName}`}</span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        {cleanedText && <MessageResponse isAnimating={isAnimating}>{cleanedText}</MessageResponse>}
+      </MessageContent>
+      <MessageActions>
+        <MessageAction tooltip="Copy response">
+          <CopyButton content={cleanedText} copyMessage="Copied response to clipboard">
+            <Copy className="h-3.5 w-3.5" />
+          </CopyButton>
+        </MessageAction>
+        <MessageAction tooltip="Regenerate" onClick={() => onRegenerate?.(message)}>
+          <RotateCcw className="h-3.5 w-3.5" />
+        </MessageAction>
+      </MessageActions>
+    </Message>
   )
 }
 
@@ -705,9 +612,7 @@ export function ChatCore({
   // UI state from nanostores
   const suggestion = useStore($suggestion)
   const followUpSuggestions = useStore($followUpSuggestions)
-  const inputValue = useStore($inputValue)
   const inputError = useStore($inputError)
-  const attachments = useStore($attachments)
   const isDragging = useStore($isDragging)
   const isRecording = useStore($isRecording)
   const isRecordingProcessing = useStore($isRecordingProcessing)
@@ -725,8 +630,6 @@ export function ChatCore({
 
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const recorderRef = useRef<VoiceRecorder | null>(null)
-  const contentRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const setActiveArtifact = onArtifactOpen ?? setInternalActiveArtifact
@@ -796,78 +699,10 @@ export function ChatCore({
     }
   }, [messages])
 
-  const { showButton, scrollToBottom } = useScrollToBottom(contentRef)
-  const [newMessageCount, setNewMessageCount] = useState(0)
-
-  useEffect(() => {
-    if (status === 'streaming' && showButton) {
-      setNewMessageCount(prev => prev + 1)
-    } else if (!showButton) {
-      setNewMessageCount(0)
-    }
-  }, [status, showButton])
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files) {
-      $attachments.set([...$attachments.get(), ...Array.from(files)])
-    }
-  }
-
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    $isDragging.set(true)
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX
-    const y = e.clientY
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-      $isDragging.set(false)
-    }
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    $isDragging.set(false)
-
-    const files = e.dataTransfer.files
-    if (files.length > 0) {
-      const acceptedTypes = ['image/', '.pdf', '.txt', '.md', '.js', '.ts', '.json', '.py']
-      const validFiles: File[] = []
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-        const isAccepted = acceptedTypes.some(
-          type => file.type.startsWith(type) || file.name.endsWith(type)
-        )
-        if (isAccepted) {
-          validFiles.push(file)
-        }
-      }
-      if (validFiles.length > 0) {
-        $attachments.set([...$attachments.get(), ...validFiles])
-      }
-    }
-  }
-
-  const removeAttachment = (index: number) => {
-    $attachments.set($attachments.get().filter((_, i) => i !== index))
-  }
-
-  const handleTranscriptReceived = (text: string) => {
+  const handleTranscriptReceived = useCallback((text: string) => {
     $inputValue.set(text)
     inputRef.current?.focus()
-  }
+  }, [])
 
   const handleEditCancel = (_messageId: string) => {
     setEditingMessageId(null)
@@ -936,37 +771,23 @@ export function ChatCore({
     })
   }
 
+  // Upload files and send message
   const handleSubmitWithMessages = async (msgs: ChatUIMessage[], editedUserMsg?: ChatUIMessage) => {
     if (isRecording || isRecordingProcessing) return
-    const value = inputValue.trim()
-    if (!value && attachments.length === 0 && !editedUserMsg) return
-
-    const attachmentsToSend =
-      attachments.length > 0 ? await Promise.all(attachments.map(processAttachment)) : []
-    const fileParts = attachmentsToSend.map(a => ({
-      type: 'file' as const,
-      mediaType: a.contentType,
-      url: a.url,
-      filename: a.name,
-    }))
 
     const lastMsg = editedUserMsg ?? msgs[msgs.length - 1]
-
     const messageText =
       editedUserMsg?.parts
         ?.filter(p => p.type === 'text')
         .map(p => p.text)
         .join(' ')
-        .trim() ?? value
+        .trim() ?? ''
 
-    if (fileParts.length > 0 || messageText) {
+    if (messageText) {
       sendMessage(
         {
           role: 'user',
-          parts: [
-            ...fileParts,
-            ...(messageText ? [{ type: 'text' as const, text: messageText }] : []),
-          ],
+          parts: [{ type: 'text' as const, text: messageText }],
         },
         {
           body: {
@@ -982,11 +803,6 @@ export function ChatCore({
     }
 
     $suggestion.set('')
-    $inputValue.set('')
-    $attachments.set([])
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
   }
 
   const handleStartRecording = async () => {
@@ -1050,87 +866,106 @@ export function ChatCore({
     }
   }
 
-  const handleSubmit = async () => {
-    if (isRecording || isRecordingProcessing) return
-    const value = inputValue.trim()
-    if (!value && attachments.length === 0) return
-
-    if (attachments.length === 0) {
-      sendMessage({ text: value })
-    } else {
-      const processed = await Promise.all(attachments.map(processAttachment))
-      const fileParts = processed.map(a => ({
-        type: 'file' as const,
-        mediaType: a.contentType,
-        url: a.url,
-        filename: a.name,
-      }))
-
-      sendMessage({
-        role: 'user',
-        parts: [...fileParts, { type: 'text' as const, text: value }],
-      })
-    }
-
-    $suggestion.set('')
-    $inputValue.set('')
-    $attachments.set([])
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-  }
-
   const applyFollowUp = (text: string) => {
     $inputValue.set(text)
     $followUpSuggestions.set([])
     inputRef.current?.focus()
   }
 
-  useEffect(() => {
-    const inputElement = inputRef.current
-    if (!inputElement) return
+  // AI Elements PromptInput submit handler
+  const handlePromptSubmit = async (message: { text: string; files: FileUIPart[] }) => {
+    if (isRecording || isRecordingProcessing) return
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const shouldApplySuggestion =
-        (e.key === 'Tab' || e.key === 'ArrowRight') && suggestion && !inputElement.value
-      if (shouldApplySuggestion) {
-        e.preventDefault()
-        $inputValue.set(suggestion)
-        $suggestion.set('')
-      }
+    const hasText = Boolean(message.text.trim())
+    const hasFiles = message.files && message.files.length > 0
+    if (!hasText && !hasFiles) return
 
-      if (e.key === 'ArrowUp' && !inputElement.value && messages.length > 0) {
-        const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')
-        if (lastUserMessage) {
-          const textContent =
-            lastUserMessage.parts
-              ?.filter(p => p.type === 'text')
-              .map(p => p.text)
-              .join('') || ''
-          if (textContent) {
-            e.preventDefault()
-            $inputValue.set(textContent)
-          }
-        }
+    // Process attachments (upload to R2 or convert)
+    const attachmentsToSend =
+      hasFiles
+        ? await Promise.all(
+            message.files.map(async f => {
+              // f is already a FileUIPart from PromptInput — it may have a blob URL
+              // If it has a blob URL, we need to convert it or upload it
+              if (f.url?.startsWith('blob:')) {
+                // It's a local blob — use processAttachment which handles conversion
+                // But processAttachment expects a File, not FileUIPart
+                // We need to fetch the blob and create a File
+                const res = await fetch(f.url)
+                const blob = await res.blob()
+                const file = new File([blob], f.filename || 'file', { type: f.mediaType })
+                return processAttachment(file)
+              }
+              // Already processed (e.g., data: URL or R2 URL)
+              return {
+                url: f.url ?? '',
+                base64: '',
+                name: f.filename || 'file',
+                contentType: f.mediaType,
+              }
+            })
+          )
+        : []
+
+    const fileParts = attachmentsToSend.map(a => ({
+      type: 'file' as const,
+      mediaType: a.contentType,
+      url: a.url,
+      filename: a.name,
+    }))
+
+    sendMessage(
+      {
+        role: 'user',
+        parts: [
+          ...fileParts,
+          ...(hasText ? [{ type: 'text' as const, text: message.text }] : []),
+        ],
+      },
+      {
+        body: {
+          id: chatId,
+          message: messages[messages.length - 1],
+          messages,
+          trigger: 'submit-user-message' as const,
+          supportsArtifacts: true,
+        },
       }
+    )
+
+    $suggestion.set('')
+  }
+
+  // Drag and drop on the region
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    $isDragging.set(true)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX
+    const y = e.clientY
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      $isDragging.set(false)
     }
+  }
 
-    inputElement.addEventListener('keydown', handleKeyDown)
-    return () => inputElement.removeEventListener('keydown', handleKeyDown)
-  }, [suggestion, messages])
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    $isDragging.set(false)
+  }
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [scrollToBottom])
-
-  const isSendDisabled = useMemo(() => {
-    const hasText = inputValue.trim().length > 0
-    const hasValidAttachments = attachments.length > 0
-    const isBlocked = isRecording || isRecordingProcessing
-    return (!hasText && !hasValidAttachments) || isBlocked
-  }, [inputValue, attachments, isRecording, isRecordingProcessing])
-
-  const placeholder = 'Type your message…'
+  const isStreaming = status === 'streaming'
 
   return (
     <div
@@ -1152,135 +987,105 @@ export function ChatCore({
           </div>
         </div>
       )}
-      <ChatContainerRoot className="flex-1 w-full">
-        <ChatContainerContent
-          className="flex-1 scroll-smooth pb-32 sm:pb-40"
-          suppressHydrationWarning
-        >
-          <div ref={contentRef} className="h-full overflow-auto">
-            {messages.length === 0 && showGreeting && (
-              <div className="flex h-full items-center justify-center p-4 sm:p-6 md:p-8 mt-40">
-                <div className="w-full max-w-2xl space-y-6 sm:space-y-8">
-                  <div className="space-y-3 text-center sm:space-y-4">
-                    <div className="flex justify-center">
-                      <Image
-                        src="/otherdev-chat-logo-32.webp"
-                        alt=""
-                        width={32}
-                        height={32}
-                        className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
-                        style={{ width: 'auto', height: 'auto' }}
-                      />
-                    </div>
-                    {greeting ? (
-                      <h2
-                        key={greeting}
-                        className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl animate-in fade-in slide-in-from-bottom-4 duration-500"
-                        suppressHydrationWarning
-                      >
-                        {greeting}
-                      </h2>
-                    ) : (
-                      <div className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl" />
-                    )}
-                    <p className="font-sans text-sm text-muted-foreground sm:text-base">
-                      Ask me anything about Other Dev
-                    </p>
-                  </div>
 
-                  <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-                    {SUGGESTED_PROMPTS.map(suggestionItem => (
-                      <SuggestionButton
-                        key={suggestionItem.label}
-                        display={suggestionItem.label}
-                        prompt={suggestionItem.prompt}
-                        sendMessage={sendMessage}
-                        icon={suggestionItem.icon}
-                      />
-                    ))}
+      <Conversation>
+        <ConversationContent className="flex-1 scroll-smooth pb-32 sm:pb-40">
+          {messages.length === 0 && showGreeting && (
+            <div className="flex h-full items-center justify-center p-4 sm:p-6 md:p-8 mt-40">
+              <div className="w-full max-w-2xl space-y-6 sm:space-y-8">
+                <div className="space-y-3 text-center sm:space-y-4">
+                  <div className="flex justify-center">
+                    <Image
+                      src="/otherdev-chat-logo-32.webp"
+                      alt=""
+                      width={32}
+                      height={32}
+                      className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
+                      style={{ width: 'auto', height: 'auto' }}
+                    />
+                  </div>
+                  {greeting ? (
+                    <h2
+                      key={greeting}
+                      className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl animate-in fade-in slide-in-from-bottom-4 duration-500"
+                      suppressHydrationWarning
+                    >
+                      {greeting}
+                    </h2>
+                  ) : (
+                    <div className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl" />
+                  )}
+                  <p className="font-sans text-sm text-muted-foreground sm:text-base">
+                    Ask me anything about Other Dev
+                  </p>
+                </div>
+
+                <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+                  {SUGGESTED_PROMPTS.map(suggestionItem => (
+                    <SuggestionButton
+                      key={suggestionItem.label}
+                      display={suggestionItem.label}
+                      prompt={suggestionItem.prompt}
+                      sendMessage={sendMessage}
+                      icon={suggestionItem.icon}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-4xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-12">
+            {messages.map((message, index) =>
+              message.role === 'user' ? (
+                <UserMessage
+                  key={message.id}
+                  message={message}
+                  isEditing={message.id === editingMessageId}
+                  onEditConfirm={handleEditConfirm}
+                  onEditCancel={handleEditCancel}
+                  onStartEdit={id => setEditingMessageId(id)}
+                  branchCount={(messageBranches.get(message.id)?.snapshots.length ?? 0) + 1}
+                  branchIndex={messageBranches.get(message.id)?.activeIndex ?? 0}
+                  onBranchSwitch={delta => handleBranchSwitch(message.id, delta)}
+                />
+              ) : (
+                <AssistantMessage
+                  key={message.id}
+                  message={message}
+                  setActiveArtifact={setActiveArtifact}
+                  isAnimating={isStreaming && index === messages.length - 1}
+                  onRegenerate={handleRegenerate}
+                />
+              )
+            )}
+
+            {status === 'submitted' && (
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Brain className="h-6 w-6 flex-shrink-0 text-muted-foreground animate-pulse" />
+                <div className="flex items-center gap-2 font-sans text-xs text-muted-foreground sm:text-sm">
+                  <span className="text-sm">Thinking </span>
+                  <div className="flex gap-1">
+                    <div
+                      className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
+                      style={{ animationDelay: '0ms' }}
+                    />
+                    <div
+                      className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
+                      style={{ animationDelay: '150ms' }}
+                    />
+                    <div
+                      className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
+                      style={{ animationDelay: '300ms' }}
+                    />
                   </div>
                 </div>
               </div>
             )}
-
-            <div className="absolute bottom-0 w-screen h-30 bg-gradient-to-t from-background to-transparent pointer-events-none" />
-            <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-4xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-12">
-              {messages.map((message, index) =>
-                message.role === 'user' ? (
-                  <UserMessage
-                    key={message.id}
-                    message={message}
-                    isEditing={message.id === editingMessageId}
-                    onEditConfirm={handleEditConfirm}
-                    onEditCancel={handleEditCancel}
-                    onStartEdit={id => setEditingMessageId(id)}
-                    branchCount={(messageBranches.get(message.id)?.snapshots.length ?? 0) + 1}
-                    branchIndex={messageBranches.get(message.id)?.activeIndex ?? 0}
-                    onBranchSwitch={delta => handleBranchSwitch(message.id, delta)}
-                  />
-                ) : (
-                  <AssistantMessage
-                    key={message.id}
-                    message={message}
-                    setActiveArtifact={setActiveArtifact}
-                    isAnimating={status === 'streaming' && index === messages.length - 1}
-                    onRegenerate={handleRegenerate}
-                  />
-                )
-              )}
-
-              {status === 'submitted' && (
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <Brain className="h-6 w-6 flex-shrink-0 text-muted-foreground animate-pulse" />
-                  <div className="flex items-center gap-2 font-sans text-xs text-muted-foreground sm:text-sm">
-                    <span className="text-sm">Thinking </span>
-                    <div className="flex gap-1">
-                      <div
-                        className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
-                        style={{ animationDelay: '0ms' }}
-                      />
-                      <div
-                        className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
-                        style={{ animationDelay: '150ms' }}
-                      />
-                      <div
-                        className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
-                        style={{ animationDelay: '300ms' }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
-          <ChatContainerScrollAnchor />
-        </ChatContainerContent>
-      </ChatContainerRoot>
-
-      {showButton && (
-        <button
-          type="button"
-          className="absolute bottom-28 sm:bottom-32 right-4 sm:right-6 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background shadow-lg hover:opacity-90 active:scale-95 transition-all animate-in fade-in zoom-in-95 duration-200"
-          onClick={scrollToBottom}
-          aria-label="Scroll to bottom"
-        >
-          <ChevronDown className="h-4 w-4" />
-        </button>
-      )}
-
-      {newMessageCount > 0 && showButton && status === 'streaming' && (
-        <button
-          type="button"
-          onClick={() => {
-            scrollToBottom()
-            setNewMessageCount(0)
-          }}
-          className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 rounded-full bg-foreground text-background px-4 py-2 text-sm shadow-lg hover:opacity-90 active:scale-95 transition-all animate-in fade-in zoom-in-95 duration-200"
-        >
-          <ChevronDown className="h-4 w-4" />
-          <span>New message</span>
-        </button>
-      )}
+        </ConversationContent>
+        <ConversationScrollButton />
+      </Conversation>
 
       <div className="absolute bottom-0 left-0 right-0 z-10 p-3 sm:p-4 w-full max-w-3xl mx-auto pointer-events-none">
         <div className="space-y-3 pointer-events-auto">
@@ -1295,17 +1100,6 @@ export function ChatCore({
               >
                 <X className="h-4 w-4" />
               </button>
-            </div>
-          )}
-          {attachments.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {attachments.map((file, index) => (
-                <AttachmentChip
-                  key={`${file.name}-${index}`}
-                  file={file}
-                  onRemove={() => removeAttachment(index)}
-                />
-              ))}
             </div>
           )}
 
@@ -1325,82 +1119,48 @@ export function ChatCore({
           )}
         </div>
 
-        <PromptInput className="relative rounded-2xl border-border shadow-sm pointer-events-auto">
-          {recordingStream ? (
-            <VoiceWaveform stream={recordingStream} />
-          ) : (
-            <PromptInputTextarea
-              ref={inputRef}
-              placeholder={placeholder}
-              className="font-sans text-sm sm:text-base"
-              value={inputValue}
-              onChange={e => $inputValue.set(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSubmit()
-                }
-              }}
-              autoFocus
-            />
-          )}
-          <PromptInputActions className="w-full justify-between">
-            <div className="flex gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*,.pdf,.txt,.md,.js,.ts,.json,.py"
-                onChange={handleFileInputChange}
-                className="hidden"
+        <PromptInput
+          className="relative rounded-2xl border-border shadow-sm pointer-events-auto"
+          onSubmit={handlePromptSubmit}
+          accept="image/*,.pdf,.txt,.md,.js,.ts,.json,.py"
+          multiple
+        >
+          <PromptInputHeader>
+            <AttachmentChips />
+          </PromptInputHeader>
+          <PromptInputBody>
+            {recordingStream ? (
+              <VoiceWaveform stream={recordingStream} />
+            ) : (
+              <PromptInputTextarea
+                ref={inputRef}
+                placeholder="Type your message…"
+                className="font-sans text-sm sm:text-base"
+                autoFocus
               />
-              <PromptInputAction tooltip="Attach file">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex h-6 w-6 items-center justify-center text-muted-foreground hover:opacity-70 transition-opacity sm:h-7 sm:w-7"
-                  aria-label="Attach file"
-                >
-                  <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
-                </button>
-              </PromptInputAction>
-              <PromptInputAction tooltip="Use voice mode">
-                <button
-                  type="button"
-                  onClick={isRecording ? handleStopRecording : handleStartRecording}
-                  disabled={isRecordingProcessing}
-                  className={cn(
-                    'flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] disabled:opacity-50 sm:h-7 sm:w-7',
-                    isRecording
-                      ? 'bg-red-500 hover:bg-red-600 text-white'
-                      : 'text-muted-foreground hover:opacity-70'
-                  )}
-                  aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-                >
-                  {isRecording ? (
-                    <Square className="h-3 w-3 sm:h-4 sm:w-4 fill-current" />
-                  ) : (
-                    <AudioLines className="h-4 w-4 sm:h-5 sm:w-5" />
-                  )}
-                </button>
-              </PromptInputAction>
-            </div>
-            <PromptInputAction tooltip="Send message (Enter)">
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={isSendDisabled}
-                className={cn(
-                  'flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] active:scale-[0.98] sm:h-8 sm:w-8',
-                  isSendDisabled
-                    ? 'bg-muted text-muted-foreground hover:opacity-70 disabled:opacity-50'
-                    : 'bg-foreground text-background hover:opacity-90'
-                )}
+            )}
+          </PromptInputBody>
+          <PromptInputFooter>
+            <PromptInputTools>
+              <PromptInputButton
+                tooltip={{ content: 'Attach file', shortcut: '⌘K' }}
               >
-                <ArrowUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              </button>
-            </PromptInputAction>
-          </PromptInputActions>
+                <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
+              </PromptInputButton>
+              <PromptInputButton
+                tooltip={isRecording ? 'Stop recording' : 'Use voice mode'}
+                onClick={isRecording ? handleStopRecording : handleStartRecording}
+                disabled={isRecordingProcessing}
+              >
+                {isRecording ? (
+                  <Square className="h-4 w-4 fill-current sm:h-5 sm:w-5" />
+                ) : (
+                  <AudioLines className="h-4 w-4 sm:h-5 sm:w-5" />
+                )}
+              </PromptInputButton>
+            </PromptInputTools>
+            <PromptInputSubmit status={status} />
+          </PromptInputFooter>
         </PromptInput>
       </div>
     </div>
