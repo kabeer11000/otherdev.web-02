@@ -13,7 +13,6 @@ import {
   Briefcase,
   ChevronRight,
   Code2,
-  Copy,
   FileCode2,
   Globe,
   Paperclip,
@@ -29,7 +28,6 @@ import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-e
 import type { ArtifactToolCall } from '@/components/artifact-renderer'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CopyButton } from '@/components/ui/copy-button'
 import { SUGGESTED_PROMPTS } from '@/lib/constants'
 import { suggestionDataSchema } from '@/lib/schemas'
 import { cleanSuggestionMarkers, cn } from '@/lib/utils'
@@ -513,11 +511,7 @@ function AssistantMessage({
         {cleanedText && <MessageResponse isAnimating={isAnimating}>{cleanedText}</MessageResponse>}
       </MessageContent>
       <MessageActions>
-        <MessageAction tooltip="Copy response">
-          <CopyButton content={cleanedText} copyMessage="Copied response to clipboard">
-            <Copy className="h-3.5 w-3.5" />
-          </CopyButton>
-        </MessageAction>
+        <MessageAction tooltip="Copy response" copyContent={cleanedText} />
         <MessageAction tooltip="Regenerate" onClick={() => onRegenerate?.(message)}>
           <RotateCcw className="h-3.5 w-3.5" />
         </MessageAction>

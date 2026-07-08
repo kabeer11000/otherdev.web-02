@@ -17,7 +17,7 @@ import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
 import type { UIMessage } from "ai";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { Check, ChevronLeftIcon, ChevronRightIcon, Copy } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import {
   createContext,
@@ -80,6 +80,8 @@ export const MessageActions = ({
 export type MessageActionProps = ComponentProps<typeof Button> & {
   tooltip?: string;
   label?: string;
+  /** Inline copy-to-clipboard — renders no child, handles copy on click */
+  copyContent?: string;
 };
 
 export const MessageAction = ({
@@ -88,10 +90,51 @@ export const MessageAction = ({
   label,
   variant = "ghost",
   size = "icon-sm",
+  copyContent,
+  onClick,
   ...props
 }: MessageActionProps) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleClick = useCallback(
+    async (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (copyContent) {
+        await navigator.clipboard.writeText(copyContent);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+      onClick?.(e);
+    },
+    [copyContent, onClick]
+  );
+
+  if (copyContent) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size={size}
+              type="button"
+              variant={variant}
+              onClick={handleClick}
+              aria-label={copied ? "Copied!" : label || tooltip}
+              {...props}
+            >
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              <span className="sr-only">{label || tooltip}</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
   const button = (
-    <Button size={size} type="button" variant={variant} {...props}>
+    <Button size={size} type="button" variant={variant} onClick={onClick} {...props}>
       {children}
       <span className="sr-only">{label || tooltip}</span>
     </Button>
