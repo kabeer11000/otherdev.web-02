@@ -1,15 +1,13 @@
 'use client'
 
-import { useStore } from '@nanostores/react'
 import { Menu, Trash2, X } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { $contactDialogOpen, $mobileMenuOpen } from '@/stores/navigation'
 
 const ContactDialog = dynamic(
   () => import('@/components/contact-dialog').then(mod => mod.ContactDialog),
@@ -29,20 +27,15 @@ export function Navigation({
   onClear,
   hasActiveArtifact = false,
 }: NavigationProps) {
-  const isOpen = useStore($mobileMenuOpen)
-  const contactDialogOpen = useStore($contactDialogOpen)
+  const [isOpen, setIsOpen] = useState(false)
+  const [contactDialogOpen, setContactDialogOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const isAIVariant = variant === 'ai'
 
-  // Sync mobile menu open state to sessionStorage
   useEffect(() => {
     sessionStorage.setItem('mobileMenuOpen', isOpen.toString())
   }, [isOpen])
-
-  const _handleContactClick = () => {
-    $contactDialogOpen.set(true)
-  }
 
   return (
     <nav className="fixed top-[15px] left-0 right-0 z-[60] px-3 pointer-events-none">
@@ -103,7 +96,7 @@ export function Navigation({
         <Button
           variant="nav"
           size="nav-icon"
-          onClick={() => $mobileMenuOpen.set(!isOpen)}
+          onClick={() => setIsOpen(!isOpen)}
           data-slot="nav-item"
           className="text-foreground mr-2"
           aria-label="Toggle menu"
@@ -134,7 +127,7 @@ export function Navigation({
                 size="nav-mobile"
                 className={pathname?.startsWith('/work') ? 'text-foreground' : ''}
               >
-                <Link href="/work" data-slot="nav-item" onClick={() => $mobileMenuOpen.set(false)}>
+                <Link href="/work" data-slot="nav-item" onClick={() => setIsOpen(false)}>
                   work
                 </Link>
               </Button>
@@ -150,7 +143,7 @@ export function Navigation({
                 size="nav-mobile"
                 className={pathname?.startsWith('/about') ? 'text-foreground' : ''}
               >
-                <Link href="/about" data-slot="nav-item" onClick={() => $mobileMenuOpen.set(false)}>
+                <Link href="/about" data-slot="nav-item" onClick={() => setIsOpen(false)}>
                   about
                 </Link>
               </Button>
@@ -165,7 +158,7 @@ export function Navigation({
                 size="nav-mobile"
                 className={pathname?.startsWith('/loom') ? 'text-foreground' : ''}
               >
-                <Link href="/loom" data-slot="nav-item" onClick={() => $mobileMenuOpen.set(false)}>
+                <Link href="/loom" data-slot="nav-item" onClick={() => setIsOpen(false)}>
                   ai
                 </Link>
               </Button>
@@ -183,7 +176,7 @@ export function Navigation({
                 <Link
                   href="/work/ads-portfolio"
                   data-slot="nav-item"
-                  onClick={() => $mobileMenuOpen.set(false)}
+                  onClick={() => setIsOpen(false)}
                 >
                   ads
                 </Link>
@@ -199,7 +192,7 @@ export function Navigation({
                   target="_blank"
                   rel="noopener noreferrer"
                   data-slot="nav-item"
-                  onClick={() => $mobileMenuOpen.set(false)}
+                  onClick={() => setIsOpen(false)}
                 >
                   whatsapp
                 </Link>
@@ -333,7 +326,7 @@ export function Navigation({
         />
       )}
 
-      <ContactDialog open={contactDialogOpen} onOpenChange={open => $contactDialogOpen.set(open)} />
+      <ContactDialog open={contactDialogOpen} onOpenChange={setContactDialogOpen} />
     </nav>
   )
 }

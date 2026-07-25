@@ -5,15 +5,15 @@ import { ChatCore } from '@/components/chat-core'
 import { Card } from '@/components/ui/card'
 import { Z_INDEX } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import { $chatOpen, closeActiveWidget, openChat } from '@/stores/widgets'
 import { MoreHorizontal, X } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import * as React from 'react'
+import { useState } from 'react'
 
 export function ChatWidget() {
   const pathname = usePathname()
-  const isOpen = useStore($chatOpen)
+  const [isOpen, setIsOpen] = useState(false)
   const cardRef = React.useRef<HTMLDivElement>(null)
 
   // Global Cmd/Ctrl+K to open chat
@@ -21,7 +21,7 @@ export function ChatWidget() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        openChat()
+        setIsOpen(true)
       }
     }
     document.addEventListener('keydown', handleKeyDown)
@@ -33,7 +33,7 @@ export function ChatWidget() {
     if (!isOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        closeActiveWidget()
+        setIsOpen(false)
       }
     }
     document.addEventListener('keydown', handleKeyDown)
@@ -53,7 +53,7 @@ export function ChatWidget() {
       {!isOpen ? (
         <button
           type="button"
-          onClick={openChat}
+          onClick={() => setIsOpen(true)}
           className={cn(
             'fixed',
             'bottom-4 right-4',
@@ -123,7 +123,7 @@ export function ChatWidget() {
               </button>
               <button
                 type="button"
-                onClick={closeActiveWidget}
+                onClick={() => setIsOpen(false)}
                 className="bg-transparent border-none hover:opacity-80 hover:scale-95 transition-all cursor-pointer p-0 duration-150"
                 aria-label="Close chat"
               >
