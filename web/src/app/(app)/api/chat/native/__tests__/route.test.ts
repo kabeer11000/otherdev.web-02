@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test, vi } from 'bun:test'
-import { createJsonResponse } from '@/server/lib/api-helpers'
 import { checkRateLimit } from '@/server/lib/rate-limit'
 
 // Mock the rate-limit module
@@ -191,7 +190,7 @@ describe('POST /api/chat/native', () => {
     })
     vi.mocked(handleStreamChat).mockResolvedValue({
       ok: false,
-      errorResponse: createJsonResponse({ message: 'Hello!' }, 200),
+      errorResponse: Response.json({ message: 'Hello!' }, { status: 200 }),
       suggestions: [],
       rateLimit: { limit: 60, remaining: 59 },
     })

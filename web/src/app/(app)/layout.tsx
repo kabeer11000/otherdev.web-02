@@ -8,7 +8,6 @@ import { Suspense } from 'react'
 import { QueryProvider } from '@/components/providers'
 import { SITE_URL } from '@/lib/constants'
 import { buildSocialMetadata, DEFAULT_SITE_DESCRIPTION } from '@/lib/metadata'
-import { TenantProvider } from '@/lib/tenant-context'
 
 // Lazy load ChatWidget - client-only component
 const ChatWidget = dynamic(() => import('@/components/chat-widget').then(mod => mod.ChatWidget), {
@@ -108,18 +107,16 @@ export default function RootLayout({
         <meta name="view-transition" content="same-origin" />
       </head>
       <body className="antialiased bg-background">
-        <TenantProvider initialDomain="otherdev.com">
-          <QueryProvider>
-            <Suspense fallback={null}>{children}</Suspense>
-            <ChatWidget />
-            {/* AgentWidget - ElevenLabs sales agent widget
-            <AgentWidget
-              agentId={process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID}
-              avatarUrl="/otherdev-chat-logo-32.webp"
-            />
-            */}
-          </QueryProvider>
-        </TenantProvider>
+        <QueryProvider>
+          <Suspense fallback={null}>{children}</Suspense>
+          <ChatWidget />
+          {/* AgentWidget - ElevenLabs sales agent widget
+          <AgentWidget
+            agentId={process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID}
+            avatarUrl="/otherdev-chat-logo-32.webp"
+          />
+          */}
+        </QueryProvider>
         <GoogleAnalytics gaId="G-YXVG798Y18" />
       </body>
     </html>

@@ -2,7 +2,6 @@ import { mistral } from '@ai-sdk/mistral'
 import { generateText } from 'ai'
 import type { NextRequest } from 'next/server'
 import { OCR_DOCUMENT_TYPES, SUPPORTED_IMAGE_TYPES } from '@/lib/file-processor'
-import { createJsonResponse } from '@/server/lib/api-helpers'
 
 const FILE_SIZE_LIMIT = 50 * 1024 * 1024 // 50MB
 
@@ -14,22 +13,22 @@ export async function POST(request: NextRequest): Promise<Response> {
     const file = formData.get('file') as File | null
 
     if (!file) {
-      return createJsonResponse({ error: 'No file provided' }, 400)
+      return Response.json({ error: 'No file provided' }, { status: 400 })
     }
 
     if (file.size > FILE_SIZE_LIMIT) {
-      return createJsonResponse({ error: 'File exceeds 50MB limit' }, 400)
+      return Response.json({ error: 'File exceeds 50MB limit' }, { status: 400 })
     }
 
     const mimeType = file.type.split(';')[0].toLowerCase()
 
     if (!OCR_MIME_TYPES.has(mimeType)) {
-      return createJsonResponse({ error: `Unsupported file type for OCR: ${file.type}` }, 400)
+      return Response.json({ error: `Unsupported file type for OCR: ${file.type}` }, { status: 400 })
     }
 
     const apiKey = process.env.MISTRAL_API_KEY
     if (!apiKey) {
-      return createJsonResponse({ error: 'Mistral API key not configured' }, 500)
+      return Response.json({ error: 'Mistral API key not configured' }, { status: 500 })
     }
 
     // Read file as ArrayBuffer
@@ -57,9 +56,9 @@ export async function POST(request: NextRequest): Promise<Response> {
       ],
     })
 
-    return createJsonResponse({ text }, 200)
+    return Response.json({ text })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'OCR failed'
-    return createJsonResponse({ error: errorMessage }, 500)
+    return Response.json({ error: errorMessage }, { status: 500 })
   }
 }

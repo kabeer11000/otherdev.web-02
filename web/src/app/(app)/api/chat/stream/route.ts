@@ -1,7 +1,6 @@
 import { type UIMessage } from 'ai'
 import { suggestionDataSchema } from '@/lib/schemas'
-import { createJsonResponse } from '@/server/lib/api-helpers'
-import { buildUIMessageStreamResponse, handleStreamChat } from '@/server/lib/chat'
+import { buildUIMessageStreamResponse, handleStreamChat } from '@/server/lib/chat/stream-handler'
 import { replaceMessageAtId } from '@/server/lib/chat/message-utils'
 import {
   createArtifactTool,
@@ -29,12 +28,18 @@ export async function POST(request: Request): Promise<Response> {
 
     if (!rateLimitResult.allowed) {
       const retryAfter = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
-      return createJsonResponse({ error: 'Too many requests. Please try again later.' }, 429, {
-        'Retry-After': retryAfter.toString(),
-        'X-RateLimit-Limit': REQUESTS_PER_WINDOW.toString(),
-        'X-RateLimit-Remaining': '0',
-        'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
-      })
+      return Response.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': retryAfter.toString(),
+            'X-RateLimit-Limit': REQUESTS_PER_WINDOW.toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          },
+        }
+      )
     }
 
     const body = (await request.json()) as RequestBody
@@ -50,9 +55,9 @@ export async function POST(request: Request): Promise<Response> {
       // Industry-standard replace-and-replay: client sends full history + the messageId to edit
       // We slice at messageId, replace with the new content, and re-run the model.
       if (!body.messageId || !Array.isArray(body.messages)) {
-        return createJsonResponse(
+        return Response.json(
           { error: 'messageId and messages required for edit-message' },
-          400
+          { status: 400 }
         )
       }
       candidateMessages = replaceMessageAtId(body.messages, body.messageId, body.message!)
@@ -62,7 +67,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     if (candidateMessages.length === 0) {
-      return createJsonResponse({ error: 'No messages provided' }, 400)
+      return Response.json({ error: 'No messages provided' }, { status: 400 })
     }
 
     // Filter to only valid messages
@@ -82,7 +87,7 @@ export async function POST(request: Request): Promise<Response> {
     })
 
     if (candidateMessages.length === 0) {
-      return createJsonResponse({ error: 'No valid messages provided' }, 400)
+      return Response.json({ error: 'No valid messages provided' }, { status: 400 })
     }
 
     // For submit: save AFTER streaming via onFinish (industry standard)
@@ -102,6 +107,6 @@ export async function POST(request: Request): Promise<Response> {
     return buildUIMessageStreamResponse(textResult, candidateMessages, suggestions)
   } catch (error) {
     console.error('Chat API error:', error)
-    return createJsonResponse({ error: 'Internal server error. Please try again.' }, 500)
+    return Response.json({ error: 'Internal server error. Please try again.' }, { status: 500 })
   }
 }

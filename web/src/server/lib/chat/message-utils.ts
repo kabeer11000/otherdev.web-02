@@ -12,7 +12,6 @@ export function replaceMessageAtId(
 ): UIMessage[] {
   const index = messages.findIndex(m => m.id === messageId)
   if (index === -1) return messages
-  const sliced = messages.slice(0, index + 1)
-  sliced[index] = replacement
-  return sliced
+  messages.splice(index, 1, replacement)
+  return messages
 }

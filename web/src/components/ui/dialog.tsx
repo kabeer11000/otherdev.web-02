@@ -14,10 +14,6 @@ function DialogTrigger({ ...props }: React.ComponentProps<typeof Dialog.Trigger>
   return <Dialog.Trigger data-slot="dialog-trigger" {...props} />
 }
 
-function DialogPortal({ children }: React.PropsWithChildren) {
-  return <>{children}</>
-}
-
 function DialogClose({ ...props }: React.ComponentProps<typeof Dialog.Close>) {
   return <Dialog.Close data-slot="dialog-close" {...props} />
 }
@@ -120,7 +116,6 @@ export {
   DialogFooter,
   DialogHeader,
   DialogOverlay,
-  DialogPortal,
   DialogRoot as Dialog,
   DialogTitle,
   DialogTrigger,

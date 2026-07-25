@@ -18,7 +18,6 @@ import { minimaxOpenAI } from 'vercel-minimax-ai-provider'
 import { createWorkersAI } from 'workers-ai-provider'
 import { z } from 'zod'
 
-import { createJsonResponse } from '@/server/lib/api-helpers'
 import { checkRateLimit, getClientIdentifier, REQUESTS_PER_WINDOW } from '@/server/lib/rate-limit'
 import { CF_FALLBACK_MODEL } from './models'
 import { createArtifactTool, retrieveKnowledgeTool, tavilySearchTool } from './tools'
@@ -187,14 +186,16 @@ export async function handleStreamChat({
     const retryAfter = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
     return {
       ok: false,
-      errorResponse: createJsonResponse(
+      errorResponse: Response.json(
         { error: 'Too many requests. Please try again later.' },
-        429,
         {
-          'Retry-After': retryAfter.toString(),
-          'X-RateLimit-Limit': REQUESTS_PER_WINDOW.toString(),
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          status: 429,
+          headers: {
+            'Retry-After': retryAfter.toString(),
+            'X-RateLimit-Limit': REQUESTS_PER_WINDOW.toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          },
         }
       ),
       suggestions: [],
@@ -237,7 +238,7 @@ export async function handleStreamChat({
       console.error('[VALIDATION] Invalid chat messages:', error.message)
       return {
         ok: false,
-        errorResponse: createJsonResponse({ error: 'Invalid message payload' }, 400),
+        errorResponse: Response.json({ error: 'Invalid message payload' }, { status: 400 }),
         suggestions: [],
         rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: rateLimitResult.remaining },
       }
@@ -312,9 +313,9 @@ export async function handleStreamChat({
     console.error('[chat] stream failed:', err)
     return {
       ok: false,
-      errorResponse: createJsonResponse(
+      errorResponse: Response.json(
         { error: 'AI service temporarily unavailable. Please try again.' },
-        503
+        { status: 503 }
       ),
       suggestions: [],
       rateLimit: { limit: REQUESTS_PER_WINDOW, remaining: rateLimitResult.remaining },

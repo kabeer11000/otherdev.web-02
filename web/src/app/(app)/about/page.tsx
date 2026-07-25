@@ -35,8 +35,11 @@ type AboutData = {
 
 export const revalidate = 604800
 
+// Call once, share between generateMetadata and AboutPage
+const getAbout = () => getAboutContent()
+
 export async function generateMetadata(): Promise<Metadata> {
-  const about: AboutData = await getAboutContent()
+  const about: AboutData = await getAbout()
 
   if (!about) {
     return { title: 'About | Other Dev' }
@@ -58,7 +61,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AboutPage() {
-  const about: AboutData = await getAboutContent()
+  const about: AboutData = await getAbout()
 
   if (!about || !about.heroImage) {
     return (

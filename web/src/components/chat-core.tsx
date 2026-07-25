@@ -878,36 +878,9 @@ export function ChatCore({
     })
     if (!response.ok) throw new Error('Transcription failed')
 
-    let fullTranscript = ''
-    const reader = response.body?.getReader()
-    if (!reader) throw new Error('Response body is not readable')
-
-    const decoder = new TextDecoder()
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      const chunk = decoder.decode(value, { stream: true })
-      // SSE lines: data: {"type":"transcript-chunk","content":"..."}
-      for (const line of chunk.split('\n')) {
-        const trimmed = line.trim()
-        if (!trimmed.startsWith('data:')) continue
-        try {
-          const json = JSON.parse(trimmed.slice(5))
-          if (json.type === 'transcript-chunk' && typeof json.content === 'string') {
-            fullTranscript += json.content
-            $inputValue.set(fullTranscript)
-          } else if (json.type === 'transcript-complete' && typeof json.content === 'string') {
-            fullTranscript = json.content
-            $inputValue.set(fullTranscript)
-          }
-        } catch {
-          // skip malformed lines
-        }
-      }
-    }
-
-    return fullTranscript
+    const { text } = await response.json()
+    $inputValue.set(text)
+    return text
   }, [])
 
   // Drag and drop on the region
@@ -1102,7 +1075,10 @@ export function ChatCore({
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>
-              <PromptInputButton tooltip={{ content: 'Attach file', shortcut: '⌘K' }}>
+              <PromptInputButton
+                tooltip={{ content: 'Attach file', shortcut: '⌘K' }}
+                onClick={() => usePromptInputAttachments().openFileDialog()}
+              >
                 <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
               </PromptInputButton>
               <SpeechInput

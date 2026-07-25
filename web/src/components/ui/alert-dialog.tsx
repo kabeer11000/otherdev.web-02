@@ -14,10 +14,6 @@ function AlertDialogTrigger({ ...props }: React.ComponentProps<typeof Dialog.Tri
   return <Dialog.Trigger data-slot="alert-dialog-trigger" {...props} />
 }
 
-function AlertDialogPortal({ children }: React.PropsWithChildren) {
-  return <>{children}</>
-}
-
 function AlertDialogOverlay({ className, ...props }: React.ComponentProps<typeof Dialog.Backdrop>) {
   return (
     <Dialog.Backdrop
@@ -121,7 +117,6 @@ export {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogOverlay,
-  AlertDialogPortal,
   AlertDialogTitle,
   AlertDialogTrigger,
 }

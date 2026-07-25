@@ -68,7 +68,7 @@ export async function collectionExists(): Promise<boolean> {
  */
 function filterCacheKey(filter?: SearchFilter): string {
   if (!filter) return ''
-  return JSON.stringify(filter) ?? ''
+  return JSON.stringify(filter)
 }
 
 export async function searchSimilarDocuments(

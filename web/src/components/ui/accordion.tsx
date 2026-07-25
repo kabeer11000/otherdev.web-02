@@ -6,15 +6,6 @@ import type * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function AccordionRoot({
-  multiple,
-  ...props
-}: React.ComponentProps<typeof Accordion.Root> & {
-  multiple?: boolean
-}) {
-  return <Accordion.Root data-slot="accordion" multiple={multiple} {...props} />
-}
-
 function AccordionItem({ className, ...props }: React.ComponentProps<typeof Accordion.Item>) {
   return (
     <Accordion.Item
@@ -63,4 +54,4 @@ function AccordionContent({
   )
 }
 
-export { AccordionContent, AccordionItem, AccordionRoot as Accordion, AccordionTrigger }
+export { AccordionContent, AccordionItem, Accordion.Root as Accordion, AccordionTrigger }

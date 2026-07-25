@@ -38,7 +38,4 @@ function PopoverContent({
   )
 }
 
-// PopoverAnchor is not available in @base-ui/react — positioning is handled via Popover.Positioner
-const PopoverAnchor = () => null
-
-export { PopoverAnchor, PopoverContent, PopoverRoot as Popover, PopoverTrigger }
+export { PopoverContent, PopoverRoot as Popover, PopoverTrigger }

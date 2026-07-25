@@ -32,16 +32,9 @@ export async function checkRateLimit(
 }
 
 export function getClientIdentifier(request: Request): string {
-  const forwardedFor = request.headers.get('x-forwarded-for')
-  const realIp = request.headers.get('x-real-ip')
-
-  if (forwardedFor) {
-    return forwardedFor.split(',')[0].trim()
-  }
-
-  if (realIp) {
-    return realIp.trim()
-  }
-
-  return 'unknown'
+  // Vercel always sets x-forwarded-for / x-real-ip — no fallback needed
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+    request.headers.get('x-real-ip')?.trim()!
+  )
 }

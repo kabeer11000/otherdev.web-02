@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: 'https://otherdev.com/about',
-      lastModified: new Date('2025-01-01'),
+      lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.7,
     },
@@ -40,7 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: 'https://otherdev.com/loom',
-      lastModified: new Date('2025-06-01'),
+      lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.6,
     },
