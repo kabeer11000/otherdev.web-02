@@ -1,15 +1,15 @@
 'use client'
 
-import { useStore } from '@nanostores/react'
-import { MoreHorizontal, X } from 'lucide-react'
-import Image from 'next/image'
-import { usePathname } from 'next/navigation'
-import * as React from 'react'
+import { PromptInputProvider } from '@/components/ai-elements/prompt-input'
 import { ChatCore } from '@/components/chat-core'
 import { Card } from '@/components/ui/card'
 import { Z_INDEX } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { $chatOpen, closeActiveWidget, openChat } from '@/stores/widgets'
+import { MoreHorizontal, X } from 'lucide-react'
+import Image from 'next/image'
+import { usePathname } from 'next/navigation'
+import * as React from 'react'
 
 export function ChatWidget() {
   const pathname = usePathname()
@@ -133,7 +133,9 @@ export function ChatWidget() {
           </div>
 
           <div className="flex-1 flex relative overflow-hidden">
-            <ChatCore showGreeting={true} className="w-full" />
+            <PromptInputProvider>
+              <ChatCore showGreeting={true} className="w-full" />
+            </PromptInputProvider>
           </div>
         </Card>
       ) : null}

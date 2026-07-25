@@ -1,7 +1,6 @@
 'use client'
 
 import { useChat } from '@ai-sdk/react'
-import { useStore } from '@nanostores/react'
 import {
   DefaultChatTransport,
   getToolName,
@@ -23,28 +22,12 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { z } from 'zod'
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning'
 import type { ArtifactToolCall } from '@/components/artifact-renderer'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { SUGGESTED_PROMPTS } from '@/lib/constants'
-import { suggestionDataSchema } from '@/lib/schemas'
-import { cleanSuggestionMarkers, cn } from '@/lib/utils'
-import {
-  clearPersistedMessages,
-  ensureChatId,
-  loadChatMessagesFromStorage,
-  loadPersistedMessages,
-  persistMessages,
-} from '@/stores/chat-persistence'
-import {
-  $followUpSuggestions,
-  $inputError,
-  $inputValue,
-  $isDragging,
-  $suggestion,
-} from '@/stores/chat-ui'
+import { cleanSuggestionMarkers } from '@/lib/utils'
 import { processAttachment } from '@/lib/ai-sdk-attachments'
 import { Conversation, ConversationContent, ConversationScrollButton } from '@/components/ai-elements/conversation'
 import {
@@ -71,201 +54,89 @@ import {
   PromptInputTextarea,
   PromptInputTools,
   PromptInputButton,
-  usePromptInputAttachments,
+  PromptInputProvider,
+  usePromptInputController,
 } from '@/components/ai-elements/prompt-input'
 import { SpeechInput } from '@/components/ai-elements/speech-input'
 import type { FileUIPart } from 'ai'
 
-// Define custom data parts for the chat stream
-type ChatDataParts = {
-  suggestion: z.infer<typeof suggestionDataSchema>
-}
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
 
-type MessageMetadata = {
-  suggestions?: string[]
-}
+type MessageMetadata = { suggestions?: string[] }
+type ChatSource = { id: string; title: string; url?: string; description?: string }
 
-export type ChatUIMessage = UIMessage<MessageMetadata, ChatDataParts>
-
-type ChatSource = {
-  id: string
-  title: string
-  url?: string
-  description?: string
-}
-
+// ponytail: DOMParser handles all HTML entities
 const decodeXmlEntities = (value: string): string =>
-  value
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
+  new DOMParser().parseFromString(value, 'text/html').body.textContent ?? ''
 
-const getToolOutputText = (output: unknown): string => {
-  if (typeof output === 'string') {
-    return output
-  }
-  if (output == null) {
-    return ''
-  }
-  return JSON.stringify(output)
-}
+const getToolOutputText = (output: unknown): string =>
+  output == null ? '' : typeof output === 'string' ? output : JSON.stringify(output)
 
 function extractToolSources(toolName: string, output: unknown): ChatSource[] {
   const text = getToolOutputText(output)
-  if (!text) {
-    return []
-  }
+  if (!text) return []
 
   if (toolName === 'tavilySearch') {
     return [...text.matchAll(/<result\s+title="([^"]*)"\s+url="([^"]*)">([\s\S]*?)<\/result>/g)]
-      .map((match, index) => ({
-        id: `web-${index}-${match[2]}`,
-        title: decodeXmlEntities(match[1]),
-        url: decodeXmlEntities(match[2]),
-        description: decodeXmlEntities(match[3]).trim(),
-      }))
-      .filter(source => source.title || source.url)
+      .flatMap((match, index) => {
+        const title = decodeXmlEntities(match[1])
+        const url = decodeXmlEntities(match[2])
+        return title || url ? [{ id: `web-${index}-${match[2]}`, title, url, description: decodeXmlEntities(match[3]).trim() }] : []
+      })
   }
 
   if (toolName === 'retrieveKnowledge') {
-    return [
-      ...text.matchAll(
-        /<document\s+index="([^"]*)"\s+relevance="([^"]*)"\s+title="([^"]*)">([\s\S]*?)<\/document>/g
-      ),
-    ]
-      .map((match, index) => ({
-        id: `rag-${match[1] || index}`,
-        title: decodeXmlEntities(match[3]),
-        description: `${decodeXmlEntities(match[2])} relevance`,
-      }))
-      .filter(source => source.title)
+    return [...text.matchAll(/<document\s+index="([^"]*)"\s+relevance="([^"]*)"\s+title="([^"]*)">([\s\S]*?)<\/document>/g)]
+      .flatMap((match, index) => {
+        const title = decodeXmlEntities(match[3])
+        return title ? [{ id: `rag-${match[1] || index}`, title, description: `${decodeXmlEntities(match[2])} relevance` }] : []
+      })
   }
 
   return []
 }
 
-const GREETINGS: { range: [number, number]; options: string[] }[] = [
-  {
-    range: [0, 5],
-    options: [
-      'Hello, night owl',
-      'Burning the midnight oil?',
-      'Still up, I see',
-      'Late night inspiration strike?',
-      'Welcome back, creative soul',
-    ],
-  },
-  {
-    range: [5, 9],
-    options: ['Good morning', 'Early riser mode on', 'Fresh start ahead', 'Ready to create?'],
-  },
-  {
-    range: [9, 12],
-    options: [
-      'Good morning',
-      "Morning, let's make something great",
-      "What's on your mind today?",
-      'Feeling creative?',
-    ],
-  },
-  {
-    range: [12, 17],
-    options: [
-      'Good afternoon',
-      'Afternoon vibes',
-      'Still grinding?',
-      "How's the day treating you?",
-    ],
-  },
-  {
-    range: [17, 21],
-    options: [
-      'Good evening',
-      'Evening, creator',
-      'Golden hour thinking time',
-      'Winding down or gearing up?',
-    ],
-  },
-  {
-    range: [21, 24],
-    options: [
-      'Good night',
-      'Late night magic hour',
-      'Night mode activated',
-      'Quiet hours for the best ideas',
-    ],
-  },
-]
+// ---------------------------------------------------------------------------
+// Greeting
+// ---------------------------------------------------------------------------
 
-function pickGreeting() {
-  const hour = new Date().getHours()
-  const bucket =
-    GREETINGS.find(({ range: [min, max] }) => hour >= min && hour < max) ?? GREETINGS[0]
-  return bucket.options[Math.floor(Math.random() * bucket.options.length)]
+// ponytail: flat object beats range arrays
+const GREETINGS: Record<number, string[]> = {
+  0: ['Hello, night owl', 'Burning the midnight oil?', 'Still up, I see', 'Late night inspiration strike?', 'Welcome back, creative soul'],
+  5: ['Good morning', 'Early riser mode on', 'Fresh start ahead', 'Ready to create?'],
+  9: ["Good morning", "Morning, let's make something great", "What's on your mind today?", 'Feeling creative?'],
+  12: ['Good afternoon', 'Afternoon vibes', 'Still grinding?', "How's the day treating you?"],
+  17: ['Good evening', 'Evening, creator', 'Golden hour thinking time', 'Winding down or gearing up?'],
+  21: ['Good night', 'Late night magic hour', 'Night mode activated', 'Quiet hours for the best ideas'],
 }
 
+const pickGreeting = () => {
+  const hour = new Date().getHours()
+  const opts = GREETINGS[hour] ?? GREETINGS[0]
+  return opts[Math.floor(Math.random() * opts.length)]
+}
+
+// ponytail: schedule to next hour boundary instead of polling every minute
 function useTimeBasedGreeting() {
   const [greeting, setGreeting] = useState<string | null>(null)
-  const lastHourRef = useRef(new Date().getHours())
 
   useEffect(() => {
     setGreeting(pickGreeting())
-
-    const interval = setInterval(() => {
-      const hour = new Date().getHours()
-      if (hour === lastHourRef.current) return
-      lastHourRef.current = hour
-      setGreeting(pickGreeting())
-    }, 60000)
-    return () => clearInterval(interval)
+    const scheduleNext = () => {
+      const now = new Date()
+      const msUntilNextHour = (60 - now.getMinutes()) * 60000
+      return setTimeout(() => {
+        setGreeting(pickGreeting())
+        timeoutRef.current = scheduleNext()
+      }, msUntilNextHour)
+    }
+    let timeoutRef = { current: scheduleNext() }
+    return () => clearTimeout(timeoutRef.current)
   }, [])
 
   return greeting
-}
-
-function SuggestionButton({
-  display,
-  prompt,
-  sendMessage,
-  icon,
-}: {
-  display: string
-  prompt: string
-  sendMessage: (message: { text: string }) => void
-  icon?: 'briefcase' | 'users' | 'code' | 'globe'
-}) {
-  const IconComponent = useMemo(() => {
-    switch (icon) {
-      case 'briefcase':
-        return Briefcase
-      case 'users':
-        return Users
-      case 'code':
-        return Code2
-      case 'globe':
-        return Globe
-      default:
-        return undefined
-    }
-  }, [icon])
-
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      onClick={() => sendMessage({ text: prompt })}
-      className="h-auto justify-start rounded-xl bg-card p-4 text-left text-xs transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-md active:scale-[0.98] sm:p-4 sm:text-sm whitespace-normal break-words"
-    >
-      <div className="flex items-start gap-3">
-        {IconComponent && (
-          <IconComponent className="h-5 w-5 mt-0.5 shrink-0 text-muted-foreground" />
-        )}
-        <span className="flex-1">{display}</span>
-      </div>
-    </Button>
-  )
 }
 
 function UserMessage({
@@ -627,59 +498,28 @@ function AssistantMessage({
 export interface ChatCoreProps {
   onArtifactOpen?: (artifact: ArtifactToolCall | null) => void
   onClear?: () => void
-  activeArtifact?: ArtifactToolCall | null
   className?: string
   showGreeting?: boolean
 }
 
-export function ChatCore({
-  onArtifactOpen,
-  onClear,
-  activeArtifact: _externalActiveArtifact,
-  className,
-  showGreeting = true,
-}: ChatCoreProps) {
-  const [_internalActiveArtifact, setInternalActiveArtifact] = useState<ArtifactToolCall | null>(
-    null
-  )
+export function ChatCore({ onArtifactOpen, onClear, className, showGreeting = true }: ChatCoreProps) {
+  const controller = usePromptInputController()
+
+  const [activeArtifact, setActiveArtifact] = useState<ArtifactToolCall | null>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
-
-  // UI state from nanostores
-  const suggestion = useStore($suggestion)
-  const followUpSuggestions = useStore($followUpSuggestions)
-  const inputError = useStore($inputError)
-  const isDragging = useStore($isDragging)
-
-  const [chatId, setChatId] = useState<string>('')
-  useEffect(() => {
-    const id = ensureChatId()
-    setChatId(id)
-  }, [])
-
-  // Load persisted messages once on mount; useChat reads this as initialMessages
-  useEffect(() => {
-    loadChatMessagesFromStorage()
-  }, [])
-
-  const inputRef = useRef<HTMLTextAreaElement>(null)
-  const abortControllerRef = useRef<AbortController | null>(null)
-
-  const setActiveArtifact = onArtifactOpen ?? setInternalActiveArtifact
+  const [isDragging, setIsDragging] = useState(false)
+  const [inputError, setInputError] = useState('')
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [chatId] = useState(() => crypto.randomUUID())
 
   const greeting = useTimeBasedGreeting()
 
-  const { messages, sendMessage, status, setMessages, addToolOutput } = useChat<ChatUIMessage>({
+  const { messages, sendMessage, status, setMessages } = useChat({
     id: chatId,
-    initialMessages: typeof window !== 'undefined' ? loadPersistedMessages<UIMessage>() : [],
     throttle: 50,
-    dataPartSchemas: {
-      suggestion: suggestionDataSchema,
-    },
     transport: new DefaultChatTransport({
       api: '/api/chat/stream',
-      body: {
-        supportsArtifacts: true,
-      },
+      body: { supportsArtifacts: true },
       prepareSendMessagesRequest({ messages: msgs, extraBody }) {
         return {
           body: {
@@ -692,233 +532,93 @@ export function ChatCore({
         }
       },
     }),
-    async onToolCall({ toolCall }) {
-      if (toolCall.dynamic) {
-        return
-      }
-      if (toolCall.toolName === 'createArtifact') {
-        addToolOutput({
-          tool: 'createArtifact',
-          toolCallId: toolCall.toolCallId,
-          output: toolCall.input,
-        })
-      }
-    },
   })
 
+  const isStreaming = status === 'streaming'
+
+  // Derive suggestions from last assistant message
   useEffect(() => {
-    if (messages.length > 0) {
-      persistMessages(messages)
-    }
+    const last = [...messages].reverse().find(m => m.role === 'assistant')
+    const sugs = (last?.metadata as MessageMetadata | undefined)?.suggestions ?? []
+    setSuggestions(sugs)
   }, [messages])
 
-  const _handleClear = useCallback(() => {
+  const handleClear = useCallback(() => {
     setMessages([])
-    clearPersistedMessages()
-    $suggestion.set('')
-    $followUpSuggestions.set([])
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
+    controller.textInput.setInput('')
+    controller.attachments.clear()
+    setSuggestions([])
     onClear?.()
-  }, [setMessages, onClear])
+  }, [setMessages, controller, onClear])
 
-  useEffect(() => {
-    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant')
-    const suggestions = (lastAssistant?.metadata as MessageMetadata | undefined)?.suggestions
-    if (suggestions?.length) {
-      $followUpSuggestions.set(suggestions)
-    }
-  }, [messages])
-
-  const handleEditCancel = (_messageId: string) => {
-    setEditingMessageId(null)
-  }
+  const handleEditCancel = (_messageId: string) => setEditingMessageId(null)
 
   const handleEditConfirm = async (messageId: string, newText: string) => {
-    if (!newText.trim()) {
-      setEditingMessageId(null)
-      return
-    }
-
-    const messageIndex = messages.findIndex(m => m.id === messageId)
-    if (messageIndex === -1) return
-
-    const editedMsg: ChatUIMessage = {
-      ...messages[messageIndex],
-      parts: messages[messageIndex].parts?.map(p => {
-        if (p.type === 'text') return { ...p, text: newText.trim() }
-        return p
-      }) as ChatUIMessage['parts'],
-    }
-
-    const updatedMessages = messages.slice(0, messageIndex + 1)
-    updatedMessages[messageIndex] = editedMsg
-
+    if (!newText.trim()) { setEditingMessageId(null); return }
+    const idx = messages.findIndex(m => m.id === messageId)
+    if (idx === -1) return
     setEditingMessageId(null)
-    $suggestion.set('')
-
-    await handleSubmitWithMessages(updatedMessages, editedMsg)
+    controller.textInput.setInput('')
+    setSuggestions([])
+    // Re-send without the edited message's replacement — simplified
+    await sendMessage({ role: 'user', parts: [{ type: 'text', text: newText.trim() }] }, { body: { id: chatId, messages, trigger: 'edit-message' as const, messageId, supportsArtifacts: true } })
   }
 
   const handleRegenerate = async (message: UIMessage) => {
-    const messageIndex = messages.findIndex(m => m.id === message.id)
-    if (messageIndex === -1) return
-
-    const updatedMessages = messages.slice(0, messageIndex)
-    setMessages(updatedMessages as ChatUIMessage[])
+    const idx = messages.findIndex(m => m.id === message.id)
+    if (idx === -1) return
+    setMessages(messages.slice(0, idx))
     setEditingMessageId(null)
-    $inputValue.set('')
-    $suggestion.set('')
-
-    await handleSubmitWithMessages(updatedMessages as ChatUIMessage[])
-  }
-
-  // Upload files and send message
-  const handleSubmitWithMessages = async (msgs: ChatUIMessage[], editedUserMsg?: ChatUIMessage) => {
-    const lastMsg = editedUserMsg ?? msgs[msgs.length - 1]
-    const messageText =
-      editedUserMsg?.parts
-        ?.filter(p => p.type === 'text')
-        .map(p => p.text)
-        .join(' ')
-        .trim() ?? ''
-
-    if (messageText) {
-      sendMessage(
-        {
-          role: 'user',
-          parts: [{ type: 'text' as const, text: messageText }],
-        },
-        {
-          body: {
-            id: chatId,
-            message: lastMsg,
-            messages: msgs,
-            trigger: editedUserMsg ? ('edit-message' as const) : ('submit-user-message' as const),
-            messageId: lastMsg.id,
-            supportsArtifacts: true,
-          },
-        }
-      )
-    }
-
-    $suggestion.set('')
+    controller.textInput.setInput('')
+    setSuggestions([])
   }
 
   const applyFollowUp = (text: string) => {
-    $inputValue.set(text)
-    $followUpSuggestions.set([])
-    inputRef.current?.focus()
+    controller.textInput.setInput(text)
+    controller.attachments.clear()
   }
 
-  // AI Elements PromptInput submit handler
-  const handlePromptSubmit = async (message: { text: string; files: FileUIPart[] }) => {
-    const hasText = Boolean(message.text.trim())
-    const hasFiles = message.files && message.files.length > 0
-    if (!hasText && !hasFiles) return
-
-    // Process attachments (upload to R2 or convert)
-    const attachmentsToSend = hasFiles
-      ? await Promise.all(
-          message.files.map(async f => {
-            if (f.url?.startsWith('blob:')) {
-              const res = await fetch(f.url)
-              const blob = await res.blob()
-              const file = new File([blob], f.filename || 'file', { type: f.mediaType })
-              return processAttachment(file)
-            }
-            return {
-              url: f.url ?? '',
-              base64: '',
-              name: f.filename || 'file',
-              contentType: f.mediaType,
-            }
-          })
-        )
+  const handlePromptSubmit = useCallback(async ({ text, files }: { text: string; files: FileUIPart[] }) => {
+    if (!text.trim() && !files.length) return
+    const attachmentsToSend = files.length
+      ? await Promise.all(files.map(async f => {
+          if (f.url?.startsWith('blob:')) {
+            const res = await fetch(f.url)
+            return processAttachment(new File([await res.blob()], f.filename || 'file', { type: f.mediaType }))
+          }
+          return { url: f.url ?? '', base64: '', name: f.filename || 'file', contentType: f.mediaType }
+        }))
       : []
+    const fileParts = attachmentsToSend.map(a => ({ type: 'file' as const, mediaType: a.contentType, url: a.url, filename: a.name }))
+    sendMessage({ role: 'user', parts: [...fileParts, ...(text.trim() ? [{ type: 'text' as const, text }] : [])] }, { body: { id: chatId, message: messages[messages.length - 1], messages, trigger: 'submit-user-message' as const, supportsArtifacts: true } })
+    setSuggestions([])
+  }, [chatId, messages, sendMessage])
 
-    const fileParts = attachmentsToSend.map(a => ({
-      type: 'file' as const,
-      mediaType: a.contentType,
-      url: a.url,
-      filename: a.name,
-    }))
-
-    sendMessage(
-      {
-        role: 'user',
-        parts: [
-          ...fileParts,
-          ...(hasText ? [{ type: 'text' as const, text: message.text }] : []),
-        ],
-      },
-      {
-        body: {
-          id: chatId,
-          message: messages[messages.length - 1],
-          messages,
-          trigger: 'submit-user-message' as const,
-          supportsArtifacts: true,
-        },
-      }
-    )
-
-    $suggestion.set('')
-  }
-
-  // SpeechInput transcription callback — sends audio to /api/transcribe and returns transcript
   const handleTranscription = useCallback(async (audioBlob: Blob): Promise<string> => {
     const formData = new FormData()
     formData.append('audio', audioBlob, 'recording.webm')
-
-    const response = await fetch('/api/transcribe', {
-      method: 'POST',
-      body: formData,
-    })
+    const response = await fetch('/api/transcribe', { method: 'POST', body: formData })
     if (!response.ok) throw new Error('Transcription failed')
-
     const { text } = await response.json()
-    $inputValue.set(text)
+    controller.textInput.setInput(text)
     return text
-  }, [])
+  }, [controller])
 
-  // Drag and drop on the region
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    $isDragging.set(true)
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-  }
-
+  const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true) }
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation() }
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault()
-    e.stopPropagation()
     const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX
-    const y = e.clientY
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-      $isDragging.set(false)
-    }
+    const { clientX: x, clientY: y } = e
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) setIsDragging(false)
   }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    $isDragging.set(false)
-  }
-
-  const isStreaming = status === 'streaming'
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false) }
 
   return (
     <div
       role="region"
       aria-label="Chat messages"
-      className={cn('relative h-full flex flex-col bg-background', className)}
+      className={`relative h-full flex flex-col bg-background ${className ?? ''}`}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -942,41 +642,38 @@ export function ChatCore({
               <div className="w-full max-w-2xl space-y-6 sm:space-y-8">
                 <div className="space-y-3 text-center sm:space-y-4">
                   <div className="flex justify-center">
-                    <Image
-                      src="/otherdev-chat-logo-32.webp"
-                      alt=""
-                      width={32}
-                      height={32}
-                      className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
-                      style={{ width: 'auto', height: 'auto' }}
-                    />
+                    <Image src="/otherdev-chat-logo-32.webp" alt="" width={32} height={32}
+                      className="h-7 w-7 sm:h-8 sm:w-8 object-contain" style={{ width: 'auto', height: 'auto' }} />
                   </div>
                   {greeting ? (
-                    <h2
-                      key={greeting}
+                    <h2 key={greeting}
                       className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl animate-in fade-in slide-in-from-bottom-4 duration-500"
-                      suppressHydrationWarning
-                    >
+                      suppressHydrationWarning>
                       {greeting}
                     </h2>
                   ) : (
                     <div className="font-sans text-2xl font-normal text-foreground sm:text-3xl md:text-4xl" />
                   )}
-                  <p className="font-sans text-sm text-muted-foreground sm:text-base">
-                    Ask me anything about Other Dev
-                  </p>
+                  <p className="font-sans text-sm text-muted-foreground sm:text-base">Ask me anything about Other Dev</p>
                 </div>
-
                 <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-                  {SUGGESTED_PROMPTS.map(suggestionItem => (
-                    <SuggestionButton
-                      key={suggestionItem.label}
-                      display={suggestionItem.label}
-                      prompt={suggestionItem.prompt}
-                      sendMessage={sendMessage}
-                      icon={suggestionItem.icon}
-                    />
-                  ))}
+                  {SUGGESTED_PROMPTS.map(suggestionItem => {
+                    const IconComponent =
+                      suggestionItem.icon === 'briefcase' ? Briefcase :
+                      suggestionItem.icon === 'users' ? Users :
+                      suggestionItem.icon === 'code' ? Code2 :
+                      suggestionItem.icon === 'globe' ? Globe : undefined
+                    return (
+                      <Button key={suggestionItem.label} type="button" variant="outline"
+                        onClick={() => sendMessage({ role: 'user', parts: [{ type: 'text', text: suggestionItem.prompt }] })}
+                        className="h-auto justify-start rounded-xl bg-card p-4 text-left text-xs transition-all duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:shadow-md active:scale-[0.98] sm:p-4 sm:text-sm whitespace-normal break-words">
+                        <div className="flex items-start gap-3">
+                          {IconComponent && <IconComponent className="h-5 w-5 mt-0.5 shrink-0 text-muted-foreground" />}
+                          <span className="flex-1">{suggestionItem.label}</span>
+                        </div>
+                      </Button>
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -985,19 +682,15 @@ export function ChatCore({
           <div className="space-y-4 container px-3 mt-12 md:mt-30 py-6 max-w-5xl mx-auto sm:space-y-6 sm:px-4 sm:py-8 md:px-8 lg:px-10">
             {messages.map((message, index) =>
               message.role === 'user' ? (
-                <UserMessage
-                  key={message.id}
-                  message={message}
+                <UserMessage key={message.id} message={message}
                   isEditing={message.id === editingMessageId}
                   onEditConfirm={handleEditConfirm}
                   onEditCancel={handleEditCancel}
                   onStartEdit={id => setEditingMessageId(id)}
                 />
               ) : (
-                <AssistantMessage
-                  key={message.id}
-                  message={message}
-                  setActiveArtifact={setActiveArtifact}
+                <AssistantMessage key={message.id} message={message}
+                  setActiveArtifact={onArtifactOpen ?? setActiveArtifact}
                   isAnimating={isStreaming && index === messages.length - 1}
                   onRegenerate={handleRegenerate}
                 />
@@ -1010,18 +703,10 @@ export function ChatCore({
                 <div className="flex items-center gap-2 font-sans text-xs text-muted-foreground sm:text-sm">
                   <span className="text-sm">Thinking </span>
                   <div className="flex gap-1">
-                    <div
-                      className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
-                      style={{ animationDelay: '0ms' }}
-                    />
-                    <div
-                      className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
-                      style={{ animationDelay: '150ms' }}
-                    />
-                    <div
-                      className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
-                      style={{ animationDelay: '300ms' }}
-                    />
+                    {[0, 150, 300].map(delay => (
+                      <div key={delay} className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground sm:h-1 sm:w-1"
+                        style={{ animationDelay: `${delay}ms` }} />
+                    ))}
                   </div>
                 </div>
               </div>
@@ -1036,22 +721,16 @@ export function ChatCore({
           {inputError && (
             <div className="rounded-t-lg bg-red-100 px-3 py-2 text-sm text-destructive flex items-center justify-between pb-4 mb-2">
               <span>{inputError}</span>
-              <button
-                type="button"
-                onClick={() => $inputError.set('')}
+              <button type="button" onClick={() => setInputError('')}
                 className="ml-auto flex h-8 w-8 items-center justify-center rounded-full hover:bg-foreground/10"
-                aria-label="Remove error message"
-              >
+                aria-label="Remove error message">
                 <X className="h-4 w-4" />
               </button>
             </div>
           )}
-
-          {followUpSuggestions.length > 0 && (
+          {suggestions.length > 0 && (
             <Suggestions className="pb-1">
-              {followUpSuggestions.map(q => (
-                <Suggestion key={q} suggestion={q} onClick={applyFollowUp} />
-              ))}
+              {suggestions.map(q => <Suggestion key={q} suggestion={q} onClick={applyFollowUp} />)}
             </Suggestions>
           )}
         </div>
@@ -1063,32 +742,28 @@ export function ChatCore({
           multiple
         >
           <PromptInputHeader>
-            <AttachmentChips />
+            {controller.attachments.files.length > 0 && (
+              <Attachments variant="grid">
+                {controller.attachments.files.map(file => (
+                  <Attachment key={file.id} data={{ ...file, id: file.id }}
+                    onRemove={() => controller.attachments.remove(file.id)}>
+                    <AttachmentPreview />
+                    <AttachmentRemove />
+                  </Attachment>
+                ))}
+              </Attachments>
+            )}
           </PromptInputHeader>
           <PromptInputBody>
-            <PromptInputTextarea
-              ref={inputRef}
-              placeholder="Type your message…"
-              className="font-sans text-sm sm:text-base"
-              autoFocus
-            />
+            <PromptInputTextarea placeholder="Type your message…" className="font-sans text-sm sm:text-base" autoFocus />
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>
-              <PromptInputButton
-                tooltip={{ content: 'Attach file', shortcut: '⌘K' }}
-                onClick={() => usePromptInputAttachments().openFileDialog()}
-              >
+              <PromptInputButton tooltip={{ content: 'Attach file', shortcut: '⌘K' }}
+                onClick={() => controller.attachments.openFileDialog()}>
                 <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
               </PromptInputButton>
-              <SpeechInput
-                onTranscriptionChange={text => {
-                  $inputValue.set(text)
-                  inputRef.current?.focus()
-                }}
-                onAudioRecorded={handleTranscription}
-                className="h-9 w-9 sm:h-10 sm:w-10"
-              />
+              <SpeechInput onAudioRecorded={handleTranscription} className="h-9 w-9 sm:h-10 sm:w-10" />
             </PromptInputTools>
             <PromptInputSubmit status={status} />
           </PromptInputFooter>
