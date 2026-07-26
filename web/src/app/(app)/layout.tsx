@@ -14,13 +14,6 @@ const ChatWidget = dynamic(() => import('@/components/chat-widget').then(mod => 
   loading: () => null,
 })
 
-// Lazy load AgentWidget - ElevenLabs sales agent widget
-const AgentWidget = dynamic(
-  () => import('@/components/agent-widget').then(mod => mod.AgentWidget),
-  {
-    loading: () => null,
-  }
-)
 
 const sourceSerif = Source_Serif_4({
   subsets: ['latin'],
