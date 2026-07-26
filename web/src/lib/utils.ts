@@ -23,7 +23,7 @@ export function stripMarkdown(text: string): string {
 // Posted by ChristopheD, modified by community. See post 'Timeline' for change history
 // Retrieved 2025-11-12, License - CC BY-SA 4.0
 export function cleanSuggestionMarkers(content: string): string {
-  return content.replace(/\s*SUGGESTION:[\s\S]*$/i, '').trim()
+  return content.split(/SUGGESTION:/i)[0].trim()
 }
 
 export function shuffle<T>(array: T[]): T[] {

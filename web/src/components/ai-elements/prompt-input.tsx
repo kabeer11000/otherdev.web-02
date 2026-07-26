@@ -49,7 +49,7 @@ import {
   SquareIcon,
   XIcon,
 } from "lucide-react";
-import { nanoid } from "nanoid";
+import { randomUUID } from "crypto";
 import type {
   ChangeEvent,
   ChangeEventHandler,
@@ -271,7 +271,7 @@ export const PromptInputProvider = ({
       ...prev,
       ...incoming.map((file) => ({
         filename: file.name,
-        id: nanoid(),
+        id: randomUUID(),
         mediaType: file.type,
         type: "file" as const,
         url: URL.createObjectURL(file),
@@ -614,7 +614,7 @@ export const PromptInput = ({
         for (const file of capped) {
           next.push({
             filename: file.name,
-            id: nanoid(),
+            id: randomUUID(),
             mediaType: file.type,
             type: "file",
             url: URL.createObjectURL(file),

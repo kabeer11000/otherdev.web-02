@@ -6,7 +6,6 @@ import { seoPlugin } from '@payloadcms/plugin-seo'
 import {
   BlocksFeature,
   CodeBlock,
-  EXPERIMENTAL_TableFeature,
   FixedToolbarFeature,
   lexicalEditor,
 } from '@payloadcms/richtext-lexical'

@@ -1,5 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
-import { AbortError } from 'p-retry'
+import { describe, expect, mock, test } from 'bun:test'
 
 // Mock the AI SDK's embed and embedMany
 const mockEmbed = mock(() => Promise.resolve({ embedding: [0.1, 0.2, 0.3, 0.4] }))
@@ -214,8 +213,8 @@ describe('RAG Embeddings', () => {
     })
   })
 
-  describe('circuit breaker', () => {
-    test('circuit breaker is accessible (module loads without error)', async () => {
+  describe('generateEmbedding', () => {
+    test('module loads without error', async () => {
       const embeddings = await import('../embeddings')
       expect(typeof embeddings.generateEmbedding).toBe('function')
     })
